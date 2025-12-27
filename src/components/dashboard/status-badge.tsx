@@ -1,0 +1,28 @@
+import { Badge } from '@/components/ui/badge'
+
+type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived'
+
+interface StatusBadgeProps {
+  status: ProjectStatus
+  className?: string
+}
+
+export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const variantMap = {
+    draft: 'secondary' as const,
+    active: 'default' as const,
+    completed: 'success' as const,
+    archived: 'outline' as const,
+  }
+
+  const variant = variantMap[status] || 'outline'
+
+  return (
+    <Badge
+      variant={variant}
+      className={`capitalize text-xs h-5 !rounded-sm ${className || ''}`}
+    >
+      {status}
+    </Badge>
+  )
+}

@@ -1,0 +1,241 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+
+interface DownloadFile {
+    id: string
+    name: string
+    size: number
+    type: string
+    storagePath: string
+}
+
+/**
+ * Upload a file to Supabase Storage for a file_download block
+ * Path: {organizationId}/{projectId}/downloads/{blockId}/{uuid}-{filename}
+ */
+export async function uploadFileToDownloadBlock(
+    blockId: string,
+    projectId: string,
+    organizationId: string,
+    file: File
+) {
+    const supabase = await createClient()
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: 'Not authenticated' }
+    }
+
+    try {
+        // Generate unique file path
+        const fileExt = file.name.split('.').pop()
+        const fileName = file.name.replace(`.${fileExt}`, '')
+        const uniqueId = crypto.randomUUID()
+        const storagePath = `${organizationId}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`
+
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('project-files')
+            .upload(storagePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            })
+
+        if (uploadError) {
+            console.error('Upload error:', uploadError)
+            return { error: uploadError.message }
+        }
+
+        // Get the block's current content
+        const { data: block, error: blockError } = await supabase
+            .from('blocks')
+            .select('content')
+            .eq('id', blockId)
+            .single()
+
+        if (blockError) {
+            return { error: blockError.message }
+        }
+
+        // Create new file object
+        const newFile: DownloadFile = {
+            id: uniqueId,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            storagePath: uploadData.path
+        }
+
+        // Update block content with new file
+        const currentFiles = (block.content?.files || []) as DownloadFile[]
+        const updatedContent = {
+            ...block.content,
+            files: [...currentFiles, newFile]
+        }
+
+        const { error: updateError } = await supabase
+            .from('blocks')
+            .update({ content: updatedContent })
+            .eq('id', blockId)
+
+        if (updateError) {
+            // Try to clean up uploaded file
+            await supabase.storage.from('project-files').remove([storagePath])
+            return { error: updateError.message }
+        }
+
+        revalidatePath(`/dashboard/projects/${projectId}`)
+
+        return { success: true, file: newFile }
+    } catch (error) {
+        console.error('Upload failed:', error)
+        return { error: 'Upload failed' }
+    }
+}
+
+/**
+ * Remove a file from a file_download block
+ */
+export async function removeFileFromDownloadBlock(
+    blockId: string,
+    projectId: string,
+    fileId: string
+) {
+    const supabase = await createClient()
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: 'Not authenticated' }
+    }
+
+    try {
+        // Get the block's current content
+        const { data: block, error: blockError } = await supabase
+            .from('blocks')
+            .select('content')
+            .eq('id', blockId)
+            .single()
+
+        if (blockError) {
+            return { error: blockError.message }
+        }
+
+        const currentFiles = (block.content?.files || []) as DownloadFile[]
+        const fileToRemove = currentFiles.find(f => f.id === fileId)
+
+        if (!fileToRemove) {
+            return { error: 'File not found' }
+        }
+
+        // Remove file from storage
+        const { error: storageError } = await supabase.storage
+            .from('project-files')
+            .remove([fileToRemove.storagePath])
+
+        if (storageError) {
+            console.error('Storage removal error:', storageError)
+            // Continue anyway - we still want to update the block
+        }
+
+        // Update block content
+        const updatedContent = {
+            ...block.content,
+            files: currentFiles.filter(f => f.id !== fileId)
+        }
+
+        const { error: updateError } = await supabase
+            .from('blocks')
+            .update({ content: updatedContent })
+            .eq('id', blockId)
+
+        if (updateError) {
+            return { error: updateError.message }
+        }
+
+        revalidatePath(`/dashboard/projects/${projectId}`)
+
+        return { success: true }
+    } catch (error) {
+        console.error('Remove file failed:', error)
+        return { error: 'Remove failed' }
+    }
+}
+
+/**
+ * Get a signed download URL for a file
+ */
+export async function getDownloadUrl(storagePath: string) {
+    const supabase = await createClient()
+
+    try {
+        const { data, error } = await supabase.storage
+            .from('project-files')
+            .createSignedUrl(storagePath, 3600) // 1 hour expiry
+
+        if (error) {
+            console.error('Signed URL error:', error)
+            return { error: error.message }
+        }
+
+        return { url: data.signedUrl }
+    } catch (error) {
+        console.error('Get download URL failed:', error)
+        return { error: 'Failed to get download URL' }
+    }
+}
+
+/**
+ * Update file_download block metadata (title, description)
+ */
+export async function updateFileDownloadBlock(
+    blockId: string,
+    projectId: string,
+    updates: { title?: string; description?: string }
+) {
+    const supabase = await createClient()
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: 'Not authenticated' }
+    }
+
+    try {
+        // Get current content
+        const { data: block, error: blockError } = await supabase
+            .from('blocks')
+            .select('content')
+            .eq('id', blockId)
+            .single()
+
+        if (blockError) {
+            return { error: blockError.message }
+        }
+
+        // Update content
+        const updatedContent = {
+            ...block.content,
+            ...updates
+        }
+
+        const { error: updateError } = await supabase
+            .from('blocks')
+            .update({ content: updatedContent })
+            .eq('id', blockId)
+
+        if (updateError) {
+            return { error: updateError.message }
+        }
+
+        revalidatePath(`/dashboard/projects/${projectId}`)
+
+        return { success: true }
+    } catch (error) {
+        console.error('Update failed:', error)
+        return { error: 'Update failed' }
+    }
+}

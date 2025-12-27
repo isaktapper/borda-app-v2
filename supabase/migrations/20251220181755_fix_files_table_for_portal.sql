@@ -1,0 +1,2 @@
+-- Reverted: The portal is now private (Step 17). 
+-- This file is kept but emptied to avoid breaking anything if it was already applied.
