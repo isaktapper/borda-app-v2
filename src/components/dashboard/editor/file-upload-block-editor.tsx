@@ -92,17 +92,17 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="description">Beskrivning (valfritt)</Label>
+                <Label htmlFor="description">Description (optional)</Label>
                 <Textarea
                     id="description"
-                    placeholder="t.ex. Ladda upp er logga i SVG eller PNG-format"
+                    placeholder="e.g. Upload your logo in SVG or PNG format"
                     value={content.description || ''}
                     onChange={(e) => onChange({ ...content, description: e.target.value })}
                 />
             </div>
 
             <div className="space-y-3">
-                <Label>Tillåtna filtyper</Label>
+                <Label>Allowed file types</Label>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {FILE_TYPE_GROUPS.map((group) => {
                         const Icon = group.icon
@@ -138,7 +138,7 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
 
             {/* Visual Preview for Client */}
             <div className="pt-4 border-t border-dashed">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Förhandsgranskning i kundportalen</Label>
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Preview i kundportalen</Label>
                 <div className="rounded-xl border-2 border-dashed bg-muted/30 p-8 flex flex-col items-center justify-center text-center opacity-70 grayscale-[0.5]">
                     <div className="p-4 rounded-full bg-background shadow-sm mb-4">
                         <Upload className="size-6 text-primary" />
@@ -147,7 +147,7 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
                         <h4 className="font-bold text-foreground/80">{content.label || 'Vad ska laddas upp?'}</h4>
                         {content.description && <p className="text-sm text-muted-foreground">{content.description}</p>}
                         <p className="text-[10px] text-muted-foreground/60 italic pt-2">
-                            Kunden laddar upp sina filer här i portalen.
+                            The customer uploads their files here in the portal.
                         </p>
                     </div>
                 </div>

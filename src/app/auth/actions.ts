@@ -11,7 +11,7 @@ export async function login(formData: FormData) {
     const password = formData.get('password') as string
 
     if (!email || !password) {
-        return { error: 'Ange både e-post och lösenord.' }
+        return { error: 'Please enter both email and password.' }
     }
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -24,7 +24,7 @@ export async function login(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect('/projects')
 }
 
 export async function signup(formData: FormData) {
@@ -35,11 +35,11 @@ export async function signup(formData: FormData) {
     const fullName = formData.get('fullName') as string
 
     if (!email || !password || !fullName) {
-        return { error: 'Vänligen fyll i alla fält.' }
+        return { error: 'Please fill in all fields.' }
     }
 
     if (password.length < 8) {
-        return { error: 'Lösenordet måste vara minst 8 tecken.' }
+        return { error: 'Password must be at least 8 characters.' }
     }
 
     const { error } = await supabase.auth.signUp({

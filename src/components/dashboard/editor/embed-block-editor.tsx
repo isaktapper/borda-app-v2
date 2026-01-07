@@ -25,7 +25,7 @@ interface EmbedBlockEditorProps {
 const EMBED_TYPES = [
     { id: 'video', label: 'Video (Loom, YouTube, Vimeo)', icon: Video },
     { id: 'calendar', label: 'Kalender (Calendly, Cal.com)', icon: Calendar },
-    { id: 'generic', label: 'Annan länk (iframe)', icon: Globe },
+    { id: 'generic', label: 'Other link (iframe)', icon: Globe },
 ]
 
 export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
@@ -70,13 +70,13 @@ export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
         <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                    <Label>Innehållstyp</Label>
+                    <Label>Content type</Label>
                     <Select
                         value={content.type || 'generic'}
                         onValueChange={(val: any) => onChange({ ...content, type: val })}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder="Välj typ" />
+                            <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
                             {EMBED_TYPES.map((t) => (
@@ -108,13 +108,13 @@ export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
                         )}
                     </div>
                     {!isValidUrl && (
-                        <p className="text-[10px] text-destructive font-medium uppercase tracking-wider">Ogiltig länk</p>
+                        <p className="text-[10px] text-destructive font-medium uppercase tracking-wider">Invalid link</p>
                     )}
                 </div>
             </div>
 
             <div className="space-y-2">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Förhandsgranskning</Label>
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Preview</Label>
                 <div className="aspect-video w-full rounded-xl border-2 border-dashed bg-muted/20 overflow-hidden flex items-center justify-center relative min-h-[200px] max-h-[400px]">
                     {content.url && isValidUrl ? (
                         <iframe
@@ -127,8 +127,8 @@ export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
                     ) : (
                         <div className="flex flex-col items-center gap-2 text-muted-foreground/40 p-12 text-center">
                             <ExternalLink className="size-8" />
-                            <p className="text-sm font-medium">Ange en URL ovan för att förhandsgranska</p>
-                            <p className="text-xs italic underline underline-offset-4 decoration-dotted">Tips: Loom-delningslänkar fungerar direkt!</p>
+                            <p className="text-sm font-medium">Enter a URL above to preview</p>
+                            <p className="text-xs italic underline underline-offset-4 decoration-dotted">Tip: Loom sharing links work directly!</p>
                         </div>
                     )}
                 </div>

@@ -1,15 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { CheckSquare, MessageSquare, Upload, ListChecks } from 'lucide-react'
+import { CheckSquare, MessageSquare, Upload } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ActionSection } from './action-section'
-import { TaskRow, QuestionRow, FileUploadRow, ChecklistRow } from './action-rows'
+import { TaskRow, FormFieldRow, FileUploadRow } from './action-rows'
 import { ActionDrawer } from './action-drawer'
 import { ActionItemsByPage } from './action-items-by-page'
-import type { ActionItemsData, ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/dashboard/projects/[projectId]/action-items-actions'
+import type { ActionItemsData, ActionItem, TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
 
-type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
+type ActionType = 'task' | 'formField' | 'fileUpload'
 
 interface ActionItemsOverviewProps {
   data: ActionItemsData
@@ -41,7 +41,7 @@ export function ActionItemsOverview({ data, projectId }: ActionItemsOverviewProp
     return (
       <div className="rounded-lg border border-dashed border-border p-12 text-center">
         <p className="text-muted-foreground">
-          No action items in this project yet. Add tasks, questions, file uploads, or checklists to your pages to track them here.
+          No action items in this project yet. Add tasks, form fields, or file uploads to your pages to track them here.
         </p>
       </div>
     )
@@ -82,52 +82,35 @@ export function ActionItemsOverview({ data, projectId }: ActionItemsOverviewProp
               />
             )}
 
-            {/* Questions Section */}
-            {data.byType.questions.length > 0 && (
+            {/* Form Fields Section */}
+            {(data.byType.formFields?.length || 0) > 0 && (
               <ActionSection
-                title="Questions"
+                title="Form Fields"
                 icon={<MessageSquare className="h-5 w-5" />}
-                progress={data.totals.questions}
-                items={data.byType.questions}
-                renderItem={(question) => (
-                  <QuestionRow
-                    key={question.id}
-                    question={question}
-                    onClick={() => openDrawer('question', question)}
+                progress={data.totals.formFields}
+                items={data.byType.formFields || []}
+                renderItem={(formField) => (
+                  <FormFieldRow
+                    key={formField.id}
+                    formField={formField}
+                    onClick={() => openDrawer('formField', formField)}
                   />
                 )}
               />
             )}
 
             {/* File Uploads Section */}
-            {data.byType.fileUploads.length > 0 && (
+            {(data.byType.fileUploads?.length || 0) > 0 && (
               <ActionSection
                 title="File Uploads"
                 icon={<Upload className="h-5 w-5" />}
                 progress={data.totals.fileUploads}
-                items={data.byType.fileUploads}
+                items={data.byType.fileUploads || []}
                 renderItem={(fileUpload) => (
                   <FileUploadRow
                     key={fileUpload.id}
                     fileUpload={fileUpload}
                     onClick={() => openDrawer('fileUpload', fileUpload)}
-                  />
-                )}
-              />
-            )}
-
-            {/* Checklists Section */}
-            {data.byType.checklists.length > 0 && (
-              <ActionSection
-                title="Checklists"
-                icon={<ListChecks className="h-5 w-5" />}
-                progress={data.totals.checklists}
-                items={data.byType.checklists}
-                renderItem={(checklist) => (
-                  <ChecklistRow
-                    key={checklist.id}
-                    checklist={checklist}
-                    onClick={() => openDrawer('checklist', checklist)}
                   />
                 )}
               />

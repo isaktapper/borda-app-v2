@@ -56,7 +56,7 @@ export async function createOrganization(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect('/projects')
 }
 
 export async function joinOrganization(formData: FormData) {
@@ -85,5 +85,5 @@ export async function joinOrganization(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/dashboard')
+    redirect('/projects')
 }

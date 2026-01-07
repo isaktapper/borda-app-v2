@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { CheckSquare, MessageSquare, Upload, ListChecks, Download, Square } from 'lucide-react'
 import { format } from 'date-fns'
-import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/dashboard/projects/[projectId]/action-items-actions'
+import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
 
 type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
 

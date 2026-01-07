@@ -55,12 +55,13 @@ export const updateSession = async (request: NextRequest) => {
     const publicRoutes = ['/login', '/signup', '/verify', '/auth/callback', '/']
     const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
 
-    // Protected routes
-    const isDashboardRoute = path.startsWith('/dashboard')
+    // Protected routes (all app routes that require auth)
+    const protectedRoutes = ['/projects', '/templates', '/settings']
+    const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
     const isPortalRoute = path.startsWith('/portal')
 
-    // 1. Dashboard Protection (Supabase Auth)
-    if (isDashboardRoute && !user) {
+    // 1. Protected Routes (Supabase Auth)
+    if (isProtectedRoute && !user) {
         url.pathname = '/login'
         url.searchParams.set('redirect', path)
         return NextResponse.redirect(url)
@@ -87,12 +88,12 @@ export const updateSession = async (request: NextRequest) => {
         }
     }
 
-    // 3. Auth Routes (Redirect to dashboard if already logged in as staff)
+    // 3. Auth Routes (Redirect to projects if already logged in as staff)
     const authRoutes = ['/login', '/signup', '/verify']
     const isAuthRoute = authRoutes.some(route => path.startsWith(route))
 
     if (user && isAuthRoute) {
-        url.pathname = '/dashboard'
+        url.pathname = '/projects'
         return NextResponse.redirect(url)
     }
 

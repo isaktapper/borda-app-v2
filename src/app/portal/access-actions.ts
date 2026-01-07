@@ -4,6 +4,15 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { createPortalSession } from '@/lib/portal-auth'
 import { randomUUID } from 'crypto'
 import { redirect } from 'next/navigation'
+import bcrypt from 'bcryptjs'
+
+export interface PortalAccessSettings {
+    accessMode: 'public' | 'restricted'
+    hasPassword: boolean
+    requireEmailForAnalytics: boolean
+    projectStatus: string
+    clientName: string
+}
 
 export async function validatePortalToken(projectId: string, token: string) {
     const supabase = await createAdminClient()
@@ -21,11 +30,11 @@ export async function validatePortalToken(projectId: string, token: string) {
 
     // Block access to draft and archived projects
     if (project.status === 'draft') {
-        return { error: 'Portalen är inte redo än. Kontakta ditt team för mer information.' }
+        return { error: 'Portal is not ready yet. Contact your team for more information.' }
     }
 
     if (project.status === 'archived') {
-        return { error: 'Detta projekt är avslutat och inte längre tillgängligt.' }
+        return { error: 'This project is archived and no longer available.' }
     }
 
     // 2. Find and validate token
@@ -39,7 +48,7 @@ export async function validatePortalToken(projectId: string, token: string) {
         .single()
 
     if (fetchError || !tokenRecord) {
-        return { error: 'Länken är ogiltig eller har gått ut.' }
+        return { error: 'Link is invalid or has expired.' }
     }
 
     // 2. Mark token as used
@@ -79,7 +88,7 @@ export async function requestPortalAccess(projectId: string, email: string) {
     if (memberError || !member) {
         // We return success anyway to prevent email enumeration, 
         // but we only send the link if they are actually a member.
-        return { success: true, message: 'Om din e-postadress finns i vårt system har vi skickat en länk!' }
+        return { success: true, message: "If your email is in our system, we've sent you a link!" }
     }
 
     // 2. Generate new token
@@ -98,11 +107,162 @@ export async function requestPortalAccess(projectId: string, email: string) {
 
     if (tokenError) {
         console.error('Error creating portal token:', tokenError)
-        return { error: 'Något gick fel vid generering av länk.' }
+        return { error: 'Something went wrong generating the link.' }
     }
 
     // 3. TODO: Send Email (using Resend or similar email service)
     const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${projectId}/access?token=${token}`
 
-    return { success: true, message: 'Vi har skickat en ny åtkomstlänk till din e-post!' }
+    return { success: true, message: "We've sent a new access link to your email!" }
+}
+
+/**
+ * Get portal access settings for the access page
+ */
+export async function getPortalAccessSettings(projectId: string): Promise<
+    { success: true; data: PortalAccessSettings } | { success: false; error: string }
+> {
+    const supabase = await createAdminClient()
+
+    const { data: project, error } = await supabase
+        .from('projects')
+        .select('access_mode, access_password_hash, require_email_for_analytics, status, client_name')
+        .eq('id', projectId)
+        .single()
+
+    if (error || !project) {
+        return { success: false, error: 'Project not found' }
+    }
+
+    return {
+        success: true,
+        data: {
+            accessMode: project.access_mode as 'public' | 'restricted',
+            hasPassword: !!project.access_password_hash,
+            requireEmailForAnalytics: project.require_email_for_analytics || false,
+            projectStatus: project.status,
+            clientName: project.client_name
+        }
+    }
+}
+
+/**
+ * Grant access to public portal (optionally with password and/or email)
+ */
+export async function grantPublicAccess(
+    projectId: string,
+    password?: string,
+    email?: string
+): Promise<{ success: true } | { success: false; error: string }> {
+    const supabase = await createAdminClient()
+
+    // Get project settings
+    const { data: project, error } = await supabase
+        .from('projects')
+        .select('access_mode, access_password_hash, status')
+        .eq('id', projectId)
+        .single()
+
+    if (error || !project) {
+        return { success: false, error: 'Project not found' }
+    }
+
+    // Check project status
+    if (project.status === 'draft') {
+        return { success: false, error: 'This portal is not ready yet.' }
+    }
+
+    if (project.status === 'archived') {
+        return { success: false, error: 'This portal is no longer available.' }
+    }
+
+    // Verify it's actually public
+    if (project.access_mode !== 'public') {
+        return { success: false, error: 'This portal requires approved access.' }
+    }
+
+    // Check password if required
+    if (project.access_password_hash) {
+        if (!password) {
+            return { success: false, error: 'Password is required' }
+        }
+        const valid = await bcrypt.compare(password, project.access_password_hash)
+        if (!valid) {
+            return { success: false, error: 'Incorrect password' }
+        }
+    }
+
+    // Create session with email or anonymous
+    const sessionEmail = email?.trim().toLowerCase() || 'anonymous'
+    await createPortalSession(projectId, sessionEmail)
+
+    return { success: true }
+}
+
+/**
+ * Validate restricted access (email must be in approved list)
+ */
+export async function validateRestrictedAccess(
+    projectId: string,
+    email: string,
+    password?: string
+): Promise<{ success: true } | { success: false; error: string }> {
+    const supabase = await createAdminClient()
+
+    // Get project settings
+    const { data: project, error } = await supabase
+        .from('projects')
+        .select('access_mode, access_password_hash, status')
+        .eq('id', projectId)
+        .single()
+
+    if (error || !project) {
+        return { success: false, error: 'Project not found' }
+    }
+
+    // Check project status
+    if (project.status === 'draft') {
+        return { success: false, error: 'This portal is not ready yet.' }
+    }
+
+    if (project.status === 'archived') {
+        return { success: false, error: 'This portal is no longer available.' }
+    }
+
+    // Check if email is approved
+    const { data: member } = await supabase
+        .from('project_members')
+        .select('id')
+        .eq('project_id', projectId)
+        .eq('invited_email', email.toLowerCase())
+        .eq('role', 'customer')
+        .single()
+
+    if (!member) {
+        return { success: false, error: 'Access denied. Your email is not authorized for this portal.' }
+    }
+
+    // Check password if required
+    if (project.access_password_hash) {
+        if (!password) {
+            return { success: false, error: 'Password is required' }
+        }
+        const valid = await bcrypt.compare(password, project.access_password_hash)
+        if (!valid) {
+            return { success: false, error: 'Incorrect password' }
+        }
+    }
+
+    // Update joined_at if first visit
+    await supabase
+        .from('project_members')
+        .update({ joined_at: new Date().toISOString() })
+        .eq('project_id', projectId)
+        .eq('invited_email', email.toLowerCase())
+        .is('joined_at', null)
+
+    // Create session
+    await createPortalSession(projectId, email.toLowerCase())
+
+    return { success: true }
 }

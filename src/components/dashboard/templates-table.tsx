@@ -61,12 +61,15 @@ export function TemplatesTable({ templates }: TemplatesTableProps) {
         // Sort
         if (sortField && sortOrder) {
             result.sort((a, b) => {
-                let aVal: any = a[sortField]
-                let bVal: any = b[sortField]
+                let aVal: any
+                let bVal: any
 
                 if (sortField === 'pages') {
                     aVal = a.template_data.pages?.length || 0
                     bVal = b.template_data.pages?.length || 0
+                } else {
+                    aVal = a[sortField as keyof Omit<Template, 'template_data'>]
+                    bVal = b[sortField as keyof Omit<Template, 'template_data'>]
                 }
 
                 if (aVal === null) return 1

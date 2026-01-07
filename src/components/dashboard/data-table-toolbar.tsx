@@ -1,6 +1,6 @@
 'use client'
 
-import { Trash2, X } from 'lucide-react'
+import { Trash2, X, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { DataTableFacetedFilter } from './data-table-faceted-filter'
@@ -8,7 +8,10 @@ import { ColumnPicker, type ColumnDefinition } from './column-picker'
 import { StatusBadge } from './status-badge'
 import { EngagementBadge } from './engagement-badge'
 import { TagBadge } from './tag-badge'
-import type { ProjectStatus } from '@/app/dashboard/projects/[projectId]/status-utils'
+import { Badge } from '@/components/ui/badge'
+import { format } from 'date-fns'
+import type { ProjectStatus } from '@/app/(app)/projects/[projectId]/status-utils'
+import type { DateRange } from './projects-table'
 
 interface DataTableToolbarProps {
   // Filter state
@@ -23,6 +26,9 @@ interface DataTableToolbarProps {
 
   selectedStatuses: string[]
   onStatusesChange: (statuses: string[]) => void
+
+  goLiveDateRange: DateRange | null
+  onGoLiveDateRangeChange: (range: DateRange | null) => void
 
   // Selection
   selectedProjectIds: string[]
@@ -49,6 +55,8 @@ export function DataTableToolbar({
   onEngagementChange,
   selectedStatuses,
   onStatusesChange,
+  goLiveDateRange,
+  onGoLiveDateRangeChange,
   selectedProjectIds,
   onDelete,
   columns,
@@ -60,7 +68,8 @@ export function DataTableToolbar({
   availableTags,
 }: DataTableToolbarProps) {
   const isFiltered = filter.length > 0 || selectedTagIds.length > 0 ||
-                     selectedEngagementLevels.length > 0 || selectedStatuses.length > 0
+    selectedEngagementLevels.length > 0 || selectedStatuses.length > 0 ||
+    goLiveDateRange !== null
 
   // Status options
   const statusOptions: ProjectStatus[] = ['draft', 'active', 'completed', 'archived']
@@ -77,7 +86,7 @@ export function DataTableToolbar({
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
         <Input
-          placeholder="Filter projects..."
+          placeholder="Search projects..."
           value={filter}
           onChange={(e) => onFilterChange(e.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
@@ -138,6 +147,18 @@ export function DataTableToolbar({
           onValuesChange={onEngagementChange}
         />
 
+        {/* Go-Live Date Range Badge */}
+        {goLiveDateRange && (
+          <Badge variant="secondary" className="gap-1.5 h-8">
+            <Calendar className="h-3 w-3" />
+            Go-live: {format(goLiveDateRange.from, 'MMM d')} - {format(goLiveDateRange.to, 'MMM d')}
+            <X
+              className="h-3 w-3 cursor-pointer hover:text-foreground"
+              onClick={() => onGoLiveDateRangeChange(null)}
+            />
+          </Badge>
+        )}
+
         {selectedProjectIds.length > 0 && (
           <Button
             variant="destructive"
@@ -158,6 +179,7 @@ export function DataTableToolbar({
               onTagsChange([])
               onEngagementChange([])
               onStatusesChange([])
+              onGoLiveDateRangeChange(null)
             }}
             className="h-8 px-2 lg:px-3"
           >

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Montserrat, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({
+const montserrat = Montserrat({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${dmSans.variable} ${jetBrainsMono.variable} antialiased`}
+        className={`${montserrat.variable} ${jetBrainsMono.variable} antialiased`}
         suppressHydrationWarning
       >
         {children}

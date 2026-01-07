@@ -2,17 +2,32 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
 import type { EngagementScoreResult } from '@/lib/engagement-score'
 import { formatDistanceToNow } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { useState } from 'react'
 
 interface EngagementBadgeProps {
   engagement: EngagementScoreResult | null
   showPopover?: boolean
+  projectId?: string
+  onRefresh?: () => Promise<void>
 }
 
-export function EngagementBadge({ engagement, showPopover = true }: EngagementBadgeProps) {
+export function EngagementBadge({ engagement, showPopover = true, projectId, onRefresh }: EngagementBadgeProps) {
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return
+    setIsRefreshing(true)
+    try {
+      await onRefresh()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   if (!engagement) {
     return (
       <Badge variant="secondary" className="text-xs h-5 !rounded-sm">
@@ -20,6 +35,10 @@ export function EngagementBadge({ engagement, showPopover = true }: EngagementBa
       </Badge>
     )
   }
+
+  // Handle old data structure (migration from questions/checklists to formFields)
+  const factors = engagement.factors as any
+  const formFields = factors.formFields || factors.questions || { answered: 0, total: 0, score: 0 }
 
   const config = {
     high: {
@@ -74,51 +93,58 @@ export function EngagementBadge({ engagement, showPopover = true }: EngagementBa
           <div className="space-y-2.5">
             <ScoreRow
               label="Visits (14d)"
-              value={engagement.factors.visits.count.toString()}
-              score={engagement.factors.visits.score}
+              value={factors.visits?.count?.toString() || '0'}
+              score={factors.visits?.score || 0}
               max={20}
             />
             <ScoreRow
               label="Tasks"
-              value={`${engagement.factors.tasks.completed}/${engagement.factors.tasks.total}`}
-              score={engagement.factors.tasks.score}
-              max={25}
+              value={`${factors.tasks?.completed || 0}/${factors.tasks?.total || 0}`}
+              score={factors.tasks?.score || 0}
+              max={30}
             />
             <ScoreRow
-              label="Questions"
-              value={`${engagement.factors.questions.answered}/${engagement.factors.questions.total}`}
-              score={engagement.factors.questions.score}
-              max={25}
+              label="Form Fields"
+              value={`${formFields.answered}/${formFields.total}`}
+              score={formFields.score}
+              max={30}
             />
             <ScoreRow
               label="Files"
-              value={`${engagement.factors.files.uploaded}/${engagement.factors.files.total}`}
-              score={engagement.factors.files.score}
-              max={15}
-            />
-            <ScoreRow
-              label="Checklists"
-              value={`${engagement.factors.checklists.completed}/${engagement.factors.checklists.total}`}
-              score={engagement.factors.checklists.score}
-              max={15}
+              value={`${factors.files?.uploaded || 0}/${factors.files?.total || 0}`}
+              score={factors.files?.score || 0}
+              max={20}
             />
           </div>
 
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">
-              Uppdaterad {formatDistanceToNow(engagement.calculatedAt, { addSuffix: true, locale: sv })}
+              Updated {formatDistanceToNow(engagement.calculatedAt, { addSuffix: true })}
             </p>
             <p className="text-xs text-muted-foreground">
-              Nästa uppdatering: {(() => {
+              Next update: {(() => {
                 const nextUpdate = new Date(engagement.calculatedAt.getTime() + 60 * 60 * 1000) // +1 hour
                 const now = new Date()
                 if (nextUpdate <= now) {
-                  return 'vid nästa sidladdning'
+                  return 'on next page load'
                 }
-                return formatDistanceToNow(nextUpdate, { addSuffix: true, locale: sv })
+                return formatDistanceToNow(nextUpdate, { addSuffix: true })
               })()}
             </p>
           </div>
+
+          {onRefresh && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh Now'}
+            </Button>
+          )}
         </div>
       </PopoverContent>
     </Popover>

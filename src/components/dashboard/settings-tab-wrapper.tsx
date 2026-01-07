@@ -14,14 +14,14 @@ export async function SettingsTabWrapper({ projectId, organizationId, projectNam
   // Fetch project branding
   const { data: project } = await supabase
     .from('projects')
-    .select('logo_path, brand_color')
+    .select('logo_path, brand_color, client_logo_url, background_gradient')
     .eq('id', projectId)
     .single()
 
   // Fetch organization branding
   const { data: organization } = await supabase
     .from('organizations')
-    .select('logo_path, brand_color')
+    .select('logo_path, brand_color, background_gradient')
     .eq('id', organizationId)
     .single()
 
@@ -34,8 +34,11 @@ export async function SettingsTabWrapper({ projectId, organizationId, projectNam
         projectName={projectName}
         initialLogoPath={project?.logo_path || null}
         initialBrandColor={project?.brand_color || null}
+        initialClientLogoUrl={project?.client_logo_url || null}
         organizationLogoPath={organization?.logo_path || null}
         organizationBrandColor={organization?.brand_color || '#bef264'}
+        initialBackgroundGradient={project?.background_gradient || null}
+        organizationBackgroundGradient={organization?.background_gradient || null}
       />
 
       {/* Templates Section */}

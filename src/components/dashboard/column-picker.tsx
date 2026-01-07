@@ -9,7 +9,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import { Columns3, GripVertical } from 'lucide-react'
-import { updateTablePreferences, type TablePreferences } from '@/app/dashboard/projects/table-actions'
+import { updateTablePreferences, type TablePreferences } from '@/app/(app)/projects/table-actions'
 import { cn } from '@/lib/utils'
 
 export interface ColumnDefinition {

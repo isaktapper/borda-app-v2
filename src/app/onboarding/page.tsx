@@ -19,7 +19,7 @@ export default async function OnboardingPage() {
         .single()
 
     if (existingMember) {
-        redirect('/dashboard')
+        redirect('/projects')
     }
 
     const emailDomain = user.email.split('@')[1].toLowerCase()

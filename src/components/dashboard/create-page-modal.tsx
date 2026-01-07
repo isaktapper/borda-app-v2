@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus } from 'lucide-react'
-import { createPage } from '@/app/dashboard/projects/[projectId]/pages-actions'
+import { createPage } from '@/app/(app)/projects/[projectId]/pages-actions'
 
 interface CreatePageModalProps {
     projectId: string
@@ -39,6 +39,7 @@ export function CreatePageModal({ projectId, onPageCreated }: CreatePageModalPro
         if (result.success && result.page) {
             setOpen(false)
             setTitle('')
+            setLoading(false)
             onPageCreated?.(result.page)
             router.refresh()
         } else {
@@ -47,8 +48,18 @@ export function CreatePageModal({ projectId, onPageCreated }: CreatePageModalPro
         }
     }
 
+    const handleOpenChange = (newOpen: boolean) => {
+        setOpen(newOpen)
+        if (!newOpen) {
+            // Reset state when closing
+            setTitle('')
+            setLoading(false)
+            setError(null)
+        }
+    }
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-6">
                     <Plus className="size-4" />

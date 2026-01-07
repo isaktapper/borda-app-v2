@@ -72,7 +72,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
         if (!files || files.length === 0) return
 
         if (!projectId || !blockId) {
-            alert('Projektet måste sparas innan filer kan laddas upp')
+            alert('The project must be saved before files can be uploaded')
             return
         }
 
@@ -188,10 +188,10 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
                 </div>
 
                 <div className="space-y-2">
-                    <Label htmlFor="description">Beskrivning (valfri)</Label>
+                    <Label htmlFor="description">Description (optional)</Label>
                     <Textarea
                         id="description"
-                        placeholder="t.ex. Ladda ner dokumenten nedan för att komma igång"
+                        placeholder="e.g. Download the documents below to get started"
                         value={content.description || ''}
                         onChange={(e) => onChange({ ...content, description: e.target.value })}
                     />
@@ -238,7 +238,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
 
             {/* File Upload */}
             <div className="space-y-3">
-                <Label htmlFor="file-upload">Ladda upp filer</Label>
+                <Label htmlFor="file-upload">Upload fileer</Label>
                 <div className="relative">
                     <input
                         id="file-upload"
@@ -274,8 +274,8 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
                                     <Upload className="size-6 text-primary" />
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm font-medium">Klicka för att välja filer</p>
-                                    <p className="text-xs text-muted-foreground mt-1">eller dra och släpp här</p>
+                                    <p className="text-sm font-medium">Click to select files</p>
+                                    <p className="text-xs text-muted-foreground mt-1">or drag and drop here</p>
                                 </div>
                             </>
                         )}
@@ -286,7 +286,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
             {/* Preview */}
             <div className="pt-4 border-t border-dashed">
                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">
-                    Förhandsgranskning i kundportalen
+                    Preview i kundportalen
                 </Label>
                 <div className="rounded-xl border bg-card p-6 opacity-70 grayscale-[0.3]">
                     <div className="space-y-4">
@@ -326,7 +326,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
                             </div>
                         ) : (
                             <p className="text-sm text-muted-foreground/60 italic text-center py-4">
-                                Inga filer uppladdade än
+                                No files uploaded yet
                             </p>
                         )}
                     </div>

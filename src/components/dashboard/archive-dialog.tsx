@@ -30,13 +30,13 @@ export function ArchiveDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Arkivera projekt?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{projectName}" arkiveras och döljs från projektlistan.
-            Kunden förlorar tillgång till portalen.
-            Du kan återställa projektet senare.
+            "{projectName}" will be archived and hidden from the project list.
+            The customer will lose access to the portal.
+            You can restore the project later.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Avbryt</AlertDialogCancel>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm}>
             Arkivera
           </AlertDialogAction>

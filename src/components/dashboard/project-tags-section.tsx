@@ -9,7 +9,7 @@ import {
     PopoverTrigger,
 } from '@/components/ui/popover'
 import { Plus } from 'lucide-react'
-import { getProjectTags, type Tag } from '@/app/dashboard/tags/actions'
+import { getProjectTags, removeTagFromProject, type Tag } from '@/app/(app)/tags/actions'
 
 interface ProjectTagsSectionProps {
     projectId: string
@@ -34,10 +34,20 @@ export function ProjectTagsSection({ projectId }: ProjectTagsSectionProps) {
         setTimeout(() => setIsOpen(false), 100)
     }
 
+    const handleRemoveTag = async (tagId: string) => {
+        await removeTagFromProject(projectId, tagId)
+        loadTags()
+    }
+
     return (
         <div className="flex items-center gap-2">
             {tags.map(tag => (
-                <TagBadge key={tag.id} name={tag.name} color={tag.color} />
+                <TagBadge
+                    key={tag.id}
+                    name={tag.name}
+                    color={tag.color}
+                    onRemove={() => handleRemoveTag(tag.id)}
+                />
             ))}
             <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>

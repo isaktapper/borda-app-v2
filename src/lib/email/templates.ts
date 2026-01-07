@@ -81,7 +81,7 @@ function baseLayout(content: string) {
   <div class="container">
     ${content}
     <div class="footer">
-      <p>Skickat från Impel</p>
+      <p>Sent from Impel</p>
     </div>
   </div>
 </body>
@@ -102,16 +102,16 @@ export function customerInviteTemplate({
 }: CustomerInviteParams) {
   const content = `
     <div class="header">
-      <h1>Välkommen till ${projectName}!</h1>
+      <h1>Welcome to ${projectName}!</h1>
     </div>
     <div class="content">
-      <p>Hej ${clientName},</p>
-      <p>Du har fått tillgång till ditt projekt på Impel. Här kan du följa framstegen, ladda upp filer och svara på frågor.</p>
+      <p>Hi ${clientName},</p>
+      <p>You have been granted access to your project on Impel. Here you can track progress, upload files and answer questions.</p>
       <p style="text-align: center;">
-        <a href="${accessLink}" class="button">Öppna portalen</a>
+        <a href="${accessLink}" class="button">Open portal</a>
       </p>
       <p style="color: #666; font-size: 14px;">
-        Länken är personlig och kräver inget lösenord. Spara den säkert för framtida åtkomst.
+        The link is personal and requires no password. Save it securely for future access.
       </p>
     </div>
   `
@@ -131,17 +131,17 @@ export function orgInviteTemplate({
 }: OrgInviteParams) {
   const content = `
     <div class="header">
-      <h1>Inbjudan till ${organizationName}</h1>
+      <h1>Invitation to ${organizationName}</h1>
     </div>
     <div class="content">
-      <p>Hej!</p>
-      <p>${invitedByName} har bjudit in dig till att bli medlem i <strong>${organizationName}</strong> på Impel.</p>
-      <p>Som medlem kan du samarbeta med teamet, hantera projekt och kommunicera med kunder.</p>
+      <p>Hi!</p>
+      <p>${invitedByName} has invited you to join <strong>${organizationName}</strong> on Impel.</p>
+      <p>As a member you can collaborate with the team, manage projects, and communicate with customers.</p>
       <p style="text-align: center;">
-        <a href="${inviteLink}" class="button">Acceptera inbjudan</a>
+        <a href="${inviteLink}" class="button">Accept invitation</a>
       </p>
       <p style="color: #666; font-size: 14px;">
-        Om du inte känner igen den här inbjudan kan du ignorera detta mejl.
+        If you don't recognize this invitation, you can ignore this email.
       </p>
     </div>
   `
@@ -169,20 +169,20 @@ export function taskReminderTemplate({
     <div class="task-item">
       <div class="task-title">${task.title}</div>
       ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
-      ${task.due_date ? `<div class="task-due">Förfaller: ${new Date(task.due_date).toLocaleDateString('sv-SE')}</div>` : ''}
+      ${task.due_date ? `<div class="task-due">Due: ${new Date(task.due_date).toLocaleDateString('sv-SE')}</div>` : ''}
     </div>
   `).join('')
 
   const content = `
     <div class="header">
-      <h1>Påminnelse: Uppgifter att slutföra</h1>
+      <h1>Reminder: Tasks to complete</h1>
     </div>
     <div class="content">
-      <p>Hej!</p>
-      <p>Du har ${tasks.length} uppgift${tasks.length > 1 ? 'er' : ''} som förfaller inom kort i projektet <strong>${projectName}</strong>:</p>
+      <p>Hi!</p>
+      <p>You have ${tasks.length} task${tasks.length > 1 ? 's' : ''} due soon in project <strong>${projectName}</strong>:</p>
       ${tasksList}
       <p style="text-align: center;">
-        <a href="${portalLink}" class="button">Gå till portalen</a>
+        <a href="${portalLink}" class="button">Go to portal</a>
       </p>
     </div>
   `

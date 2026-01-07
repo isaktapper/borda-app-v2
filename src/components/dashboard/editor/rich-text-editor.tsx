@@ -29,7 +29,7 @@ interface RichTextEditorProps {
     placeholder?: string
 }
 
-export function RichTextEditor({ content, onChange, placeholder = 'Skriv något...' }: RichTextEditorProps) {
+export function RichTextEditor({ content, onChange, placeholder = 'Write something...' }: RichTextEditorProps) {
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
@@ -205,7 +205,7 @@ export function RichTextEditor({ content, onChange, placeholder = 'Skriv något.
                     <ToolbarButton
                         onClick={setLink}
                         isActive={editor.isActive('link')}
-                        title="Lägg till länk"
+                        title="Add link"
                     >
                         <Link2 className="size-4" />
                     </ToolbarButton>
@@ -222,14 +222,14 @@ export function RichTextEditor({ content, onChange, placeholder = 'Skriv något.
                     <ToolbarButton
                         onClick={() => editor.chain().focus().undo().run()}
                         disabled={!editor.can().undo()}
-                        title="Ångra (Ctrl+Z)"
+                        title="Undo (Ctrl+Z)"
                     >
                         <Undo className="size-4" />
                     </ToolbarButton>
                     <ToolbarButton
                         onClick={() => editor.chain().focus().redo().run()}
                         disabled={!editor.can().redo()}
-                        title="Gör om (Ctrl+Shift+Z)"
+                        title="Redo (Ctrl+Shift+Z)"
                     >
                         <Redo className="size-4" />
                     </ToolbarButton>

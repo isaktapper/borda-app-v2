@@ -1,10 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -14,14 +11,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Mail, Phone, Calendar as CalendarIcon, ExternalLink, FileUp, ListChecks, Check, Loader2, Download, Trash2, X, FileText, FileSpreadsheet, Image as ImageIcon, File } from 'lucide-react'
+import { Mail, Phone, Calendar as CalendarIcon, FileUp, ListChecks, Check, Loader2, Download, Trash2, FileText, FileSpreadsheet, Image as ImageIcon, File } from 'lucide-react'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 import { usePortal } from './portal-context'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Progress } from '@/components/ui/progress'
-import { uploadFile as saveFileToDb } from '@/app/portal/actions'
+import { uploadFile as saveFileToDb, logFileDownload } from '@/app/portal/actions'
 
 interface Block {
     id: string
@@ -39,10 +35,8 @@ export function PortalBlockRenderer({ block }: { block: Block }) {
             return <FileUploadRenderer blockId={block.id} content={block.content} />
         case 'file_download':
             return <FileDownloadRenderer content={block.content} />
-        case 'question':
-            return <QuestionRenderer blockId={block.id} content={block.content} />
-        case 'checklist':
-            return <ChecklistRenderer blockId={block.id} content={block.content} />
+        case 'form':
+            return <FormRenderer blockId={block.id} content={block.content} />
         case 'embed':
             return <EmbedRenderer content={block.content} />
         case 'contact':
@@ -81,63 +75,80 @@ function TextRenderer({ content }: { content: any }) {
 
 function TaskRenderer({ blockId, content }: { blockId: string; content: any }) {
     const { state, toggleTask } = usePortal()
-    const status = state.tasks[blockId] || 'pending'
-    const isCompleted = status === 'completed'
+    const tasks = content.tasks || []
+
+    if (tasks.length === 0) {
+        return (
+            <div className="border rounded-lg p-5 mb-4 bg-muted/10">
+                <p className="text-sm text-muted-foreground text-center">Inga uppgifter</p>
+            </div>
+        )
+    }
 
     return (
-        <div
-            className={cn(
-                "group relative border-2 rounded-2xl p-6 transition-all duration-300 mb-6 cursor-pointer",
-                isCompleted
-                    ? "bg-emerald-50/30 border-emerald-100 shadow-sm"
-                    : "bg-white border-muted/50 hover:border-primary/20 shadow-sm hover:shadow-md"
-            )}
-            onClick={() => toggleTask(blockId)}
-        >
-            <div className="flex items-start gap-5">
-                <div className="pt-1">
-                    <div className={cn(
-                        "size-6 rounded-lg border-2 flex items-center justify-center transition-colors shadow-inner",
-                        isCompleted ? "bg-emerald-500 border-emerald-500" : "bg-white border-muted"
-                    )}>
-                        {isCompleted && <Check className="size-4 text-white stroke-[3px]" />}
-                    </div>
-                </div>
-                <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between gap-4">
-                        <h4 className={cn(
-                            "font-bold text-lg tracking-tight transition-all",
-                            isCompleted ? "text-emerald-900/40 line-through decoration-emerald-500/30" : "text-foreground"
-                        )}>
-                            {content.title || 'Namnlös uppgift'}
-                        </h4>
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "transition-colors font-bold tracking-wider text-[10px] uppercase",
-                                isCompleted
-                                    ? "bg-emerald-100 border-emerald-200 text-emerald-700"
-                                    : "bg-amber-50 border-amber-100 text-amber-700"
-                            )}
-                        >
-                            {isCompleted ? 'Klar' : 'Väntar'}
-                        </Badge>
-                    </div>
-                    {(content.description || content.dueDate) && !isCompleted && (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-300">
-                            {content.description && (
-                                <p className="text-muted-foreground text-sm leading-relaxed">{content.description}</p>
-                            )}
-                            {content.dueDate && (
-                                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/60 bg-muted/50 w-fit px-2 py-1 rounded-md">
+        <div className="border rounded-lg p-5 mb-4 bg-white/90 backdrop-blur-sm space-y-2">
+            {tasks.map((task: any) => {
+                const taskId = `${blockId}-${task.id}`
+                const status = state.tasks[taskId] || 'pending'
+                const isCompleted = status === 'completed'
+
+                return (
+                    <div
+                        key={task.id}
+                        className={cn(
+                            "flex items-start gap-3 p-2.5 rounded-lg cursor-pointer transition-colors",
+                            isCompleted ? "bg-muted/20" : "hover:bg-muted/30"
+                        )}
+                        onClick={() => toggleTask(taskId, task.title)}
+                    >
+                        <div className="pt-0.5">
+                            <div className={cn(
+                                "size-4 rounded border-2 flex items-center justify-center transition-colors",
+                                isCompleted ? "bg-primary border-primary" : "bg-white border-muted"
+                            )}>
+                                {isCompleted && <Check className="size-3 text-white stroke-[3px]" />}
+                            </div>
+                        </div>
+                        <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
+                            <div className="flex items-center gap-2 min-w-0">
+                                {task.description ? (
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className={cn(
+                                            "text-sm font-medium",
+                                            isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+                                        )}>
+                                            {task.title}
+                                        </span>
+                                        <div className="group/tooltip relative">
+                                            <div className="size-4 rounded-full bg-muted/50 flex items-center justify-center cursor-help">
+                                                <span className="text-[10px] text-muted-foreground">i</span>
+                                            </div>
+                                            <div className="absolute left-0 bottom-full mb-2 hidden group-hover/tooltip:block z-10">
+                                                <div className="bg-popover text-popover-foreground border rounded-lg p-3 shadow-md max-w-xs">
+                                                    <p className="text-xs">{task.description}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <span className={cn(
+                                        "text-sm font-medium",
+                                        isCompleted ? "text-muted-foreground line-through" : "text-foreground"
+                                    )}>
+                                        {task.title}
+                                    </span>
+                                )}
+                            </div>
+                            {task.dueDate && !isCompleted && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                                     <CalendarIcon className="size-3" />
-                                    <span>Deadline: {format(new Date(content.dueDate), 'd MMMM, yyyy', { locale: sv })}</span>
+                                    <span>{format(new Date(task.dueDate), 'd MMM')}</span>
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
+                )
+            })}
         </div>
     )
 }
@@ -153,7 +164,7 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
         if (!file) return
 
         if (content.maxFiles && files.length >= content.maxFiles) {
-            alert(`Max ${content.maxFiles} fil(er) tillåtna`)
+            alert(`Max ${content.maxFiles} file(s) allowed`)
             return
         }
 
@@ -192,15 +203,15 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
             }, 500)
         } catch (error: any) {
             console.error('Upload error:', error)
-            alert('Kunde inte ladda upp filen: ' + error.message)
+            alert('Could not upload file: ' + error.message)
             setIsUploading(false)
             setProgress(0)
         }
     }
 
     return (
-        <div className="space-y-4 mb-8">
-            <div className="bg-white border-2 border-dashed border-muted rounded-2xl p-8 hover:border-primary/30 transition-colors group relative overflow-hidden">
+        <div className="space-y-3 mb-4">
+            <div className="bg-white/90 backdrop-blur-sm border border-dashed rounded-lg p-5 hover:border-primary/40 transition-colors relative">
                 <input
                     type="file"
                     className="absolute inset-0 opacity-0 cursor-pointer z-10"
@@ -209,24 +220,24 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
                     accept={content.acceptedTypes?.join(',')}
                 />
 
-                <div className="text-center space-y-4">
-                    <div className="mx-auto size-14 rounded-full bg-primary/5 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                <div className="text-center space-y-3">
+                    <div className="mx-auto size-12 rounded-lg bg-primary/5 flex items-center justify-center">
                         {isUploading ? (
-                            <Loader2 className="size-7 text-primary animate-spin" />
+                            <Loader2 className="size-6 text-primary animate-spin" />
                         ) : (
-                            <FileUp className="size-7 text-primary" />
+                            <FileUp className="size-6 text-primary" />
                         )}
                     </div>
-                    <div className="space-y-1.5">
-                        <h4 className="font-bold text-lg tracking-tight">{content.label || 'Ladda upp fil'}</h4>
-                        <p className="text-sm text-muted-foreground/70 max-w-sm mx-auto">
-                            {content.description || 'Klicka här eller dra och släpp filen för att ladda upp den.'}
+                    <div className="space-y-1">
+                        <h4 className="font-semibold text-base">{content.label || 'Ladda upp fil'}</h4>
+                        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                            {content.description || 'Klicka här eller dra och släpp filen'}
                         </p>
                     </div>
                     {isUploading && (
-                        <div className="max-w-xs mx-auto space-y-2 animate-in fade-in duration-300">
+                        <div className="max-w-xs mx-auto space-y-2">
                             <Progress value={progress} className="h-1.5" />
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Laddar upp...</p>
+                            <p className="text-xs font-medium text-primary">Laddar upp...</p>
                         </div>
                     )}
                 </div>
@@ -234,29 +245,27 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
 
             {files.length > 0 && (
                 <div className="space-y-2">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">Uppladdade filer ({files.length})</p>
-                    <div className="grid gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">Uppladdade filer ({files.length})</p>
+                    <div className="space-y-2">
                         {files.map((file) => (
-                            <div key={file.id} className="flex items-center justify-between p-3 bg-white border rounded-xl shadow-sm hover:shadow-md transition-shadow group">
+                            <div key={file.id} className="flex items-center justify-between p-3 bg-white/90 backdrop-blur-sm border rounded-lg hover:bg-muted/30 transition-colors group">
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="size-8 rounded-lg bg-primary/5 flex items-center justify-center shrink-0">
+                                    <div className="size-8 rounded bg-primary/5 flex items-center justify-center shrink-0">
                                         <FileUp className="size-4 text-primary" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-bold truncate pr-4">{file.name}</p>
-                                        <p className="text-[10px] text-muted-foreground font-medium">
-                                            {(file.size / 1024 / 1024).toFixed(2)} MB • {format(new Date(file.created_at), 'd MMM yyyy', { locale: sv })}
+                                        <p className="text-sm font-medium truncate">{file.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {(file.size / 1024 / 1024).toFixed(2)} MB • {format(new Date(file.created_at), 'd MMM yyyy')}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 opacity-10 group-hover:opacity-100 transition-opacity pr-1">
-                                    <button
-                                        onClick={() => removeFile(blockId, file.id)}
-                                        className="p-2 hover:bg-destructive/5 text-muted-foreground hover:text-destructive rounded-lg transition-colors"
-                                    >
-                                        <Trash2 className="size-4" />
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => removeFile(blockId, file.id)}
+                                    className="p-2 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 text-muted-foreground hover:text-destructive rounded transition-all"
+                                >
+                                    <Trash2 className="size-4" />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -267,6 +276,7 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
 }
 
 function FileDownloadRenderer({ content }: { content: any }) {
+    const { projectId } = usePortal()
     const files = content.files || []
 
     const getFileIcon = (type: string) => {
@@ -302,6 +312,9 @@ function FileDownloadRenderer({ content }: { content: any }) {
 
             if (error) throw error
 
+            // Log the download activity
+            await logFileDownload(projectId, file.id, file.name)
+
             // Open in new tab to trigger download
             window.open(data.signedUrl, '_blank')
         } catch (error) {
@@ -315,20 +328,20 @@ function FileDownloadRenderer({ content }: { content: any }) {
     }
 
     return (
-        <div className="space-y-6 mb-8">
+        <div className="space-y-3 mb-4">
             {(content.title || content.description) && (
-                <div className="space-y-2">
+                <div className="space-y-1">
                     {content.title && (
-                        <h4 className="font-bold text-xl tracking-tight text-foreground">{content.title}</h4>
+                        <h4 className="font-semibold text-base text-foreground">{content.title}</h4>
                     )}
                     {content.description && (
-                        <p className="text-sm text-muted-foreground/70 leading-relaxed">{content.description}</p>
+                        <p className="text-sm text-muted-foreground">{content.description}</p>
                     )}
                 </div>
             )}
 
             {files.length > 0 && (
-                <div className="grid gap-3">
+                <div className="space-y-2">
                     {files.map((file: any) => {
                         const Icon = getFileIcon(file.type)
                         const iconColor = getFileIconColor(file.type)
@@ -336,20 +349,20 @@ function FileDownloadRenderer({ content }: { content: any }) {
                         return (
                             <div
                                 key={file.id}
-                                className="group flex items-center gap-4 p-4 bg-white border-2 border-muted/50 rounded-xl shadow-sm hover:shadow-md hover:border-primary/20 transition-all cursor-pointer"
+                                className="flex items-center gap-3 p-3 bg-white/90 backdrop-blur-sm border rounded-lg hover:bg-muted/30 transition-colors cursor-pointer"
                                 onClick={() => handleDownload(file)}
                             >
-                                <div className={cn("p-3 rounded-lg shrink-0", iconColor)}>
-                                    <Icon className="size-5" />
+                                <div className={cn("p-2 rounded shrink-0", iconColor)}>
+                                    <Icon className="size-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold truncate text-foreground">{file.name}</p>
-                                    <p className="text-xs text-muted-foreground font-medium">
+                                    <p className="text-sm font-medium truncate text-foreground">{file.name}</p>
+                                    <p className="text-xs text-muted-foreground">
                                         {formatFileSize(file.size)}
                                     </p>
                                 </div>
-                                <div className="shrink-0 p-2 rounded-lg bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                                    <Download className="size-5" />
+                                <div className="shrink-0 p-2 rounded bg-primary/5 text-primary">
+                                    <Download className="size-4" />
                                 </div>
                             </div>
                         )
@@ -358,177 +371,133 @@ function FileDownloadRenderer({ content }: { content: any }) {
             )}
 
             {files.length === 0 && (content.title || content.description) && (
-                <div className="text-center p-8 rounded-xl border-2 border-dashed bg-muted/10">
-                    <p className="text-sm text-muted-foreground italic">Inga filer uppladdade än</p>
+                <div className="text-center p-5 rounded-lg border border-dashed bg-muted/10">
+                    <p className="text-sm text-muted-foreground">Inga filer uppladdade än</p>
                 </div>
             )}
         </div>
     )
 }
 
-function QuestionRenderer({ blockId, content }: { blockId: string; content: any }) {
+function FormRenderer({ blockId, content }: { blockId: string; content: any }) {
     const { state, updateResponse } = usePortal()
-    const value = state.responses[blockId] || {}
-    const [saving, setSaving] = useState(false)
+    const [savingId, setSavingId] = useState<string | null>(null)
+    const questions = content.questions || []
 
-    const handleChange = async (newValue: any) => {
-        setSaving(true)
-        await updateResponse(blockId, newValue)
-        setSaving(false)
+    const handleChange = async (questionId: string, newValue: any) => {
+        setSavingId(questionId)
+        const responseKey = `${blockId}-${questionId}`
+        await updateResponse(responseKey, newValue)
+        setSavingId(null)
+    }
+
+    if (questions.length === 0) {
+        return (
+            <div className="border rounded-lg p-5 mb-4 bg-muted/10">
+                <p className="text-sm text-muted-foreground text-center">Inga frågor</p>
+            </div>
+        )
     }
 
     return (
-        <div className="bg-white border-2 border-muted/50 rounded-2xl p-8 shadow-sm mb-8 space-y-6 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-primary/5 group-hover:bg-primary/20 transition-colors" />
+        <div className="border rounded-lg p-5 mb-4 bg-white/90 backdrop-blur-sm space-y-4">
+            {questions.map((question: any) => {
+                const responseKey = `${blockId}-${question.id}`
+                const value = state.responses[responseKey] || {}
+                const isSaving = savingId === question.id
 
-            <div className="flex items-start justify-between gap-4">
-                <h4 className="font-bold text-xl tracking-tight text-foreground leading-snug">
-                    {content.question || 'Ställ en fråga...'}
-                    {content.required && <span className="text-destructive ml-1">*</span>}
-                </h4>
-                {saving && <Loader2 className="size-4 text-primary animate-spin mt-1" />}
-            </div>
-
-            <div className="space-y-4">
-                {content.type === 'text' && (
-                    <Input
-                        placeholder="Ditt svar..."
-                        value={value.text || ''}
-                        onChange={(e) => updateResponse(blockId, { text: e.target.value })}
-                        onBlur={() => handleChange({ text: value.text })}
-                        className="h-12 rounded-xl border-2 focus-visible:ring-primary/20"
-                    />
-                )}
-                {content.type === 'textarea' && (
-                    <Textarea
-                        placeholder="Skriv ett längre svar..."
-                        value={value.text || ''}
-                        onChange={(e) => updateResponse(blockId, { text: e.target.value })}
-                        onBlur={() => handleChange({ text: value.text })}
-                        className="min-h-[120px] rounded-xl border-2 focus-visible:ring-primary/20"
-                    />
-                )}
-                {content.type === 'select' && (
-                    <Select
-                        value={value.selected || ''}
-                        onValueChange={(val) => handleChange({ selected: val })}
-                    >
-                        <SelectTrigger className="h-12 rounded-xl border-2">
-                            <SelectValue placeholder="Välj ett alternativ..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {(content.options || []).map((o: string) => (
-                                <SelectItem key={o} value={o}>{o}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                )}
-                {content.type === 'multiselect' && (
-                    <div className="grid sm:grid-cols-2 gap-3 pt-1">
-                        {(content.options || []).map((o: string) => {
-                            const isChecked = (value.selected || []).includes(o)
-                            return (
-                                <div
-                                    key={o}
-                                    className={cn(
-                                        "flex items-center gap-3 p-3 rounded-xl border-2 transition-all cursor-pointer",
-                                        isChecked ? "border-primary/40 bg-primary/5" : "border-muted/50 hover:border-muted-foreground/30 bg-muted/5"
-                                    )}
-                                    onClick={() => {
-                                        const current = value.selected || []
-                                        const next = isChecked ? current.filter((v: string) => v !== o) : [...current, o]
-                                        handleChange({ selected: next })
-                                    }}
-                                >
-                                    <div className={cn(
-                                        "size-5 rounded border-2 flex items-center justify-center",
-                                        isChecked ? "bg-primary border-primary" : "bg-white border-muted-foreground/20"
-                                    )}>
-                                        {isChecked && <Check className="size-3.5 text-white stroke-[3px]" />}
-                                    </div>
-                                    <span className={cn("text-sm font-bold", isChecked ? "text-primary" : "text-muted-foreground pr-8")}>{o}</span>
-                                </div>
-                            )
-                        })}
-                    </div>
-                )}
-                {content.type === 'date' && (
-                    <div className="relative">
-                        <Input
-                            type="date"
-                            value={value.date || ''}
-                            onChange={(e) => handleChange({ date: e.target.value })}
-                            className="h-12 rounded-xl border-2 focus-visible:ring-primary/20"
-                        />
-                    </div>
-                )}
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pr-1">
-                <div className={cn(
-                    "flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest transition-opacity duration-300",
-                    value.text || value.selected || value.date ? "opacity-30" : "opacity-0"
-                )}>
-                    <Check className="size-3" />
-                    Sparat
-                </div>
-            </div>
-        </div>
-    )
-}
-
-function ChecklistRenderer({ blockId, content }: { blockId: string; content: any }) {
-    const { state, updateResponse } = usePortal()
-    const response = state.responses[blockId] || { checked: [] }
-    const checkedIds = response.checked || []
-
-    const toggleItem = async (itemId: string) => {
-        const next = checkedIds.includes(itemId)
-            ? checkedIds.filter((id: string) => id !== itemId)
-            : [...checkedIds, itemId]
-
-        await updateResponse(blockId, { checked: next })
-    }
-
-    return (
-        <div className="bg-white border-2 border-muted/50 rounded-2xl p-8 shadow-sm mb-8 space-y-6 relative group overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500/10 group-hover:bg-emerald-500/20 transition-colors" />
-
-            {content.title && (
-                <div className="flex items-center gap-3">
-                    <ListChecks className="size-5 text-emerald-600/50" />
-                    <h4 className="font-bold text-xl tracking-tight text-foreground">{content.title}</h4>
-                </div>
-            )}
-
-            <div className="grid gap-3">
-                {(content.items || []).map((item: any) => {
-                    const isChecked = checkedIds.includes(item.id)
-                    return (
-                        <div
-                            key={item.id}
-                            className={cn(
-                                "flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer",
-                                isChecked ? "border-emerald-200 bg-emerald-50/20" : "border-muted/50 hover:border-muted-foreground/20 bg-muted/5"
-                            )}
-                            onClick={() => toggleItem(item.id)}
-                        >
-                            <div className={cn(
-                                "size-6 rounded-lg border-2 flex items-center justify-center transition-colors shadow-inner shrink-0",
-                                isChecked ? "bg-emerald-500 border-emerald-500" : "bg-white border-muted"
-                            )}>
-                                {isChecked && <Check className="size-4 text-white stroke-[3px]" />}
-                            </div>
-                            <span className={cn(
-                                "text-sm font-bold transition-all",
-                                isChecked ? "text-emerald-900/40 line-through decoration-emerald-500/30" : "text-foreground"
-                            )}>
-                                {item.label || 'Ny punkt...'}
-                            </span>
+                return (
+                    <div key={question.id} className="space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                            <h4 className="font-medium text-sm text-foreground">
+                                {question.question}
+                                {question.required && <span className="text-destructive ml-1">*</span>}
+                            </h4>
+                            {isSaving && <Loader2 className="size-3 text-primary animate-spin shrink-0" />}
                         </div>
-                    )
-                })}
-            </div>
+
+                        <div>
+                            {question.type === 'text' && (
+                                <Input
+                                    placeholder="Ditt svar..."
+                                    value={value.text || ''}
+                                    onChange={(e) => updateResponse(responseKey, { text: e.target.value })}
+                                    onBlur={() => handleChange(question.id, { text: value.text })}
+                                    className="h-9 text-sm"
+                                />
+                            )}
+                            {question.type === 'textarea' && (
+                                <Textarea
+                                    placeholder="Skriv ett längre svar..."
+                                    value={value.text || ''}
+                                    onChange={(e) => updateResponse(responseKey, { text: e.target.value })}
+                                    onBlur={() => handleChange(question.id, { text: value.text })}
+                                    className="min-h-[80px] text-sm"
+                                />
+                            )}
+                            {question.type === 'select' && (
+                                <Select
+                                    value={value.selected || ''}
+                                    onValueChange={(val) => handleChange(question.id, { selected: val })}
+                                >
+                                    <SelectTrigger className="h-9 text-sm">
+                                        <SelectValue placeholder="Select an option..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {(question.options || []).map((o: string) => (
+                                            <SelectItem key={o} value={o}>{o}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                            {question.type === 'multiselect' && (
+                                <div className="grid sm:grid-cols-2 gap-2">
+                                    {(question.options || []).map((o: string) => {
+                                        const isChecked = (value.selected || []).includes(o)
+                                        return (
+                                            <div
+                                                key={o}
+                                                className={cn(
+                                                    "flex items-center gap-2 p-2.5 rounded-lg border transition-colors cursor-pointer",
+                                                    isChecked ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"
+                                                )}
+                                                onClick={() => {
+                                                    const current = value.selected || []
+                                                    const next = isChecked ? current.filter((v: string) => v !== o) : [...current, o]
+                                                    handleChange(question.id, { selected: next })
+                                                }}
+                                            >
+                                                <div className={cn(
+                                                    "size-4 rounded border-2 flex items-center justify-center shrink-0",
+                                                    isChecked ? "bg-primary border-primary" : "bg-white border-muted"
+                                                )}>
+                                                    {isChecked && <Check className="size-3 text-white stroke-[3px]" />}
+                                                </div>
+                                                <span className="text-sm font-medium">{o}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
+                            {question.type === 'date' && (
+                                <Input
+                                    type="date"
+                                    value={value.date || ''}
+                                    onChange={(e) => handleChange(question.id, { date: e.target.value })}
+                                    className="h-9 text-sm"
+                                />
+                            )}
+                        </div>
+
+                        {(value.text || value.selected || value.date) && !isSaving && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Check className="size-3" />
+                                <span>Sparat</span>
+                            </div>
+                        )}
+                    </div>
+                )
+            })}
         </div>
     )
 }
@@ -544,24 +513,13 @@ function EmbedRenderer({ content }: { content: any }) {
     }
 
     return (
-        <div className="rounded-2xl border-2 border-muted/50 overflow-hidden bg-black aspect-video shadow-xl mb-10 group relative">
+        <div className="rounded-lg border overflow-hidden bg-black aspect-video mb-4">
             <iframe
                 src={getEmbedUrl(content.url)}
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
             />
-            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                <a
-                    href={content.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-1.5 bg-black/50 backdrop-blur-md rounded-lg text-white text-[10px] font-bold uppercase tracking-widest border border-white/20 hover:bg-black/70 transition-colors"
-                >
-                    Öppna extern länk
-                    <ExternalLink className="size-3" />
-                </a>
-            </div>
         </div>
     )
 }
@@ -570,66 +528,54 @@ function ContactCardRenderer({ content }: { content: any }) {
     const initials = content.name ? content.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) : '?'
 
     return (
-        <Card className="p-8 border-2 bg-white shadow-sm hover:shadow-xl transition-all duration-500 mb-10 overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity rotate-12 scale-150">
-                <Mail className="size-32" />
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 relative">
-                <Avatar className="size-28 border-4 border-background shadow-2xl group-hover:scale-105 transition-transform duration-500">
+        <div className="bg-white/90 backdrop-blur-sm border rounded-lg p-5 mb-4">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <Avatar className="size-16 border-2 border-background">
                     <AvatarImage src={content.avatarUrl} className="object-cover" />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/5 to-primary/20 text-primary text-3xl font-extrabold tracking-tighter transition-colors group-hover:bg-primary/10">
+                    <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
                         {initials}
                     </AvatarFallback>
                 </Avatar>
 
-                <div className="space-y-4 flex-1 min-w-0 text-center sm:text-left">
-                    <div className="space-y-1">
-                        <h4 className="text-3xl font-black tracking-tight text-foreground truncate pr-4">{content.name || 'Ange ett namn...'}</h4>
+                <div className="flex-1 min-w-0 text-center sm:text-left space-y-3">
+                    <div className="space-y-0.5">
+                        <h4 className="text-lg font-semibold text-foreground truncate">{content.name || 'Ange ett namn...'}</h4>
                         {content.title && (
-                            <p className="text-sm font-bold uppercase tracking-widest text-primary/60">
+                            <p className="text-sm text-muted-foreground">
                                 {content.title}
                             </p>
                         )}
                     </div>
 
-                    <div className="h-px bg-muted w-20 mx-auto sm:ml-0" />
-
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-x-6 gap-y-3 pt-2">
+                    <div className="flex flex-wrap justify-center sm:justify-start gap-4">
                         {content.email && (
-                            <a href={`mailto:${content.email}`} className="flex items-center gap-2.5 text-sm font-bold text-muted-foreground hover:text-primary transition-colors pr-2">
-                                <div className="size-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                                    <Mail className="size-4" />
-                                </div>
+                            <a href={`mailto:${content.email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                                <Mail className="size-4" />
                                 <span className="truncate">{content.email}</span>
                             </a>
                         )}
                         {content.phone && (
-                            <a href={`tel:${content.phone}`} className="flex items-center gap-2.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
-                                <div className="size-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                                    <Phone className="size-4" />
-                                </div>
+                            <a href={`tel:${content.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                <Phone className="size-4" />
                                 <span>{content.phone}</span>
                             </a>
                         )}
                     </div>
                 </div>
             </div>
-        </Card>
+        </div>
     )
 }
 
 function DividerRenderer({ content }: { content: any }) {
     if (content.style === 'space') {
-        return <div className="h-16" />
+        return <div className="h-8" />
     }
     return (
-        <div className="py-12 flex items-center gap-4">
-            <div className="h-px bg-muted flex-1" />
-            <div className="size-1 bg-muted rounded-full" />
-            <div className="size-1.5 bg-muted/50 rounded-full" />
-            <div className="size-1 bg-muted rounded-full" />
-            <div className="h-px bg-muted flex-1" />
+        <div className="py-6 flex items-center gap-3 mb-4">
+            <div className="h-px bg-border flex-1" />
+            <div className="size-1 bg-muted-foreground/30 rounded-full" />
+            <div className="h-px bg-border flex-1" />
         </div>
     )
 }

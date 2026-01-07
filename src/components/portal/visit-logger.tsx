@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { logPortalVisit } from '@/app/dashboard/projects/table-actions'
+import { logPortalVisit } from '@/app/(app)/projects/table-actions'
 
 interface VisitLoggerProps {
     projectId: string

@@ -30,7 +30,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { deleteTemplate, updateTemplate } from '@/app/dashboard/templates/actions'
+import { deleteTemplate, updateTemplate } from '@/app/(app)/templates/actions'
 import type { Template } from '@/lib/types/templates'
 import { toast } from 'sonner'
 

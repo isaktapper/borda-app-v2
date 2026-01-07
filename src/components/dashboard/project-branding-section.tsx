@@ -6,9 +6,12 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Upload, X, RotateCcw } from 'lucide-react'
-import { uploadProjectLogo, removeProjectLogo, updateProjectBrandColor } from '@/app/dashboard/projects/[projectId]/branding-actions'
-import { getSignedLogoUrl, isValidHexColor, normalizeHexColor } from '@/lib/branding'
+import { uploadProjectLogo, removeProjectLogo, updateProjectBrandColor, updateProjectBackgroundGradient } from '@/app/(app)/projects/[projectId]/branding-actions'
+import { uploadClientLogo, removeClientLogo, getClientLogoUrl } from '@/app/(app)/projects/[projectId]/client-logo-actions'
+import { getSignedLogoUrl, isValidHexColor, normalizeHexColor, PRESET_GRADIENTS } from '@/lib/branding'
 import { useRouter } from 'next/navigation'
+import { Check } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ProjectBrandingSectionProps {
   projectId: string
@@ -16,8 +19,11 @@ interface ProjectBrandingSectionProps {
   projectName: string
   initialLogoPath: string | null
   initialBrandColor: string | null
+  initialClientLogoUrl: string | null
   organizationLogoPath: string | null
   organizationBrandColor: string
+  initialBackgroundGradient: string | null
+  organizationBackgroundGradient: string | null
 }
 
 export function ProjectBrandingSection({
@@ -26,24 +32,32 @@ export function ProjectBrandingSection({
   projectName,
   initialLogoPath,
   initialBrandColor,
+  initialClientLogoUrl,
   organizationLogoPath,
-  organizationBrandColor
+  organizationBrandColor,
+  initialBackgroundGradient,
+  organizationBackgroundGradient
 }: ProjectBrandingSectionProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const clientLogoInputRef = useRef<HTMLInputElement>(null)
 
   const [logoPath, setLogoPath] = useState(initialLogoPath)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [clientLogoUrl, setClientLogoUrl] = useState(initialClientLogoUrl)
+  const [clientLogoPreview, setClientLogoPreview] = useState<string | null>(null)
   const [brandColor, setBrandColor] = useState(initialBrandColor)
   const [colorInput, setColorInput] = useState(initialBrandColor || organizationBrandColor)
   const [uploading, setUploading] = useState(false)
+  const [uploadingClientLogo, setUploadingClientLogo] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+  const [backgroundGradient, setBackgroundGradient] = useState(initialBackgroundGradient)
 
-  // Load logo URL on mount and when paths change
+  // Load logo URLs on mount and when paths change
   useEffect(() => {
-    const loadLogo = async () => {
+    const loadLogos = async () => {
       const pathToLoad = initialLogoPath || organizationLogoPath
       if (pathToLoad) {
         const url = await getSignedLogoUrl(pathToLoad)
@@ -51,13 +65,20 @@ export function ProjectBrandingSection({
       } else {
         setLogoUrl(null)
       }
+
+      if (initialClientLogoUrl) {
+        const clientUrl = await getClientLogoUrl(initialClientLogoUrl)
+        setClientLogoPreview(clientUrl)
+      }
     }
-    loadLogo()
-  }, [initialLogoPath, organizationLogoPath])
+    loadLogos()
+  }, [initialLogoPath, organizationLogoPath, initialClientLogoUrl])
 
   const isUsingOrgLogo = !logoPath && organizationLogoPath
   const isUsingOrgColor = !brandColor
   const currentColor = brandColor || organizationBrandColor
+  const isUsingOrgGradient = !backgroundGradient
+  const currentGradient = backgroundGradient || organizationBackgroundGradient
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -127,7 +148,7 @@ export function ProjectBrandingSection({
 
   const handleSave = async () => {
     if (colorInput && !isValidHexColor(colorInput)) {
-      setError('Ogiltig färgkod')
+      setError('Invalid color code')
       return
     }
 
@@ -162,6 +183,72 @@ export function ProjectBrandingSection({
     }
   }
 
+  const handleClientLogoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingClientLogo(true)
+    setError(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const result = await uploadClientLogo(projectId, organizationId, formData)
+
+    if (result.error) {
+      setError(result.error)
+    } else if (result.logoPath) {
+      setClientLogoUrl(result.logoPath)
+      const url = await getClientLogoUrl(result.logoPath)
+      setClientLogoPreview(url)
+      router.refresh()
+    }
+
+    setUploadingClientLogo(false)
+    if (clientLogoInputRef.current) {
+      clientLogoInputRef.current.value = ''
+    }
+  }
+
+  const handleRemoveClientLogo = async () => {
+    setError(null)
+    const result = await removeClientLogo(projectId)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      setClientLogoUrl(null)
+      setClientLogoPreview(null)
+      router.refresh()
+    }
+  }
+
+  const handleGradientSelect = async (gradientValue: string) => {
+    setError(null)
+    setBackgroundGradient(gradientValue)
+
+    const result = await updateProjectBackgroundGradient(projectId, gradientValue)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      router.refresh()
+    }
+  }
+
+  const handleResetGradient = async () => {
+    setError(null)
+    setBackgroundGradient(null)
+
+    const result = await updateProjectBackgroundGradient(projectId, null)
+
+    if (result.error) {
+      setError(result.error)
+    } else {
+      router.refresh()
+    }
+  }
+
   return (
     <Card className="p-4">
       <div className="space-y-4">
@@ -169,14 +256,54 @@ export function ProjectBrandingSection({
           <div>
             <h3 className="font-semibold mb-1">Projekt Branding</h3>
             <p className="text-sm text-muted-foreground">
-              Anpassa för detta projekt (tomt = använd organisationens)
+              Customize for this project (empty = use organization's)
             </p>
           </div>
           {hasChanges && (
             <Button onClick={handleSave} disabled={saving} size="sm">
-              {saving ? 'Sparar...' : 'Spara'}
+              {saving ? 'Saving...' : 'Spara'}
             </Button>
           )}
+        </div>
+
+        {/* Customer Logo */}
+        <div className="space-y-2 pb-4 border-b">
+          <Label className="text-xs font-semibold">Customer Logo</Label>
+          <p className="text-xs text-muted-foreground mb-2">
+            Upload your customer's logo to display in the portal
+          </p>
+          {clientLogoPreview ? (
+            <div className="relative w-full h-20 rounded border bg-muted/50 flex items-center justify-center p-2">
+              <img src={clientLogoPreview} alt="Customer logo" className="max-w-full max-h-full object-contain" />
+              <button
+                onClick={handleRemoveClientLogo}
+                className="absolute -top-2 -right-2 size-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
+              >
+                <X className="size-3" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-full h-20 rounded border-2 border-dashed bg-muted/20 flex items-center justify-center">
+              <p className="text-xs text-muted-foreground">No customer logo uploaded</p>
+            </div>
+          )}
+          <input
+            ref={clientLogoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+            onChange={handleClientLogoSelect}
+            className="hidden"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => clientLogoInputRef.current?.click()}
+            disabled={uploadingClientLogo}
+            className="w-full"
+          >
+            <Upload className="size-3 mr-2" />
+            {uploadingClientLogo ? 'Uploading...' : clientLogoUrl ? 'Replace' : 'Upload Customer Logo'}
+          </Button>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -220,7 +347,7 @@ export function ProjectBrandingSection({
           {/* Color Picker */}
           <div className="space-y-2">
             <Label className="text-xs">
-              Primärfärg {isUsingOrgColor && <span className="text-muted-foreground">(org)</span>}
+              Primary color {isUsingOrgColor && <span className="text-muted-foreground">(org)</span>}
             </Label>
             <div className="flex gap-2">
               <Input
@@ -245,6 +372,51 @@ export function ProjectBrandingSection({
                 </Button>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Gradient Picker */}
+        <div className="space-y-3 pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">
+              Portal Bakgrund {isUsingOrgGradient && <span className="text-muted-foreground">(org)</span>}
+            </Label>
+            {!isUsingOrgGradient && (
+              <Button variant="ghost" size="sm" onClick={handleResetGradient} className="h-7 text-xs">
+                <RotateCcw className="size-3 mr-1" />
+                Reset
+              </Button>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {PRESET_GRADIENTS.map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => handleGradientSelect(preset.value)}
+                className={cn(
+                  "relative h-16 rounded-lg border-2 transition-all overflow-hidden group",
+                  currentGradient === preset.value
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border hover:border-primary/40"
+                )}
+                title={preset.description}
+              >
+                <div
+                  className="absolute inset-0"
+                  style={{ background: preset.css }}
+                />
+                {currentGradient === preset.value && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="size-6 rounded-full bg-primary flex items-center justify-center">
+                      <Check className="size-4 text-white stroke-[3px]" />
+                    </div>
+                  </div>
+                )}
+                <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-1.5">
+                  <p className="text-[10px] font-medium text-white text-center">{preset.name}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
 

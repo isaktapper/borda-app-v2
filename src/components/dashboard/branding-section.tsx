@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, X } from 'lucide-react'
-import { uploadOrgLogo, removeOrgLogo, updateOrgBrandColor } from '@/app/dashboard/settings/branding-actions'
+import { uploadOrgLogo, removeOrgLogo, updateOrgBrandColor } from '@/app/(app)/settings/branding-actions'
 import { getSignedLogoUrl, isValidHexColor, normalizeHexColor } from '@/lib/branding'
 import { useRouter } from 'next/navigation'
 
@@ -130,7 +130,7 @@ export function BrandingSection({
 
   const handleSave = async () => {
     if (!isValidHexColor(colorInput)) {
-      setError('Ogiltig färgkod')
+      setError('Invalid color code')
       return
     }
 
@@ -177,12 +177,12 @@ export function BrandingSection({
           <div>
             <h3 className="font-semibold mb-1">Branding</h3>
             <p className="text-sm text-muted-foreground">
-              Logo och färg som visas i kundportalen
+              Logo and color shown in the customer portal
             </p>
           </div>
           {hasChanges && (
             <Button onClick={handleSave} disabled={saving} size="sm">
-              {saving ? 'Sparar...' : 'Spara'}
+              {saving ? 'Saving...' : 'Spara'}
             </Button>
           )}
         </div>
@@ -223,7 +223,7 @@ export function BrandingSection({
 
           {/* Color Picker */}
           <div className="space-y-2">
-            <Label className="text-xs">Primärfärg</Label>
+            <Label className="text-xs">Primary color</Label>
             <div className="flex gap-2">
               <Input
                 value={colorInput}

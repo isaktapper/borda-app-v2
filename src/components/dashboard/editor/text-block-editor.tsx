@@ -52,7 +52,7 @@ export function TextBlockEditor({ blockId, content, onChange }: TextBlockEditorP
             <RichTextEditor
                 content={html}
                 onChange={(newHtml) => onChange({ html: newHtml })}
-                placeholder="Skriv något... Använd verktygsfältet ovan för formatering"
+                placeholder="Write something... Use the toolbar above for formatting"
             />
         </div>
     )

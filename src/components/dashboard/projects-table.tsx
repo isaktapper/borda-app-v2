@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from "react"
 import {
     Table,
     TableBody,
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ColumnPicker, type ColumnDefinition } from "./column-picker"
-import { getTablePreferences } from "@/app/dashboard/projects/table-actions"
+import { getTablePreferences } from "@/app/(app)/projects/table-actions"
 import {
     OverdueTasksCell,
     NextDueDateCell,
@@ -29,12 +29,27 @@ import { TagBadge } from "./tag-badge"
 import { EngagementBadge } from "./engagement-badge"
 import { StatusBadge } from "./status-badge"
 import { DataTableToolbar } from "./data-table-toolbar"
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination"
 import type { EngagementScoreResult } from "@/lib/engagement-score"
-import type { ProjectStatus } from "@/app/dashboard/projects/[projectId]/status-utils"
+import type { ProjectStatus } from "@/app/(app)/projects/[projectId]/status-utils"
+
+export interface DateRange {
+    from: Date
+    to: Date
+}
 
 type Project = {
     id: string
     client_name: string
+    client_logo_url: string | null
     name: string
     status: string
     target_go_live_date: string | null
@@ -66,6 +81,11 @@ interface ProjectsTableProps {
     projects: Project[]
 }
 
+export interface ProjectsTableRef {
+    setEngagementFilter: (levels: string[]) => void
+    setGoLiveDateRange: (range: DateRange | null) => void
+}
+
 // Define all available columns
 const COLUMNS: ColumnDefinition[] = [
     { id: 'id', label: 'ID', defaultVisible: false },
@@ -89,17 +109,30 @@ const COLUMNS: ColumnDefinition[] = [
 const DEFAULT_VISIBLE = COLUMNS.filter(col => col.defaultVisible).map(col => col.id)
 const DEFAULT_ORDER = COLUMNS.map(col => col.id)
 
-export function ProjectsTable({ projects }: ProjectsTableProps) {
+export const ProjectsTable = forwardRef<ProjectsTableRef, ProjectsTableProps>(({ projects }, ref) => {
     const [sortField, setSortField] = useState<SortField | null>(null)
     const [sortOrder, setSortOrder] = useState<SortOrder>(null)
     const [filter, setFilter] = useState("")
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
     const [selectedEngagementLevels, setSelectedEngagementLevels] = useState<string[]>([])
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([])
+    const [goLiveDateRange, setGoLiveDateRange] = useState<DateRange | null>(null)
     const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
     const [visibleColumns, setVisibleColumns] = useState<string[]>(DEFAULT_VISIBLE)
     const [columnOrder, setColumnOrder] = useState<string[]>(DEFAULT_ORDER)
     const [prefsLoaded, setPrefsLoaded] = useState(false)
+    const [currentPage, setCurrentPage] = useState(1)
+    const [itemsPerPage] = useState(10)
+
+    // Expose methods to parent component
+    useImperativeHandle(ref, () => ({
+        setEngagementFilter: (levels: string[]) => {
+            setSelectedEngagementLevels(levels)
+        },
+        setGoLiveDateRange: (range: DateRange | null) => {
+            setGoLiveDateRange(range)
+        }
+    }))
 
     // Load user preferences on mount
     useEffect(() => {
@@ -139,7 +172,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedProjectIds(sortedAndFilteredProjects.map(p => p.id))
+            setSelectedProjectIds(paginatedProjects.map(p => p.id))
         } else {
             setSelectedProjectIds([])
         }
@@ -156,10 +189,10 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
     const handleDelete = async () => {
         if (selectedProjectIds.length === 0) return
 
-        const confirmed = confirm(`Är du säker på att du vill ta bort ${selectedProjectIds.length} projekt?`)
+        const confirmed = confirm(`Are you sure you want to delete ${selectedProjectIds.length} projekt?`)
         if (!confirmed) return
 
-        const { deleteProjects } = await import('@/app/dashboard/projects/actions')
+        const { deleteProjects } = await import('@/app/(app)/projects/actions')
         const result = await deleteProjects(selectedProjectIds)
 
         if (result.error) {
@@ -206,6 +239,15 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
             })
         }
 
+        // Filter by go-live date range
+        if (goLiveDateRange) {
+            result = result.filter(project => {
+                if (!project.target_go_live_date) return false
+                const goLiveDate = new Date(project.target_go_live_date)
+                return goLiveDate >= goLiveDateRange.from && goLiveDate <= goLiveDateRange.to
+            })
+        }
+
         // Sort
         if (sortField && sortOrder) {
             result.sort((a, b) => {
@@ -241,7 +283,21 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
         }
 
         return result
-    }, [projects, filter, selectedTagIds, selectedEngagementLevels, selectedStatuses, sortField, sortOrder])
+    }, [projects, filter, selectedTagIds, selectedEngagementLevels, selectedStatuses, sortField, sortOrder, goLiveDateRange])
+
+    // Calculate pagination
+    const totalPages = Math.ceil(sortedAndFilteredProjects.length / itemsPerPage)
+
+    // Reset to page 1 when filters change
+    useEffect(() => {
+        setCurrentPage(1)
+    }, [filter, selectedTagIds, selectedEngagementLevels, selectedStatuses, goLiveDateRange])
+
+    const paginatedProjects = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage
+        const endIndex = startIndex + itemsPerPage
+        return sortedAndFilteredProjects.slice(startIndex, endIndex)
+    }, [sortedAndFilteredProjects, currentPage, itemsPerPage])
 
     const SortIcon = ({ field }: { field: SortField }) => {
         if (sortField !== field) {
@@ -259,7 +315,19 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
             case 'id':
                 return <span className="font-mono text-xs">{project.id}</span>
             case 'client_name':
-                return <span className="font-medium text-sm">{project.client_name}</span>
+                return (
+                    <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                            {project.client_logo_url && (
+                                <AvatarImage src={project.client_logo_url} className="object-contain" />
+                            )}
+                            <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                                {project.client_name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium text-sm">{project.client_name}</span>
+                    </div>
+                )
             case 'name':
                 return <span className="text-sm">{project.name}</span>
             case 'status':
@@ -379,7 +447,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => handleSort(columnId as SortField)}
-                className="h-7 px-2 text-xs font-medium hover:bg-transparent gap-1.5"
+                className="h-7 px-3 text-xs font-medium hover:bg-transparent gap-1.5 justify-start -mx-3"
             >
                 {column.label.toUpperCase()}
                 <SortIcon field={columnId as SortField} />
@@ -412,6 +480,8 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                 onEngagementChange={setSelectedEngagementLevels}
                 selectedStatuses={selectedStatuses}
                 onStatusesChange={setSelectedStatuses}
+                goLiveDateRange={goLiveDateRange}
+                onGoLiveDateRangeChange={setGoLiveDateRange}
                 selectedProjectIds={selectedProjectIds}
                 onDelete={handleDelete}
                 columns={COLUMNS}
@@ -430,20 +500,20 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                         <TableRow className="border-b hover:bg-transparent">
                             <TableHead className="h-10 w-12 px-3">
                                 <Checkbox
-                                    checked={selectedProjectIds.length === sortedAndFilteredProjects.length && sortedAndFilteredProjects.length > 0}
+                                    checked={paginatedProjects.length > 0 && paginatedProjects.every(p => selectedProjectIds.includes(p.id))}
                                     onCheckedChange={handleSelectAll}
                                     aria-label="Select all"
                                 />
                             </TableHead>
                             {orderedVisibleColumns.map(columnId => (
-                                <TableHead key={columnId} className={`h-10 px-3 whitespace-nowrap ${columnId === 'created_at' ? 'text-right' : ''}`}>
+                                <TableHead key={columnId} className={`h-10 px-3 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
                                     {renderHeader(columnId)}
                                 </TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedAndFilteredProjects.map((project) => (
+                        {paginatedProjects.map((project) => (
                             <TableRow key={project.id} className="hover:bg-muted/5 border-b last:border-0">
                                 <TableCell className="w-12 px-3">
                                     <Checkbox
@@ -454,8 +524,8 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                                     />
                                 </TableCell>
                                 {orderedVisibleColumns.map(columnId => (
-                                    <TableCell key={columnId} className={`p-0 whitespace-nowrap ${columnId === 'created_at' ? 'text-right' : ''}`}>
-                                        <Link href={`/dashboard/projects/${project.id}`} className="block py-3 px-3">
+                                    <TableCell key={columnId} className={`p-0 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
+                                        <Link href={`/projects/${project.id}`} className="block py-3 px-3">
                                             {renderCell(project, columnId)}
                                         </Link>
                                     </TableCell>
@@ -466,6 +536,57 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
                 </Table>
                 </div>
             </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-center px-2">
+                <Pagination>
+                    <PaginationContent>
+                        <PaginationItem>
+                            <PaginationPrevious
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                        </PaginationItem>
+
+                        {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                            // Show first page, last page, current page, and pages around current
+                            const showPage = page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1
+                            const showEllipsis = (page === 2 && currentPage > 3) || (page === totalPages - 1 && currentPage < totalPages - 2)
+
+                            if (showEllipsis) {
+                                return (
+                                    <PaginationItem key={page}>
+                                        <PaginationEllipsis />
+                                    </PaginationItem>
+                                )
+                            }
+
+                            if (!showPage) return null
+
+                            return (
+                                <PaginationItem key={page}>
+                                    <PaginationLink
+                                        onClick={() => setCurrentPage(page)}
+                                        isActive={currentPage === page}
+                                        className="cursor-pointer"
+                                    >
+                                        {page}
+                                    </PaginationLink>
+                                </PaginationItem>
+                            )
+                        })}
+
+                        <PaginationItem>
+                            <PaginationNext
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                        </PaginationItem>
+                    </PaginationContent>
+                </Pagination>
+            </div>
         </div>
     )
-}
+})
+
+ProjectsTable.displayName = 'ProjectsTable'

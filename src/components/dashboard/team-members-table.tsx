@@ -16,7 +16,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MemberActions } from "@/components/dashboard/member-actions"
-import type { OrgMember } from "@/app/dashboard/settings/team-actions"
+import type { OrgMember } from "@/app/(app)/settings/team-actions"
 
 type SortField = 'name' | 'email' | 'role' | 'invited_at' | 'joined_at'
 type SortOrder = 'asc' | 'desc' | null

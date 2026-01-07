@@ -1,7 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/server'
-import { getBranding } from '@/lib/branding'
+import { getBranding, getGradientCSS } from '@/lib/branding'
 
 /**
  * Get resolved branding for a project (with organization fallback)
@@ -17,10 +17,12 @@ export async function getPortalBranding(projectId: string) {
             .select(`
                 brand_color,
                 logo_path,
+                background_gradient,
                 organization_id,
                 organizations (
                     brand_color,
-                    logo_path
+                    logo_path,
+                    background_gradient
                 )
             `)
             .eq('id', projectId)
@@ -30,7 +32,8 @@ export async function getPortalBranding(projectId: string) {
             console.error('Failed to fetch project branding:', error)
             return {
                 color: '#bef264', // default lime
-                logoUrl: null
+                logoUrl: null,
+                gradientCSS: getGradientCSS(null)
             }
         }
 
@@ -42,18 +45,21 @@ export async function getPortalBranding(projectId: string) {
         return await getBranding(
             {
                 brand_color: project.brand_color,
-                logo_path: project.logo_path
+                logo_path: project.logo_path,
+                background_gradient: project.background_gradient
             },
             {
                 brand_color: organization?.brand_color,
-                logo_path: organization?.logo_path
+                logo_path: organization?.logo_path,
+                background_gradient: organization?.background_gradient
             }
         )
     } catch (error) {
         console.error('Get portal branding failed:', error)
         return {
             color: '#bef264', // default lime
-            logoUrl: null
+            logoUrl: null,
+            gradientCSS: getGradientCSS(null)
         }
     }
 }

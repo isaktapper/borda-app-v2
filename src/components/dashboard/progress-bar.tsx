@@ -22,13 +22,6 @@ export function ProgressBar({
     lg: 'h-4'
   }[size]
 
-  const getColor = () => {
-    if (value >= 80) return 'bg-emerald-500'
-    if (value >= 50) return 'bg-blue-500'
-    if (value >= 30) return 'bg-yellow-500'
-    return 'bg-red-500'
-  }
-
   return (
     <div className={cn('space-y-2', className)}>
       {(label || showPercentage) && (
@@ -42,7 +35,7 @@ export function ProgressBar({
       <div className="relative">
         <Progress value={value} className={height} />
         <div
-          className={cn('absolute inset-0 rounded-full transition-all', getColor(), height)}
+          className={cn('absolute inset-0 rounded-full transition-all bg-primary', height)}
           style={{ width: `${value}%` }}
         />
       </div>

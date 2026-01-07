@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { MoreVertical, Shield, Trash2, Mail } from 'lucide-react'
-import { updateOrgMemberRole, removeOrgMember, resendInvitation } from '@/app/dashboard/settings/team-actions'
+import { updateOrgMemberRole, removeOrgMember, resendInvitation } from '@/app/(app)/settings/team-actions'
 import { toast } from 'sonner'
 
 interface MemberActionsProps {
@@ -92,7 +92,7 @@ export function MemberActions({ memberId, currentRole, userRole, isPending = fal
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Åtgärder</DropdownMenuLabel>
+          <DropdownMenuLabel>Actions</DropdownMenuLabel>
           <DropdownMenuSeparator />
 
           {isPending && (
@@ -107,19 +107,19 @@ export function MemberActions({ memberId, currentRole, userRole, isPending = fal
               {currentRole !== 'member' && (
                 <DropdownMenuItem onClick={() => handleChangeRole('member')}>
                   <Shield className="size-4 mr-2" />
-                  Gör till Member
+                  Make Member
                 </DropdownMenuItem>
               )}
               {currentRole !== 'admin' && userRole === 'owner' && (
                 <DropdownMenuItem onClick={() => handleChangeRole('admin')}>
                   <Shield className="size-4 mr-2" />
-                  Gör till Admin
+                  Make Admin
                 </DropdownMenuItem>
               )}
               {currentRole !== 'owner' && userRole === 'owner' && (
                 <DropdownMenuItem onClick={() => handleChangeRole('owner')}>
                   <Shield className="size-4 mr-2" />
-                  Gör till Owner
+                  Make Owner
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
@@ -142,15 +142,15 @@ export function MemberActions({ memberId, currentRole, userRole, isPending = fal
       <AlertDialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ändra roll</AlertDialogTitle>
+            <AlertDialogTitle>Change role</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ändra rollen till <strong>{newRole}</strong>?
+              Are you sure you want to change the role to <strong>{newRole}</strong>?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmChangeRole} disabled={loading}>
-              Ändra roll
+              Change role
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -165,12 +165,12 @@ export function MemberActions({ memberId, currentRole, userRole, isPending = fal
             </AlertDialogTitle>
             <AlertDialogDescription>
               {isPending
-                ? 'Är du säker på att du vill ta bort denna inbjudan?'
-                : 'Är du säker på att du vill ta bort denna medlem från organisationen?'}
+                ? 'Are you sure you want to remove this invitation?'
+                : 'Are you sure you want to remove this member from the organization?'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmRemove}
               disabled={loading}

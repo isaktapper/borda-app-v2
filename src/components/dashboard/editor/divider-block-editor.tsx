@@ -23,7 +23,7 @@ export function DividerBlockEditor({ content, onChange }: DividerBlockEditorProp
             <div className="flex items-center justify-between gap-4">
                 <div className="space-y-0.5">
                     <Label className="text-xs uppercase tracking-widest text-muted-foreground">Avskiljare</Label>
-                    <p className="text-xs text-muted-foreground italic">Välj om du vill ha en linje eller bara extra luft.</p>
+                    <p className="text-xs text-muted-foreground italic">Choose whether you want a line or just extra space.</p>
                 </div>
 
                 <Tabs
@@ -45,7 +45,7 @@ export function DividerBlockEditor({ content, onChange }: DividerBlockEditorProp
             </div>
 
             <div className="pt-4 border-t border-dashed">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-6 block">Förhandsgranskning</Label>
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-6 block">Preview</Label>
 
                 <div className="rounded-xl border border-dashed bg-muted/5 p-8 flex flex-col items-center gap-4">
                     <div className="w-full h-4 bg-muted/20 rounded-sm opacity-50" />

@@ -13,13 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { inviteCustomer, getProjectMembers, cancelInvite, resendInvite } from '@/app/dashboard/projects/[projectId]/team-actions'
-import { getOrgMembers } from '@/app/dashboard/settings/team-actions'
-import { updateProjectAssignee } from '@/app/dashboard/settings/team-actions'
+import { inviteCustomer, getProjectMembers, cancelInvite, resendInvite } from '@/app/(app)/projects/[projectId]/team-actions'
+import { getOrgMembers } from '@/app/(app)/settings/team-actions'
+import { updateProjectAssignee } from '@/app/(app)/settings/team-actions'
 import { Mail, Send, Trash2, RefreshCw, Loader2, Users, AlertCircle, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
-import { sv } from 'date-fns/locale'
 
 interface TeamTabContentProps {
     projectId: string
@@ -67,12 +66,12 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
             setEmail('')
             fetchMembers()
         } else {
-            toast.error(result.error || 'Något gick fel')
+            toast.error(result.error || 'Something went wrong')
         }
     }
 
     const handleCancel = async (memberId: string) => {
-        if (!confirm('Är du säker på att du vill ta bort inbjudan?')) return
+        if (!confirm('Are you sure you want to remove this invitation?')) return
         const result = await cancelInvite(memberId, projectId)
         if (result.success) {
             toast.success('Inbjudan borttagen')
@@ -85,7 +84,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
     const handleResend = async (memberId: string) => {
         const result = await resendInvite(memberId, projectId)
         if (result.success) {
-            toast.success('Inbjudan skickad på nytt!')
+            toast.success('Invitation resent!')
         } else {
             toast.error('Kunde inte skicka om inbjudan')
         }
@@ -114,7 +113,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                     </div>
                     <div>
                         <h3 className="text-xl font-bold tracking-tight">Bjud in kund</h3>
-                        <p className="text-sm text-muted-foreground">Skicka en inbjudan till din kund för att ge dem tillgång till portalen.</p>
+                        <p className="text-sm text-muted-foreground">Send an invitation to your customer to give them access to the portal.</p>
                     </div>
                 </div>
 
@@ -145,7 +144,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                     </div>
                     <div>
                         <h3 className="text-xl font-bold tracking-tight">Ansvarig CS</h3>
-                        <p className="text-sm text-muted-foreground">Välj vem i teamet som är ansvarig för detta projekt</p>
+                        <p className="text-sm text-muted-foreground">Select who on the team is responsible for this project</p>
                     </div>
                 </div>
 
@@ -154,7 +153,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                     onValueChange={handleAssigneeChange}
                 >
                     <SelectTrigger className="h-11 border-2 rounded-xl">
-                        <SelectValue placeholder="Välj ansvarig..." />
+                        <SelectValue placeholder="Select assignee..." />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="none">Ingen ansvarig</SelectItem>
@@ -173,7 +172,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
             {fetching ? (
                 <div className="flex flex-col items-center justify-center py-20 animate-pulse">
                     <Loader2 className="size-10 text-primary/20 animate-spin mb-4" />
-                    <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground/40">Hämtar teamet...</p>
+                    <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground/40">Loading team...</p>
                 </div>
             ) : (
                 <div className="grid gap-8 md:grid-cols-2">
@@ -188,7 +187,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                         <div className="grid gap-3">
                             {currentMembers.length === 0 ? (
                                 <div className="border-2 border-dashed rounded-2xl p-8 text-center bg-muted/5">
-                                    <p className="text-sm text-muted-foreground">Inga medlemmar har gått med än.</p>
+                                    <p className="text-sm text-muted-foreground">No members have joined yet.</p>
                                 </div>
                             ) : (
                                 currentMembers.map((m) => (
@@ -221,13 +220,13 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                         <div className="flex items-center justify-between px-2">
                             <div className="flex items-center gap-2">
                                 <AlertCircle className="size-4 text-amber-500/60" />
-                                <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Väntande inbjudningar ({pendingInvites.length})</h4>
+                                <h4 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Pending invitations ({pendingInvites.length})</h4>
                             </div>
                         </div>
                         <div className="grid gap-3">
                             {pendingInvites.length === 0 ? (
                                 <div className="border-2 border-dashed rounded-2xl p-8 text-center bg-muted/5">
-                                    <p className="text-sm text-muted-foreground">Inga väntande inbjudningar.</p>
+                                    <p className="text-sm text-muted-foreground">No pending invitations.</p>
                                 </div>
                             ) : (
                                 pendingInvites.map((i) => (

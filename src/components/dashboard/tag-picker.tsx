@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { getTags, addTagToProject, removeTagFromProject, createAndAddTag, type Tag } from '@/app/dashboard/tags/actions'
+import { getTags, addTagToProject, removeTagFromProject, createAndAddTag, type Tag } from '@/app/(app)/tags/actions'
 import { TagColorPicker } from './tag-color-picker'
 import { TAG_COLORS } from '@/lib/tag-colors'
 
@@ -20,7 +20,7 @@ export function TagPicker({ projectId, selectedTagIds, onTagsChange, className }
   const [search, setSearch] = useState('')
   const [tags, setTags] = useState<Tag[]>([])
   const [creatingTag, setCreatingTag] = useState(false)
-  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0].value)
+  const [newTagColor, setNewTagColor] = useState<string>(TAG_COLORS[0].value)
   const [isLoading, setIsLoading] = useState(false)
 
   // Load tags on mount

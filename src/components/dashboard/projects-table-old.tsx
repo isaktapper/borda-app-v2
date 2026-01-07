@@ -115,7 +115,7 @@ export function ProjectsTable({ projects }: ProjectsTableProps) {
         <div className="space-y-3">
             <div className="flex items-center gap-2">
                 <Input
-                    placeholder="Filter projects..."
+                    placeholder="Search projects..."
                     value={filter}
                     onChange={(e) => setFilter(e.target.value)}
                     className="max-w-sm h-8 text-sm"

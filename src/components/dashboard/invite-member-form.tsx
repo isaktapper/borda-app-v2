@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { inviteToOrganization } from '@/app/dashboard/settings/team-actions'
+import { inviteToOrganization } from '@/app/(app)/settings/team-actions'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 

@@ -2,7 +2,7 @@ import { format, isAfter, isBefore, addDays } from 'date-fns'
 import { CheckCircle2, Circle, ChevronRight, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/dashboard/projects/[projectId]/action-items-actions'
+import type { TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
 
 interface RowProps {
   onClick: () => void
@@ -61,15 +61,15 @@ export function TaskRow({ task, onClick }: { task: TaskItem } & RowProps) {
   )
 }
 
-export function QuestionRow({ question, onClick }: { question: QuestionItem } & RowProps) {
-  const hasAnswer = !!question.response
+export function FormFieldRow({ formField, onClick }: { formField: FormFieldItem } & RowProps) {
+  const hasAnswer = !!formField.response
 
   const getAnswerPreview = () => {
-    if (!question.response) return 'Waiting...'
+    if (!formField.response) return 'Waiting...'
 
-    const value = question.response.value
+    const value = formField.response.value
 
-    switch (question.type) {
+    switch (formField.type) {
       case 'text':
       case 'textarea':
         const text = value.text || value
@@ -116,8 +116,8 @@ export function QuestionRow({ question, onClick }: { question: QuestionItem } & 
         )}
         <div className="flex-1 min-w-0">
           <p className="text-sm truncate">
-            {question.question}
-            {question.required && <span className="text-red-600 ml-1">*</span>}
+            {formField.question}
+            {formField.required && <span className="text-red-600 ml-1">*</span>}
           </p>
         </div>
       </div>
@@ -160,37 +160,6 @@ export function FileUploadRow({ fileUpload, onClick }: { fileUpload: FileUploadI
           hasFiles ? "text-muted-foreground" : "text-orange-600"
         )}>
           {hasFiles ? `${fileUpload.files.length} file${fileUpload.files.length !== 1 ? 's' : ''}` : 'No files'}
-        </span>
-        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-      </div>
-    </div>
-  )
-}
-
-export function ChecklistRow({ checklist, onClick }: { checklist: ChecklistItem } & RowProps) {
-  const allChecked = checklist.totalCount > 0 && checklist.checkedCount === checklist.totalCount
-
-  return (
-    <div
-      onClick={onClick}
-      className="flex items-center justify-between p-3 hover:bg-muted/50 cursor-pointer transition-colors group"
-    >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {allChecked ? (
-          <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-        ) : (
-          <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-        )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm truncate">
-            {checklist.title || 'Checklist'}
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 ml-4">
-        <span className="text-sm text-muted-foreground whitespace-nowrap">
-          {checklist.checkedCount}/{checklist.totalCount} checked
         </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>

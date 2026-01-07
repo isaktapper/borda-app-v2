@@ -13,7 +13,7 @@ import { useState } from 'react'
 
 function LoginForm() {
     const searchParams = useSearchParams()
-    const redirect = searchParams.get('redirect') || '/dashboard'
+    const redirect = searchParams.get('redirect') || '/projects'
     const errorMsg = searchParams.get('error')
 
     const [loading, setLoading] = useState(false)
@@ -49,7 +49,7 @@ function LoginForm() {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="password" title="Password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Lösenord</Label>
+                <Label htmlFor="password" title="Password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Password</Label>
                 <div className="relative">
                     <Key className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
                     <Input
@@ -78,7 +78,7 @@ function LoginForm() {
                     <Loader2 className="size-5 animate-spin" />
                 ) : (
                     <>
-                        Logga in
+                        Log in
                         <ArrowRight className="size-5" />
                     </>
                 )}
@@ -92,8 +92,8 @@ export default function LoginPage() {
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50/30 via-background to-emerald-50/30 p-6">
             <Card className="w-full max-w-md p-10 border-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] rounded-[2.5rem] relative overflow-hidden">
                 <div className="space-y-2 mb-10 relative">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary pb-1">Välkommen tillbaka</p>
-                    <h1 className="text-3xl font-black tracking-tight leading-tight">Logga in på Impel</h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary pb-1">Welcome back</p>
+                    <h1 className="text-3xl font-black tracking-tight leading-tight">Log in to Impel</h1>
                 </div>
 
                 <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="size-8 text-primary animate-spin" /></div>}>
@@ -102,9 +102,9 @@ export default function LoginPage() {
 
                 <div className="mt-8 text-center">
                     <p className="text-xs text-muted-foreground font-medium">
-                        Har du inget konto?{' '}
+                        Don't have an account?{' '}
                         <Link href="/signup" className="text-primary font-bold hover:underline underline-offset-4">
-                            Skapa ett här
+                            Sign up here
                         </Link>
                     </p>
                 </div>

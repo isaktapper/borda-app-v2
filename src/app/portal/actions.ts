@@ -4,36 +4,50 @@ import { createAdminClient, createClient } from '@/lib/supabase/server'
 import { verifyPortalSession } from '@/lib/portal-auth'
 import { notFound } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
-import { logActivity } from '@/app/dashboard/progress-actions'
+import { logActivity } from '@/app/(app)/projects/progress-actions'
 
 async function getAuthPortalClient(projectId: string) {
-    // 1. Verify custom portal session
-    const session = await verifyPortalSession(projectId)
+    // 1. Check if internal staff (Supabase user) - they bypass portal session
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    // 2. If no session, they might be internal staff (Supabase user)
-    if (!session) {
-        const supabase = await createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+        const { data: membership } = await supabase
+            .from('project_members')
+            .select('id')
+            .eq('project_id', projectId)
+            .single()
 
-        // If staff, verify they have access to this project
-        if (user) {
-            const { data: membership } = await supabase
-                .from('project_members')
-                .select('id')
-                .eq('project_id', projectId)
-                .single()
-
-            if (membership) return supabase // Staff uses their own client (RLS handles it)
+        if (membership) {
+            return supabase // Staff uses their own client (RLS handles it)
         }
-
-        return null // No valid session or staff access
     }
 
-    // 3. For customers with a valid cookie, use admin client
-    // We trust the cookie because it's signed and contains the email/projectId
+    // 2. For non-staff, ALWAYS require a portal session
+    // The session is created by the access page after proper authentication (password, email, etc.)
+    const session = await verifyPortalSession(projectId)
+
+    if (!session) {
+        // No session = no access (they need to go through /access page first)
+        return null
+    }
+
+    // 3. Session exists - use admin client for data access
     const adminSupabase = await createAdminClient()
 
-    // Double check membership for this email just in case (revocation support)
+    // Check project access mode to determine if we need membership verification
+    const { data: project } = await adminSupabase
+        .from('projects')
+        .select('access_mode')
+        .eq('id', projectId)
+        .single()
+
+    // For public access mode, allow any valid session (including anonymous)
+    if (project?.access_mode === 'public') {
+        return adminSupabase
+    }
+
+    // For restricted access, verify the session email is in the approved list
     const { data: member, error: memberError } = await adminSupabase
         .from('project_members')
         .select('id, role, invited_email')
@@ -182,28 +196,36 @@ export async function getPortalTasks(projectId: string, pageId: string) {
 
     if (!blocks || blocks.length === 0) return {}
 
-    // 2. Get task records for those blocks
+    // 2. Get responses for those blocks (task statuses are stored in responses now)
     const blockIds = blocks.map(b => b.id)
-    const { data: tasks } = await supabase
-        .from('tasks')
-        .select('id, block_id, status')
+    const { data: responses } = await supabase
+        .from('responses')
+        .select('block_id, value')
         .in('block_id', blockIds)
 
+    // 3. Expand task statuses into composite keys
     const taskMap: Record<string, 'pending' | 'completed'> = {}
-    tasks?.forEach(t => {
-        taskMap[t.block_id] = t.status as 'pending' | 'completed'
+    responses?.forEach(r => {
+        if (r.value && r.value.tasks) {
+            // New format: { tasks: { "taskId": "status" } }
+            Object.entries(r.value.tasks).forEach(([taskId, status]) => {
+                const compositeKey = `${r.block_id}-${taskId}`
+                taskMap[compositeKey] = status as 'pending' | 'completed'
+            })
+        }
     })
+
     return taskMap
 }
 
-export async function toggleTaskStatus(blockId: string, projectId: string) {
+export async function toggleTaskStatus(blockId: string, projectId: string, taskTitle?: string) {
     const supabase = await getAuthPortalClient(projectId)
     if (!supabase) return { error: 'Not authorized' }
 
     // Check if project is read-only
     const accessCheck = await validatePortalAccess(projectId)
     if (accessCheck.readOnly) {
-        return { error: 'Detta projekt är avslutat och kan inte längre redigeras.' }
+        return { error: 'This project is archived and cannot be edited.' }
     }
 
     // Get current status
@@ -228,15 +250,16 @@ export async function toggleTaskStatus(blockId: string, projectId: string) {
 
     if (error) return { error: error.message }
 
-    // Log activity
+    // Log activity with task title in metadata
     const session = await verifyPortalSession(projectId)
-    const actorEmail = session?.email || 'unknown'
+    const actorEmail = session?.email || 'anonymous'
     await logActivity(
         projectId,
         actorEmail,
-        newStatus === 'completed' ? 'task.completed' : 'task.uncompleted',
+        newStatus === 'completed' ? 'task.completed' : 'task.reopened',
         'task',
-        blockId
+        blockId,
+        { taskTitle: taskTitle || 'Unknown task' }
     )
 
     revalidatePath(`/portal/${projectId}`, 'layout')
@@ -250,7 +273,7 @@ export async function saveResponse(blockId: string, projectId: string, value: an
     // Check if project is read-only
     const accessCheck = await validatePortalAccess(projectId)
     if (accessCheck.readOnly) {
-        return { error: 'Detta projekt är avslutat och kan inte längre redigeras.' }
+        return { error: 'This project is archived and cannot be edited.' }
     }
 
     // Check if this is a portal customer or authenticated staff (for tracking only)
@@ -301,16 +324,23 @@ export async function saveResponse(blockId: string, projectId: string, value: an
         return { error: error.message }
     }
 
-    // Log activity - determine if it's a question or checklist
+    // Log activity for form submissions
     const { data: block } = await supabase
         .from('blocks')
-        .select('type')
+        .select('type, content')
         .eq('id', blockId)
         .single()
 
-    if (block) {
-        const action = block.type === 'question' ? 'question.answered' : 'checklist.updated'
-        await logActivity(projectId, actorEmail, action, block.type, blockId)
+    if (block && block.type === 'form') {
+        const formTitle = (block.content as any)?.title || 'Form'
+        await logActivity(
+            projectId,
+            actorEmail,
+            'form.submitted',
+            'form',
+            blockId,
+            { formTitle }
+        )
     }
 
     return { success: true }
@@ -360,7 +390,7 @@ export async function uploadFile(
     // Check if project is read-only
     const accessCheck = await validatePortalAccess(projectId)
     if (accessCheck.readOnly) {
-        return { error: 'Detta projekt är avslutat och kan inte längre redigeras.' }
+        return { error: 'This project is archived and cannot be edited.' }
     }
 
     const { data, error } = await supabase
@@ -394,14 +424,25 @@ export async function uploadFile(
     return { success: true, file: data }
 }
 
-export async function deleteFile(fileId: string, projectId: string) {
+export async function deleteFile(fileId: string, projectId: string, fileName?: string) {
     const supabase = await getAuthPortalClient(projectId)
     if (!supabase) return { error: 'Not authorized' }
 
     // Check if project is read-only
     const accessCheck = await validatePortalAccess(projectId)
     if (accessCheck.readOnly) {
-        return { error: 'Detta projekt är avslutat och kan inte längre redigeras.' }
+        return { error: 'This project is archived and cannot be edited.' }
+    }
+
+    // Get file name if not provided
+    let actualFileName = fileName
+    if (!actualFileName) {
+        const { data: file } = await supabase
+            .from('files')
+            .select('original_name')
+            .eq('id', fileId)
+            .single()
+        actualFileName = file?.original_name || 'Unknown file'
     }
 
     const { error } = await supabase
@@ -411,15 +452,16 @@ export async function deleteFile(fileId: string, projectId: string) {
 
     if (error) return { error: error.message }
 
-    // Log activity
+    // Log activity with file name
     const session = await verifyPortalSession(projectId)
-    const actorEmail = session?.email || 'unknown'
+    const actorEmail = session?.email || 'anonymous'
     await logActivity(
         projectId,
         actorEmail,
         'file.deleted',
         'file',
-        fileId
+        fileId,
+        { fileName: actualFileName }
     )
 
     revalidatePath(`/portal/${projectId}`, 'layout')
@@ -444,4 +486,61 @@ export async function getFilesForBlock(blockId: string) {
 
     if (error) return []
     return data
+}
+
+/**
+ * Log when a customer views a specific page
+ */
+export async function logPageView(projectId: string, pageId: string, pageName: string) {
+    const session = await verifyPortalSession(projectId)
+    const actorEmail = session?.email || 'anonymous'
+
+    await logActivity(
+        projectId,
+        actorEmail,
+        'page.viewed',
+        'page',
+        pageId,
+        { pageName }
+    )
+}
+
+/**
+ * Log when a customer downloads a file
+ */
+export async function logFileDownload(projectId: string, fileId: string, fileName: string) {
+    const session = await verifyPortalSession(projectId)
+    const actorEmail = session?.email || 'anonymous'
+
+    await logActivity(
+        projectId,
+        actorEmail,
+        'file.downloaded',
+        'file',
+        fileId,
+        { fileName }
+    )
+}
+
+/**
+ * Log when a customer completes or reopens a task
+ */
+export async function logTaskActivity(
+    projectId: string,
+    blockId: string,
+    taskId: string,
+    taskTitle: string,
+    newStatus: 'completed' | 'pending'
+) {
+    const session = await verifyPortalSession(projectId)
+    const actorEmail = session?.email || 'anonymous'
+
+    await logActivity(
+        projectId,
+        actorEmail,
+        newStatus === 'completed' ? 'task.completed' : 'task.reopened',
+        'task',
+        `${blockId}-${taskId}`,
+        { taskTitle }
+    )
 }

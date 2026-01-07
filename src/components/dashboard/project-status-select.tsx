@@ -10,8 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { updateProjectStatus, type ProjectStatus } from '@/app/dashboard/projects/[projectId]/status-actions'
-import { getAvailableStatuses } from '@/app/dashboard/projects/[projectId]/status-utils'
+import { updateProjectStatus, type ProjectStatus } from '@/app/(app)/projects/[projectId]/status-actions'
+import { getAvailableStatuses } from '@/app/(app)/projects/[projectId]/status-utils'
 import { toast } from 'sonner'
 
 interface ProjectStatusSelectProps {

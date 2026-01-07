@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { type Tag, createTag, updateTag, deleteTag } from '@/app/dashboard/tags/actions'
+import { type Tag, createTag, updateTag, deleteTag } from '@/app/(app)/tags/actions'
 import { TagBadge } from './tag-badge'
 import { TagColorPicker } from './tag-color-picker'
 import { Button } from '@/components/ui/button'
@@ -37,9 +37,9 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
     const [editingTag, setEditingTag] = useState<Tag | null>(null)
     const [deletingTag, setDeletingTag] = useState<Tag | null>(null)
     const [newTagName, setNewTagName] = useState('')
-    const [newTagColor, setNewTagColor] = useState(TAG_COLORS[0].value)
+    const [newTagColor, setNewTagColor] = useState<string>(TAG_COLORS[0].value)
     const [editTagName, setEditTagName] = useState('')
-    const [editTagColor, setEditTagColor] = useState(TAG_COLORS[0].value)
+    const [editTagColor, setEditTagColor] = useState<string>(TAG_COLORS[0].value)
     const [isLoading, setIsLoading] = useState(false)
 
     const handleCreateTag = async () => {
@@ -120,14 +120,14 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                             <TableHead className="w-12"></TableHead>
                             <TableHead>Namn</TableHead>
                             <TableHead>Projekt</TableHead>
-                            <TableHead className="w-24 text-right">Åtgärder</TableHead>
+                            <TableHead className="w-24 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {tags.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={4} className="text-center py-12 text-muted-foreground">
-                                    Inga taggar. Skapa din första tagg för att komma igång.
+                                    No tags. Create your first tag to get started.
                                 </TableCell>
                             </TableRow>
                         ) : (
@@ -178,9 +178,9 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Skapa ny tagg</DialogTitle>
+                        <DialogTitle>Create new tag</DialogTitle>
                         <DialogDescription>
-                            Lägg till en ny tagg för att kategorisera projekt
+                            Add a new tag to categorize projects
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -198,7 +198,7 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Färg</label>
+                            <label className="text-sm font-medium">Color</label>
                             <TagColorPicker
                                 selectedColor={newTagColor}
                                 onColorSelect={setNewTagColor}
@@ -220,9 +220,9 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
             <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Redigera tagg</DialogTitle>
+                        <DialogTitle>Edit tag</DialogTitle>
                         <DialogDescription>
-                            Uppdatera taggnamn eller färg
+                            Update tag name or color
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -240,7 +240,7 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                             />
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Färg</label>
+                            <label className="text-sm font-medium">Color</label>
                             <TagColorPicker
                                 selectedColor={editTagColor}
                                 onColorSelect={setEditTagColor}
@@ -264,10 +264,10 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                     <DialogHeader>
                         <DialogTitle>Ta bort tagg</DialogTitle>
                         <DialogDescription>
-                            Är du säker på att du vill ta bort denna tagg?
+                            Are you sure you want to delete this tag?
                             {deletingTag && usageCounts[deletingTag.id] > 0 && (
                                 <span className="block mt-2 text-destructive">
-                                    Detta kommer att ta bort taggen från {usageCounts[deletingTag.id]} projekt.
+                                    This will remove the tag from {usageCounts[deletingTag.id]} projekt.
                                 </span>
                             )}
                         </DialogDescription>

@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, X, User } from 'lucide-react'
-import { updateProfileName, uploadAvatar, removeAvatar } from '@/app/dashboard/profile/actions'
-import { getAvatarSignedUrl } from '@/app/dashboard/profile/avatar-actions'
+import { updateProfileName, uploadAvatar, removeAvatar } from '@/app/(app)/settings/profile/actions'
+import { getAvatarSignedUrl } from '@/app/(app)/settings/profile/avatar-actions'
 import { useRouter } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
@@ -47,7 +47,7 @@ export function ProfileEditor({
 
     const handleSave = async () => {
         if (!fullName || fullName.trim().length === 0) {
-            setError('Namn krävs')
+            setError('Name is required')
             return
         }
 
@@ -124,7 +124,7 @@ export function ProfileEditor({
                     </div>
                     {hasChanges && (
                         <Button onClick={handleSave} disabled={saving} size="sm">
-                            {saving ? 'Sparar...' : 'Spara'}
+                            {saving ? 'Saving...' : 'Spara'}
                         </Button>
                     )}
                 </div>
@@ -138,7 +138,7 @@ export function ProfileEditor({
                         className="bg-muted/50"
                     />
                     <p className="text-xs text-muted-foreground">
-                        E-postadressen kan inte ändras
+                        Email address cannot be changed
                     </p>
                 </div>
 
@@ -187,7 +187,7 @@ export function ProfileEditor({
 
                     {/* Full Name */}
                     <div className="space-y-2">
-                        <Label className="text-xs">Fullständigt namn</Label>
+                        <Label className="text-xs">Full name</Label>
                         <Input
                             value={fullName}
                             onChange={handleNameChange}

@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 
         await sendEmail({
           to: email,
-          subject: `Påminnelse: ${projectData.tasks.length} uppgift${projectData.tasks.length > 1 ? 'er' : ''} att slutföra`,
+          subject: `Reminder: ${projectData.tasks.length} task${projectData.tasks.length > 1 ? 'er' : ''}  to complete`,
           html: taskReminderTemplate({
             tasks: projectData.tasks,
             projectName: projectData.projectName,

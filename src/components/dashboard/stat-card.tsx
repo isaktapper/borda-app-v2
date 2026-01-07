@@ -1,4 +1,3 @@
-import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { LucideIcon } from 'lucide-react'
 
@@ -13,6 +12,7 @@ interface StatCardProps {
   }
   variant?: 'default' | 'success' | 'warning' | 'danger'
   className?: string
+  onClick?: () => void
 }
 
 export function StatCard({
@@ -22,7 +22,8 @@ export function StatCard({
   icon: Icon,
   trend,
   variant = 'default',
-  className
+  className,
+  onClick
 }: StatCardProps) {
   const iconColors = {
     default: 'text-muted-foreground',
@@ -31,8 +32,18 @@ export function StatCard({
     danger: 'text-red-600 dark:text-red-400'
   }
 
+  const Component = onClick ? 'button' : 'div'
+
   return (
-    <Card className={cn('p-5 hover:shadow-xl hover:shadow-black/10 transition-all duration-300', className)}>
+    <Component
+      onClick={onClick}
+      className={cn(
+        'p-5 rounded-lg bg-muted/40 transition-colors text-left w-full',
+        onClick && 'hover:bg-muted/60 cursor-pointer',
+        !onClick && 'hover:bg-muted/50',
+        className
+      )}
+    >
       <div className="space-y-2.5">
         <p className="text-sm text-foreground/90 font-medium">{title}</p>
 
@@ -62,6 +73,6 @@ export function StatCard({
           )}
         </div>
       </div>
-    </Card>
+    </Component>
   )
 }

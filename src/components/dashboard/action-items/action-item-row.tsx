@@ -1,7 +1,7 @@
 import { CheckCircle2, Circle, ChevronRight, CheckSquare, MessageSquare, Upload, ListChecks } from 'lucide-react'
 import { format, isBefore, isAfter, addDays } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/dashboard/projects/[projectId]/action-items-actions'
+import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
 
 type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
 

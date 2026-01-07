@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Calendar as CalendarIcon, Loader2 } from "lucide-react"
-import { createProject } from "@/app/dashboard/projects/actions"
-import { createProjectFromTemplate, getTemplates } from "@/app/dashboard/templates/actions"
+import { Plus, Calendar as CalendarIcon, Loader2, Upload, X } from "lucide-react"
+import { createProject } from "@/app/(app)/projects/actions"
+import { createProjectFromTemplate, getTemplates } from "@/app/(app)/templates/actions"
+import { uploadClientLogo } from "@/app/(app)/projects/[projectId]/client-logo-actions"
 import { useRouter } from 'next/navigation'
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
@@ -41,6 +42,9 @@ export function CreateProjectModal() {
     const [date, setDate] = useState<Date>()
     const [selectedTemplate, setSelectedTemplate] = useState<string>('blank')
     const [templates, setTemplates] = useState<Template[]>([])
+    const [logoFile, setLogoFile] = useState<File | null>(null)
+    const [logoPreview, setLogoPreview] = useState<string | null>(null)
+    const fileInputRef = useRef<HTMLInputElement>(null)
     const router = useRouter()
 
     useEffect(() => {
@@ -48,6 +52,27 @@ export function CreateProjectModal() {
             getTemplates().then(setTemplates)
         }
     }, [open])
+
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setLogoFile(file)
+            // Create preview
+            const reader = new FileReader()
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+        }
+    }
+
+    const handleRemoveLogo = () => {
+        setLogoFile(null)
+        setLogoPreview(null)
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ''
+        }
+    }
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
@@ -78,15 +103,30 @@ export function CreateProjectModal() {
         if (result.error) {
             setError(result.error)
             setLoading(false)
-        } else {
-            setOpen(false)
-            setLoading(false)
-            setDate(undefined)
-            setSelectedTemplate('blank')
-            router.refresh()
-            if (result.projectId) {
-                router.push(`/dashboard/projects/${result.projectId}`)
+            return
+        }
+
+        // Upload client logo if provided
+        if (result.projectId && result.organizationId && logoFile) {
+            const logoFormData = new FormData()
+            logoFormData.append('file', logoFile)
+            const logoResult = await uploadClientLogo(result.projectId, result.organizationId, logoFormData)
+
+            if (logoResult.error) {
+                console.error('Failed to upload client logo:', logoResult.error)
+                // Don't block project creation if logo upload fails
             }
+        }
+
+        setOpen(false)
+        setLoading(false)
+        setDate(undefined)
+        setSelectedTemplate('blank')
+        setLogoFile(null)
+        setLogoPreview(null)
+        router.refresh()
+        if (result.projectId) {
+            router.push(`/projects/${result.projectId}`)
         }
     }
 
@@ -171,6 +211,55 @@ export function CreateProjectModal() {
                                     />
                                 </PopoverContent>
                             </Popover>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="clientLogo">Customer Logo (Optional)</Label>
+                            {!logoPreview ? (
+                                <div>
+                                    <input
+                                        ref={fileInputRef}
+                                        id="clientLogo"
+                                        type="file"
+                                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                                        onChange={handleLogoChange}
+                                        className="hidden"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="w-full"
+                                    >
+                                        <Upload className="mr-2 h-4 w-4" />
+                                        Upload Logo
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        PNG, JPG, SVG, or WEBP (max 5MB)
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="relative border rounded-lg p-4 flex items-center gap-3">
+                                    <img
+                                        src={logoPreview}
+                                        alt="Logo preview"
+                                        className="h-12 w-12 object-contain"
+                                    />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium">{logoFile?.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {logoFile && (logoFile.size / 1024).toFixed(1)} KB
+                                        </p>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleRemoveLogo}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                         {error && (
                             <p className="text-sm font-medium text-destructive">{error}</p>

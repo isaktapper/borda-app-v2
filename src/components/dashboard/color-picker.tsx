@@ -39,7 +39,7 @@ export function ColorPicker({
         if (isValidHexColor(input)) {
             onChange(normalizeHexColor(input))
         } else if (input.length >= 6) {
-            setCustomError('Ogiltig färgkod. Använd hex-format (t.ex. #6366f1)')
+            setCustomError('Invalid color code. Use hex format (e.g. #6366f1)')
         }
     }
 
@@ -90,7 +90,7 @@ export function ColorPicker({
             {showCustomInput && (
                 <div className="space-y-2">
                     <Label htmlFor="custom-color" className="text-xs text-muted-foreground">
-                        Eller ange egen färg
+                        Or enter custom color
                     </Label>
                     <div className="flex gap-2">
                         <div className="relative flex-1">
@@ -122,7 +122,7 @@ export function ColorPicker({
                                 setCustomError(null)
                             }}
                             className="size-9 rounded-md border-2 border-input cursor-pointer"
-                            title="Välj färg"
+                            title="Select color"
                         />
                     </div>
                     {customError && (
@@ -134,14 +134,14 @@ export function ColorPicker({
             {/* Preview */}
             <div className="pt-2 border-t">
                 <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2 block">
-                    Förhandsgranskning
+                    Preview
                 </Label>
                 <div className="flex gap-2">
                     <Button style={{ backgroundColor: value, borderColor: value }}>
                         Exempelknapp
                     </Button>
                     <Button variant="outline" style={{ color: value, borderColor: value }}>
-                        Sekundär
+                        Secondary
                     </Button>
                     <div className="flex-1 h-9 rounded-md border-2" style={{ borderColor: value, backgroundColor: `${value}10` }}>
                         <div className="h-full w-1/2 rounded-l-sm" style={{ backgroundColor: value }} />

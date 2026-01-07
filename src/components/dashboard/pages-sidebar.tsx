@@ -22,7 +22,7 @@ import { GripVertical, Trash2, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CreatePageModal } from './create-page-modal'
-import { deletePage, reorderPages } from '@/app/dashboard/projects/[projectId]/pages-actions'
+import { deletePage, reorderPages } from '@/app/(app)/projects/[projectId]/pages-actions'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -93,7 +93,7 @@ export function PagesSidebar({ projectId, pages, selectedPageId, onSelect, onOrd
 
             <div className="flex-1 overflow-y-auto p-2">
                 {pages.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic p-4 text-center">Inga sidor än.</p>
+                    <p className="text-xs text-muted-foreground italic p-4 text-center">No pages yet.</p>
                 ) : (
                     <DndContext
                         sensors={sensors}

@@ -78,7 +78,7 @@ export function ContactCardBlockEditor({ content, onChange }: ContactCardBlockEd
             </div>
 
             <div className="space-y-2">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Förhandsgranskning</Label>
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Preview</Label>
                 <Card className="p-6 border-2 border-dashed bg-muted/10 shadow-none hover:bg-muted/20 transition-colors">
                     <div className="flex items-center gap-6">
                         <Avatar className="size-20 border-2 border-background shadow-lg">

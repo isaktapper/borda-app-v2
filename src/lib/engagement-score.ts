@@ -6,9 +6,8 @@ export interface EngagementScoreResult {
   factors: {
     visits: { score: number; count: number }
     tasks: { score: number; completed: number; total: number }
-    questions: { score: number; answered: number; total: number }
+    formFields: { score: number; answered: number; total: number }
     files: { score: number; uploaded: number; total: number }
-    checklists: { score: number; completed: number; total: number }
   }
   calculatedAt: Date
 }
@@ -41,26 +40,75 @@ async function getVisitCount(projectId: string, days: number): Promise<number> {
 async function getTaskStats(projectId: string): Promise<{ completed: number; total: number }> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('status')
+  // Get all pages for this project
+  const { data: pages } = await supabase
+    .from('pages')
+    .select('id')
     .eq('project_id', projectId)
+    .is('deleted_at', null)
 
-  if (error || !data) {
-    console.error('Error fetching task stats:', error)
+  if (!pages || pages.length === 0) {
     return { completed: 0, total: 0 }
   }
 
-  const total = data.length
-  const completed = data.filter(t => t.status === 'completed').length
+  const pageIds = pages.map(p => p.id)
 
-  return { completed, total }
+  // Get all task blocks
+  const { data: blocks } = await supabase
+    .from('blocks')
+    .select('id, content')
+    .in('page_id', pageIds)
+    .eq('type', 'task')
+    .is('deleted_at', null)
+
+  if (!blocks || blocks.length === 0) {
+    return { completed: 0, total: 0 }
+  }
+
+  // Count total tasks across all task blocks
+  let totalTasks = 0
+  const tasksByBlock: { [blockId: string]: number } = {}
+
+  for (const block of blocks) {
+    const content = block.content as any
+    const tasks = content?.tasks || []
+    totalTasks += tasks.length
+    tasksByBlock[block.id] = tasks.length
+  }
+
+  if (totalTasks === 0) {
+    return { completed: 0, total: 0 }
+  }
+
+  const blockIds = blocks.map(b => b.id)
+
+  // Get responses for these blocks to check task statuses
+  const { data: responses } = await supabase
+    .from('responses')
+    .select('block_id, value')
+    .in('block_id', blockIds)
+
+  // Count completed tasks
+  let completedTasks = 0
+
+  for (const response of responses || []) {
+    const value = response.value as any
+    const tasks = value?.tasks || {}
+
+    // Count tasks with 'completed' status
+    completedTasks += Object.values(tasks).filter(status => status === 'completed').length
+  }
+
+  return {
+    completed: completedTasks,
+    total: totalTasks
+  }
 }
 
-async function getQuestionStats(projectId: string): Promise<{ answered: number; total: number }> {
+async function getFormFieldStats(projectId: string): Promise<{ answered: number; total: number }> {
   const supabase = await createClient()
 
-  // Get all question blocks for this project
+  // Get all form blocks for this project
   const { data: pages } = await supabase
     .from('pages')
     .select('id')
@@ -75,11 +123,27 @@ async function getQuestionStats(projectId: string): Promise<{ answered: number; 
 
   const { data: blocks } = await supabase
     .from('blocks')
-    .select('id')
+    .select('id, content')
     .in('page_id', pageIds)
-    .eq('type', 'question')
+    .eq('type', 'form')
+    .is('deleted_at', null)
 
   if (!blocks || blocks.length === 0) {
+    return { answered: 0, total: 0 }
+  }
+
+  // Count total form fields across all form blocks
+  let totalFields = 0
+  const fieldsByBlock: { [blockId: string]: number } = {}
+
+  for (const block of blocks) {
+    const content = block.content as any
+    const questions = content?.questions || []
+    totalFields += questions.length
+    fieldsByBlock[block.id] = questions.length
+  }
+
+  if (totalFields === 0) {
     return { answered: 0, total: 0 }
   }
 
@@ -88,14 +152,32 @@ async function getQuestionStats(projectId: string): Promise<{ answered: number; 
   // Get responses for these blocks
   const { data: responses } = await supabase
     .from('responses')
-    .select('block_id')
+    .select('block_id, value')
     .in('block_id', blockIds)
 
-  const answeredCount = new Set(responses?.map(r => r.block_id) || []).size
+  // Count answered fields
+  let answeredFields = 0
+
+  for (const response of responses || []) {
+    const value = response.value as any
+    const questions = value?.questions || {}
+
+    // Count how many fields have non-empty answers
+    answeredFields += Object.values(questions).filter((answer: any) => {
+      if (!answer) return false
+      // Check different field types
+      if (answer.text && typeof answer.text === 'string') return answer.text.trim() !== ''
+      if (answer.selected) {
+        if (typeof answer.selected === 'string') return answer.selected.trim() !== ''
+        if (Array.isArray(answer.selected)) return answer.selected.length > 0
+      }
+      return false
+    }).length
+  }
 
   return {
-    answered: answeredCount,
-    total: blocks.length
+    answered: answeredFields,
+    total: totalFields
   }
 }
 
@@ -142,91 +224,30 @@ async function getFileUploadStats(projectId: string): Promise<{ uploaded: number
   }
 }
 
-async function getChecklistStats(projectId: string): Promise<{ completed: number; total: number }> {
-  const supabase = await createClient()
-
-  // Get all checklist blocks for this project
-  const { data: pages } = await supabase
-    .from('pages')
-    .select('id')
-    .eq('project_id', projectId)
-    .is('deleted_at', null)
-
-  if (!pages || pages.length === 0) {
-    return { completed: 0, total: 0 }
-  }
-
-  const pageIds = pages.map(p => p.id)
-
-  const { data: blocks } = await supabase
-    .from('blocks')
-    .select('id, content')
-    .in('page_id', pageIds)
-    .eq('type', 'checklist')
-
-  if (!blocks || blocks.length === 0) {
-    return { completed: 0, total: 0 }
-  }
-
-  const blockIds = blocks.map(b => b.id)
-
-  // Get responses for these blocks
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('block_id, value')
-    .in('block_id', blockIds)
-
-  // Count checklists where all items are checked
-  let completedCount = 0
-
-  for (const block of blocks) {
-    const content = block.content as any
-    const items = content?.items || []
-    const totalItems = items.length
-
-    if (totalItems === 0) continue
-
-    const response = responses?.find(r => r.block_id === block.id)
-    const checkedItems = (response?.value as any)?.checked || []
-
-    if (checkedItems.length === totalItems) {
-      completedCount++
-    }
-  }
-
-  return {
-    completed: completedCount,
-    total: blocks.length
-  }
-}
-
 export async function calculateEngagementScore(projectId: string): Promise<EngagementScoreResult> {
-  // 1. Hämta besök senaste 14 dagarna
+  // 1. Fetch visits from last 14 days
   const visitCount = await getVisitCount(projectId, 14)
 
-  // 2. Hämta task completion
+  // 2. Fetch task completion
   const tasks = await getTaskStats(projectId)
 
-  // 3. Hämta question stats
-  const questions = await getQuestionStats(projectId)
+  // 3. Fetch form field stats
+  const formFields = await getFormFieldStats(projectId)
 
-  // 4. Hämta file upload stats
+  // 4. Fetch file upload stats
   const files = await getFileUploadStats(projectId)
 
-  // 5. Hämta checklist stats
-  const checklists = await getChecklistStats(projectId)
-
-  // 6. Beräkna delpoäng
+  // 5. Calculate partial scores
+  // Total: 100 points = Visits (20) + Tasks (30) + Form Fields (30) + Files (20)
   const visitScore = calculateVisitScore(visitCount)
-  const taskScore = tasks.total > 0 ? (tasks.completed / tasks.total) * 25 : 25
-  const questionScore = questions.total > 0 ? (questions.answered / questions.total) * 25 : 25
-  const fileScore = files.total > 0 ? (files.uploaded / files.total) * 15 : 15
-  const checklistScore = checklists.total > 0 ? (checklists.completed / checklists.total) * 15 : 15
+  const taskScore = tasks.total > 0 ? (tasks.completed / tasks.total) * 30 : 0
+  const formFieldScore = formFields.total > 0 ? (formFields.answered / formFields.total) * 30 : 0
+  const fileScore = files.total > 0 ? (files.uploaded / files.total) * 20 : 0
 
-  // 7. Total
-  const totalScore = Math.round(visitScore + taskScore + questionScore + fileScore + checklistScore)
+  // 6. Total
+  const totalScore = Math.round(visitScore + taskScore + formFieldScore + fileScore)
 
-  // 8. Bestäm nivå
+  // 7. Determine level
   let level: 'high' | 'medium' | 'low' | 'none'
   if (visitCount === 0) level = 'none'
   else if (totalScore >= 75) level = 'high'
@@ -239,9 +260,8 @@ export async function calculateEngagementScore(projectId: string): Promise<Engag
     factors: {
       visits: { score: visitScore, count: visitCount },
       tasks: { score: Math.round(taskScore), completed: tasks.completed, total: tasks.total },
-      questions: { score: Math.round(questionScore), answered: questions.answered, total: questions.total },
+      formFields: { score: Math.round(formFieldScore), answered: formFields.answered, total: formFields.total },
       files: { score: Math.round(fileScore), uploaded: files.uploaded, total: files.total },
-      checklists: { score: Math.round(checklistScore), completed: checklists.completed, total: checklists.total },
     },
     calculatedAt: new Date(),
   }

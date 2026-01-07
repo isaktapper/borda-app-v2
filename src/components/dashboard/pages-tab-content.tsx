@@ -4,9 +4,9 @@ import { useState, useEffect, useTransition } from 'react'
 import { FileText, Save, Loader2 } from 'lucide-react'
 import { PagesSidebar } from './pages-sidebar'
 import { Button } from '@/components/ui/button'
-import { reorderPages, deletePage } from '@/app/dashboard/projects/[projectId]/pages-actions'
+import { reorderPages, deletePage } from '@/app/(app)/projects/[projectId]/pages-actions'
 import { BlockEditor } from './editor/block-editor'
-import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/dashboard/projects/[projectId]/block-actions'
+import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/projects/[projectId]/block-actions'
 
 interface Block {
     id: string
@@ -147,7 +147,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                             </span>
-                            Osparade ändringar i projektet
+                            Unsaved changes in project
                         </div>
                         <Button
                             size="sm"
@@ -156,7 +156,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
                             className="gap-2 shadow-lg hover:shadow-primary/20 transition-all font-semibold"
                         >
                             {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                            Spara ändringar
+                            Save changes
                         </Button>
                     </div>
                 )}
@@ -170,7 +170,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
                                 </h2>
                                 <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2 font-medium">
                                     <span className="px-1.5 py-0.5 bg-muted rounded font-mono text-[10px] tracking-tight">{selectedPage.slug}</span>
-                                    • Editera sidans innehåll nedan
+                                    • Edit the page content below
                                 </p>
                             </div>
 
@@ -191,7 +191,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
                             </div>
                             <h3 className="text-xl font-bold text-foreground/70">Ingen sida vald</h3>
                             <p className="text-sm text-muted-foreground max-w-xs mt-2 italic font-medium">
-                                Välj en sida i sidofältet till vänster eller skapa en ny för att börja bygga din portal.
+                                Select a page in the sidebar to the left or create a new one to start building your portal.
                             </p>
                         </div>
                     )}

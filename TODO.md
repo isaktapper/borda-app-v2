@@ -1,4 +1,138 @@
+
 # TODO - Framtida förbättringar
+
+---
+
+## 🚀 ROADMAP - Prioriterade Features
+
+### 🔴 Hög Prioritet
+
+#### 1. Email Notifications
+**Status:** Planerad
+**Beskrivning:** Automatiska påminnelser och notiser via email
+
+**Features:**
+- [ ] Task-påminnelser (X dagar innan deadline)
+- [ ] Veckosammanfattning till CS-ansvarig
+- [ ] Notis när kund slutför task/laddar upp fil
+- [ ] Konfigurerbart per projekt (vilka händelser triggar email)
+
+**Implementation:** Resend API + cron job för schemalagda utskick
+
+---
+
+#### 2. ✅ Progress Bar i Kundportalen
+**Status:** Klart (2026-01-06)
+**Beskrivning:** Visa kunden hur långt de kommit i onboardingen
+
+**Features:**
+- [x] Cirkulär progress-indikator i headern
+- [x] Visa i portal header
+- [x] "X av Y" completed items
+- [x] Grön check-ikon vid 100%
+
+**Implementation:** `PortalProgressIndicator` komponent i portal layout
+
+---
+
+#### 3. Webhooks
+**Status:** Planerad
+**Beskrivning:** Låt användare koppla egna system via webhooks
+
+**Features:**
+- [ ] Konfigurera webhook URL i projekt-settings
+- [ ] Välj vilka events som triggar (task.completed, file.uploaded, etc)
+- [ ] Webhook history/logs
+- [ ] Retry-logik vid misslyckade anrop
+
+**Implementation:** Ny tabell `project_webhooks`, trigga från activity-hook
+
+---
+
+### 🟡 Medel Prioritet
+
+#### 4. Kalender-integration
+**Status:** Idé
+**Beskrivning:** Synka deadlines med kundens kalender
+
+**Features:**
+- [ ] Google Calendar integration
+- [ ] Outlook/Microsoft 365 integration
+- [ ] Automatisk kalender-inbjudan för tasks med deadline
+- [ ] iCal export-länk
+
+---
+
+#### 5. Analytics Dashboard
+**Status:** Idé
+**Beskrivning:** Visuell översikt över all aktivitet
+
+**Features:**
+- [ ] Grafer över besök, completions, uploads över tid
+- [ ] Jämför projekt mot varandra
+- [ ] Export till CSV/Excel
+- [ ] Filtrering per tidsperiod
+
+---
+
+#### 6. Bulk Actions
+**Status:** Idé
+**Beskrivning:** Masshantering av projekt
+
+**Features:**
+- [ ] Välj flera projekt och ändra status
+- [ ] Bulk-arkivera avslutade projekt
+- [ ] Bulk-tilldela CS-ansvarig
+- [ ] Bulk-export av data
+
+---
+
+### 🟢 Låg Prioritet
+
+#### 7. Customer Feedback / NPS
+**Status:** Idé
+**Beskrivning:** Samla in feedback från kunder
+
+**Features:**
+- [ ] NPS-fråga i slutet av onboardingen
+- [ ] Fritext-feedback
+- [ ] Sammanställning i dashboard
+
+---
+
+#### 8. Projektmallar (Templates)
+**Status:** Idé
+**Beskrivning:** Skapa nya projekt från mallar
+
+**Features:**
+- [ ] Spara projekt som mall
+- [ ] Mall-bibliotek per organisation
+- [ ] Förhandsgranska mall innan användning
+- [ ] Dela mallar mellan organisationer (marketplace?)
+
+---
+
+#### 9. Välkomstmeddelande i Portal
+**Status:** Idé
+**Beskrivning:** Personligt välkomstmeddelande för kunder
+
+**Features:**
+- [ ] Video-välkomst (embed från Loom/YouTube)
+- [ ] Personlig text med kundens namn
+- [ ] Visa endast första gången
+
+---
+
+#### 10. Multi-språk (i18n)
+**Status:** Idé
+**Beskrivning:** Stöd för flera språk i portalen
+
+**Features:**
+- [ ] Svenska/Engelska toggle
+- [ ] Automatisk översättning av UI
+- [ ] Manuell översättning av innehåll per sida
+
+---
 
 ## 🔄 Automatisering & Performance
 

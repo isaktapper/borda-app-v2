@@ -1,6 +1,6 @@
 import { FileText } from 'lucide-react'
 import { ActionItemRow } from './action-item-row'
-import type { PageWithItems, ActionItem } from '@/app/dashboard/projects/[projectId]/action-items-actions'
+import type { PageWithItems, ActionItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
 
 type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
 
