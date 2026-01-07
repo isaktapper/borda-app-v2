@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
 
 interface DownloadFile {
     id: string
@@ -30,11 +31,11 @@ export async function uploadFileToDownloadBlock(
     }
 
     try {
-        // Generate unique file path
-        const fileExt = file.name.split('.').pop()
-        const fileName = file.name.replace(`.${fileExt}`, '')
+        // Generate unique file path with sanitization
+        const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'bin')
+        const fileName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
         const uniqueId = crypto.randomUUID()
-        const storagePath = `${organizationId}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`
+        const storagePath = sanitizeStoragePath(`${organizationId}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`)
 
         // Upload to Supabase Storage
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -83,7 +84,9 @@ export async function uploadFileToDownloadBlock(
 
         if (updateError) {
             // Try to clean up uploaded file
-            await supabase.storage.from('project-files').remove([storagePath])
+            if (isValidStoragePath(storagePath)) {
+                await supabase.storage.from('project-files').remove([storagePath])
+            }
             return { error: updateError.message }
         }
 
@@ -131,7 +134,10 @@ export async function removeFileFromDownloadBlock(
             return { error: 'File not found' }
         }
 
-        // Remove file from storage
+        // Remove file from storage (validate path first)
+        if (!isValidStoragePath(fileToRemove.storagePath)) {
+            return { error: 'Invalid storage path' }
+        }
         const { error: storageError } = await supabase.storage
             .from('project-files')
             .remove([fileToRemove.storagePath])
@@ -169,12 +175,18 @@ export async function removeFileFromDownloadBlock(
  * Get a signed download URL for a file
  */
 export async function getDownloadUrl(storagePath: string) {
+    // Validate path to prevent path traversal
+    if (!isValidStoragePath(storagePath)) {
+        return { error: 'Invalid storage path' }
+    }
+
     const supabase = await createClient()
 
     try {
+        const safePath = sanitizeStoragePath(storagePath)
         const { data, error } = await supabase.storage
             .from('project-files')
-            .createSignedUrl(storagePath, 3600) // 1 hour expiry
+            .createSignedUrl(safePath, 3600) // 1 hour expiry
 
         if (error) {
             console.error('Signed URL error:', error)

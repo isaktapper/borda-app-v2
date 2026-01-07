@@ -3,6 +3,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getProjectProgress } from '@/app/(app)/projects/progress-actions'
+import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
 
 export async function createProject(formData: FormData) {
     const supabase = await createClient()
@@ -193,21 +194,23 @@ export async function getProjects(includeArchived: boolean = false) {
             const { createClient: createServerClient } = await import('@/lib/supabase/server')
             const supabase = await createServerClient()
 
-            // Generate signed URL for avatar
+            // Generate signed URL for avatar (with path validation)
             let avatarUrl = null
-            if (project.assigned_user?.avatar_url) {
+            if (project.assigned_user?.avatar_url && isValidStoragePath(project.assigned_user.avatar_url)) {
+                const safePath = sanitizeStoragePath(project.assigned_user.avatar_url)
                 const { data } = await supabase.storage
                     .from('avatars')
-                    .createSignedUrl(project.assigned_user.avatar_url, 60 * 60 * 24)
+                    .createSignedUrl(safePath, 60 * 60 * 24)
                 avatarUrl = data?.signedUrl || null
             }
 
-            // Generate signed URL for client logo
+            // Generate signed URL for client logo (with path validation)
             let clientLogoUrl = null
-            if (project.client_logo_url) {
+            if (project.client_logo_url && isValidStoragePath(project.client_logo_url)) {
+                const safePath = sanitizeStoragePath(project.client_logo_url)
                 const { data } = await supabase.storage
                     .from('client-logos')
-                    .createSignedUrl(project.client_logo_url, 60 * 60 * 24)
+                    .createSignedUrl(safePath, 60 * 60 * 24)
                 clientLogoUrl = data?.signedUrl || null
             }
 

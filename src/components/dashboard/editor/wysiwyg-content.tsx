@@ -2,6 +2,7 @@
 
 import { Loader2, GripVertical, MoreHorizontal, Trash2, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -171,7 +172,7 @@ function TextPreview({ content }: { content: any }) {
         return (
             <div
                 className="prose prose-sm max-w-none"
-                dangerouslySetInnerHTML={{ __html: content.html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.html) }}
             />
         )
     }

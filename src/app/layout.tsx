@@ -1,16 +1,38 @@
 import type { Metadata } from "next";
-import { Montserrat, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const montserrat = Montserrat({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
 });
 
 const jetBrainsMono = JetBrains_Mono({
-  variable: "--font-geist-mono",
+  variable: "--font-mono",
   subsets: ["latin"],
+});
+
+const uxum = localFont({
+  src: [
+    {
+      path: "../../public/fonts/uxumlight.otf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/uxumregular.otf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/uxumbold.otf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-uxum",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +48,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${montserrat.variable} ${jetBrainsMono.variable} antialiased`}
+        className={`${inter.variable} ${uxum.variable} ${jetBrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         {children}

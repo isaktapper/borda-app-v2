@@ -1,6 +1,8 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { sanitizeHtml } from '@/lib/sanitize'
+import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,7 +56,7 @@ function TextRenderer({ content }: { content: any }) {
         return (
             <div
                 className="prose prose-sm max-w-none portal-text-content"
-                dangerouslySetInnerHTML={{ __html: content.html }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.html) }}
             />
         )
     }
@@ -173,9 +175,9 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
 
         try {
             const supabase = createClient()
-            const fileExt = file.name.split('.').pop()
+            const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'bin')
             const fileName = `${Math.random().toString(36).substring(2, 12)}.${fileExt}`
-            const storagePath = `portal/${projectId}/${blockId}/${fileName}`
+            const storagePath = sanitizeStoragePath(`portal/${projectId}/${blockId}/${fileName}`)
 
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('project-files')
@@ -305,10 +307,16 @@ function FileDownloadRenderer({ content }: { content: any }) {
 
     const handleDownload = async (file: any) => {
         try {
+            // Validate storage path before use
+            if (!isValidStoragePath(file.storagePath)) {
+                throw new Error('Invalid file path')
+            }
+
             const supabase = createClient()
+            const safePath = sanitizeStoragePath(file.storagePath)
             const { data, error } = await supabase.storage
                 .from('project-files')
-                .createSignedUrl(file.storagePath, 3600)
+                .createSignedUrl(safePath, 3600)
 
             if (error) throw error
 

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
 
 interface DownloadFile {
     id: string
@@ -99,11 +100,11 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
                 const file = files[i]
                 setUploadProgress(((i + 0.5) / files.length) * 100)
 
-                // Generate unique file path
-                const fileExt = file.name.split('.').pop()
-                const fileName = file.name.replace(`.${fileExt}`, '')
+                // Generate unique file path with sanitization
+                const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'bin')
+                const fileName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
                 const uniqueId = crypto.randomUUID()
-                const storagePath = `${project.organization_id}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`
+                const storagePath = sanitizeStoragePath(`${project.organization_id}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`)
 
                 // Upload to Supabase Storage
                 const { data: uploadData, error: uploadError } = await supabase.storage
@@ -155,8 +156,12 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
             files: content.files.filter(f => f.id !== fileId)
         })
 
-        // Remove from storage in background
+        // Remove from storage in background (validate path first)
         try {
+            if (!isValidStoragePath(fileToRemove.storagePath)) {
+                console.error('Invalid storage path, skipping removal')
+                return
+            }
             const supabase = createClient()
             const { error } = await supabase.storage
                 .from('project-files')

@@ -3,6 +3,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
 
 const DEFAULT_BRAND_COLOR = '#bef264' // Lime-300 (matches our primary)
 
@@ -75,15 +76,16 @@ export function normalizeHexColor(hex: string): string {
  * Gets signed URL for a logo from Supabase Storage
  */
 export async function getSignedLogoUrl(logoPath: string): Promise<string | null> {
-    if (!logoPath) {
+    if (!logoPath || !isValidStoragePath(logoPath)) {
         return null
     }
 
     try {
         const supabase = createClient()
+        const safePath = sanitizeStoragePath(logoPath)
         const { data, error } = await supabase.storage
             .from('branding')
-            .createSignedUrl(logoPath, 3600) // 1 hour expiry
+            .createSignedUrl(safePath, 3600) // 1 hour expiry
 
         if (error) {
             console.error('[getSignedLogoUrl] Error:', error)
@@ -101,15 +103,16 @@ export async function getSignedLogoUrl(logoPath: string): Promise<string | null>
  * Gets signed URL for an avatar from Supabase Storage
  */
 export async function getSignedAvatarUrl(avatarPath: string): Promise<string | null> {
-    if (!avatarPath) {
+    if (!avatarPath || !isValidStoragePath(avatarPath)) {
         return null
     }
 
     try {
         const supabase = createClient()
+        const safePath = sanitizeStoragePath(avatarPath)
         const { data, error } = await supabase.storage
             .from('avatars')
-            .createSignedUrl(avatarPath, 3600) // 1 hour expiry
+            .createSignedUrl(safePath, 3600) // 1 hour expiry
 
         if (error) {
             console.error('[getSignedAvatarUrl] Error:', error)

@@ -77,7 +77,10 @@ export async function joinOrganization(formData: FormData) {
         .insert({
             organization_id: orgId,
             user_id: user.id,
-            role: 'member'
+            role: 'member',
+            invited_email: user.email,
+            invited_by: user.id,
+            invited_at: new Date().toISOString()
         })
 
     if (error) {

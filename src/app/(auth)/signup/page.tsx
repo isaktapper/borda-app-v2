@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Mail, Loader2, ArrowRight, UserPlus, User, Key } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { signup } from '@/app/auth/actions'
 import Link from 'next/link'
+import { GoogleButton } from '@/components/ui/google-button'
 
 export default function SignupPage() {
     const [loading, setLoading] = useState(false)
@@ -24,91 +24,79 @@ export default function SignupPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50/30 via-background to-emerald-50/30 p-6">
-            <Card className="w-full max-w-md p-10 border-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] rounded-[2.5rem] relative overflow-hidden">
-                <div className="space-y-2 mb-10 relative">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary pb-1">Start your journey</p>
-                    <h1 className="text-3xl font-black tracking-tight leading-tight px-1">Create account</h1>
+        <div className="space-y-6">
+            <div className="space-y-1">
+                <h1 className="text-2xl font-bold tracking-tight font-[family-name:var(--font-uxum)]">
+                    Create account
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                    Get started with your free account
+                </p>
+            </div>
+
+            <div className="space-y-4">
+                <GoogleButton mode="signup" />
+
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">or</span>
+                    </div>
                 </div>
 
-                <form action={handleSubmit} className="space-y-6 animate-in fade-in duration-700">
-                    <div className="space-y-2">
-                        <Label htmlFor="fullName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Full name</Label>
-                        <div className="relative">
-                            <User className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
-                            <Input
-                                id="fullName"
-                                name="fullName"
-                                required
-                                placeholder="John Doe"
-                                className="h-14 pl-12 rounded-2xl border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
-                            />
-                        </div>
+                <form action={handleSubmit} className="space-y-4">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="fullName" className="text-sm font-medium">Full name</Label>
+                        <Input
+                            id="fullName"
+                            name="fullName"
+                            required
+                            placeholder="John Doe"
+                            className="h-10 rounded-md border-border bg-transparent placeholder:text-muted-foreground/50"
+                        />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Email address</Label>
-                        <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
-                            <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                placeholder="you@company.com"
-                                className="h-14 pl-12 rounded-2xl border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
-                            />
-                        </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            placeholder="you@company.com"
+                            className="h-10 rounded-md border-border bg-transparent placeholder:text-muted-foreground/50"
+                        />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="password" title="Password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Password</Label>
-                        <div className="relative">
-                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/40" />
-                            <Input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required
-                                minLength={8}
-                                placeholder="••••••••"
-                                className="h-14 pl-12 rounded-2xl border-2 focus-visible:ring-primary/20 bg-muted/5"
-                            />
-                        </div>
-                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest ml-1">At least 8 characters</p>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                        <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            required
+                            minLength={8}
+                            placeholder="At least 8 characters"
+                            className="h-10 rounded-md border-border bg-transparent placeholder:text-muted-foreground/50"
+                        />
                     </div>
 
-                    {error && (
-                        <div className="p-4 rounded-xl bg-destructive/5 text-destructive text-sm font-bold border border-destructive/10">
-                            {error}
-                        </div>
-                    )}
+                    {error && <p className="text-sm text-destructive">{error}</p>}
 
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full h-14 rounded-2xl text-base font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 transition-all gap-3"
-                    >
-                        {loading ? (
-                            <Loader2 className="size-5 animate-spin" />
-                        ) : (
-                            <>
-                                Create account
-                                <UserPlus className="size-5" />
-                            </>
-                        )}
+                    <Button type="submit" disabled={loading} className="w-full h-10 rounded-md font-medium">
+                        {loading ? <Loader2 className="size-4 animate-spin" /> : 'Create account'}
                     </Button>
                 </form>
+            </div>
 
-                <div className="mt-8 text-center">
-                    <p className="text-xs text-muted-foreground font-medium">
-                        Already have an account?{' '}
-                        <Link href="/login" className="text-primary font-bold hover:underline underline-offset-4">
-                            Log in here
-                        </Link>
-                    </p>
-                </div>
-            </Card>
+            <p className="text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link href="/login" className="text-foreground font-medium hover:underline underline-offset-4">
+                    Sign in
+                </Link>
+            </p>
         </div>
     )
 }

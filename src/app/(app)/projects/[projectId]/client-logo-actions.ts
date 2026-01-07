@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
 
 /**
  * Upload client/customer logo to Supabase Storage
@@ -32,9 +33,9 @@ export async function uploadClientLogo(projectId: string, organizationId: string
             return { error: 'File too large. Max 5MB' }
         }
 
-        // Get file extension
-        const fileExt = file.name.split('.').pop()
-        const logoPath = `${organizationId}/${projectId}/client-logo.${fileExt}`
+        // Get file extension and build safe path
+        const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'png')
+        const logoPath = sanitizeStoragePath(`${organizationId}/${projectId}/client-logo.${fileExt}`)
 
         // Remove old logo if exists
         const { data: project } = await supabase
@@ -49,7 +50,7 @@ export async function uploadClientLogo(projectId: string, organizationId: string
                 ? project.client_logo_url.split('/client-logos/')[1]
                 : project.client_logo_url
 
-            if (oldPath) {
+            if (oldPath && isValidStoragePath(oldPath)) {
                 await supabase.storage.from('client-logos').remove([oldPath])
             }
         }
@@ -90,14 +91,15 @@ export async function uploadClientLogo(projectId: string, organizationId: string
  * Get signed URL for client logo
  */
 export async function getClientLogoUrl(logoPath: string | null) {
-    if (!logoPath) return null
+    if (!logoPath || !isValidStoragePath(logoPath)) return null
 
     const supabase = await createClient()
 
     try {
+        const safePath = sanitizeStoragePath(logoPath)
         const { data } = await supabase.storage
             .from('client-logos')
-            .createSignedUrl(logoPath, 3600) // 1 hour expiry
+            .createSignedUrl(safePath, 3600) // 1 hour expiry
 
         return data?.signedUrl || null
     } catch (error) {
@@ -135,8 +137,8 @@ export async function removeClientLogo(projectId: string) {
             ? project.client_logo_url.split('/client-logos/')[1]
             : project.client_logo_url
 
-        // Remove from storage
-        if (logoPath) {
+        // Remove from storage (validate path first)
+        if (logoPath && isValidStoragePath(logoPath)) {
             await supabase.storage.from('client-logos').remove([logoPath])
         }
 

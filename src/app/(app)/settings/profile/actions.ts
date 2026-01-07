@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeStoragePath, sanitizeFileExtension } from '@/lib/storage-security'
 
 export async function updateProfileName(fullName: string) {
     const supabase = await createClient()
@@ -60,9 +61,9 @@ export async function uploadAvatar(formData: FormData) {
         return { error: 'File is too large (max 2MB)' }
     }
 
-    // Get file extension
-    const fileExt = file.name.split('.').pop()
-    const avatarPath = `${user.id}/avatar.${fileExt}`
+    // Get file extension and build safe path
+    const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'png')
+    const avatarPath = sanitizeStoragePath(`${user.id}/avatar.${fileExt}`)
 
     // Upload to storage
     const { error: uploadError } = await supabase.storage

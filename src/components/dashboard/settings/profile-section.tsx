@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Upload, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { sanitizeStoragePath, sanitizeFileExtension } from '@/lib/storage-security'
 
 interface ProfileSectionProps {
   user: {
@@ -44,9 +45,9 @@ export function ProfileSection({ user }: ProfileSectionProps) {
 
     setIsUpdating(true)
 
-    // Upload to storage
-    const fileExt = file.name.split('.').pop()
-    const filePath = `${user.id}/avatar.${fileExt}`
+    // Upload to storage with sanitized path
+    const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'png')
+    const filePath = sanitizeStoragePath(`${user.id}/avatar.${fileExt}`)
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')

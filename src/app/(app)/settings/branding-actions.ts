@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isValidHexColor, normalizeHexColor } from '@/lib/branding'
+import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
 
 /**
  * Upload organization logo to Supabase Storage
@@ -37,9 +38,9 @@ export async function uploadOrgLogo(organizationId: string, formData: FormData) 
             return { error: 'File too large. Max 2MB' }
         }
 
-        // Get file extension
-        const fileExt = file.name.split('.').pop()
-        const logoPath = `${organizationId}/logo.${fileExt}`
+        // Get file extension and build safe path
+        const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'png')
+        const logoPath = sanitizeStoragePath(`${organizationId}/logo.${fileExt}`)
 
         // Remove old logo if exists
         const { data: org } = await supabase
@@ -48,7 +49,7 @@ export async function uploadOrgLogo(organizationId: string, formData: FormData) 
             .eq('id', organizationId)
             .single()
 
-        if (org?.logo_path) {
+        if (org?.logo_path && isValidStoragePath(org.logo_path)) {
             await supabase.storage.from('branding').remove([org.logo_path])
         }
 
@@ -110,8 +111,10 @@ export async function removeOrgLogo(organizationId: string) {
             return { error: 'No logo to remove' }
         }
 
-        // Remove from storage
-        await supabase.storage.from('branding').remove([org.logo_path])
+        // Remove from storage (validate path first)
+        if (isValidStoragePath(org.logo_path)) {
+            await supabase.storage.from('branding').remove([org.logo_path])
+        }
 
         // Update organization record
         const { error: updateError } = await supabase
