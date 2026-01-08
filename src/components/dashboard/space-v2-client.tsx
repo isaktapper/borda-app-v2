@@ -235,29 +235,13 @@ export function ProjectV2Client({
 
     // Handle page deletion
     const handlePageDelete = async (pageId: string) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/08bc85f2-8759-48fb-b070-fd8bcaef1a49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'space-v2-client.tsx:handlePageDelete:entry',message:'handlePageDelete called',data:{pageId,spaceId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-        // #endregion
         startTransition(async () => {
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/08bc85f2-8759-48fb-b070-fd8bcaef1a49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'space-v2-client.tsx:handlePageDelete:insideTransition',message:'Inside startTransition',data:{pageId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2'})}).catch(()=>{});
-            // #endregion
             const res = await deletePage(pageId, spaceId)
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/08bc85f2-8759-48fb-b070-fd8bcaef1a49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'space-v2-client.tsx:handlePageDelete:afterDelete',message:'deletePage returned',data:{res},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2-H3'})}).catch(()=>{});
-            // #endregion
             if (res.success) {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/08bc85f2-8759-48fb-b070-fd8bcaef1a49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'space-v2-client.tsx:handlePageDelete:success',message:'Updating pages state',data:{pageId},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-                // #endregion
                 setPages(prev => prev.filter(p => p.id !== pageId))
                 if (selectedPageId === pageId) {
                     setSelectedPageId(null)
                 }
-            } else {
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/08bc85f2-8759-48fb-b070-fd8bcaef1a49',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'space-v2-client.tsx:handlePageDelete:failed',message:'Delete failed, res.success is false',data:{res},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-                // #endregion
             }
         })
     }

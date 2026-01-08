@@ -170,19 +170,13 @@ export async function updateTaskBlock(blockId: string, spaceId: string, content:
 export async function deleteTaskBlock(blockId: string) {
     const supabase = await createClient()
 
-    const { data: res, error } = await supabase.rpc('delete_block_rpc', {
+    const { error } = await supabase.rpc('delete_block_rpc', {
         p_block_id: blockId
     })
 
     if (error) {
-        console.error(`RPC internal error deleting block ${blockId}:`, error)
+        console.error(`RPC error deleting block ${blockId}:`, error)
         return { error: error.message }
-    }
-
-    const status = res as { success: boolean, message: string }
-    if (!status.success) {
-        console.warn(`Deletion failed for block ${blockId}: ${status.message}`)
-        return { error: status.message }
     }
 
     return { success: true }
