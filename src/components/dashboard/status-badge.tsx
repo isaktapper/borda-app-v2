@@ -1,9 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 
-type ProjectStatus = 'draft' | 'active' | 'completed' | 'archived'
+type SpaceStatus = 'draft' | 'active' | 'completed' | 'archived'
 
 interface StatusBadgeProps {
-  status: ProjectStatus
+  status: SpaceStatus
   className?: string
 }
 

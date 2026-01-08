@@ -78,7 +78,7 @@ export async function uploadOrgLogo(organizationId: string, formData: FormData) 
         }
 
         revalidatePath('/settings')
-        revalidatePath('/projects')
+        revalidatePath('/spaces')
 
         return { success: true, logoPath }
     } catch (error: any) {
@@ -127,7 +127,7 @@ export async function removeOrgLogo(organizationId: string) {
         }
 
         revalidatePath('/settings')
-        revalidatePath('/projects')
+        revalidatePath('/spaces')
 
         return { success: true }
     } catch (error: any) {
@@ -171,7 +171,7 @@ export async function updateOrgName(organizationId: string, name: string) {
         }
 
         revalidatePath('/settings')
-        revalidatePath('/projects')
+        revalidatePath('/spaces')
 
         return { success: true, name: name.trim() }
     } catch (error: any) {
@@ -215,7 +215,7 @@ export async function updateOrgBrandColor(organizationId: string, hexColor: stri
         }
 
         revalidatePath('/settings')
-        revalidatePath('/projects')
+        revalidatePath('/spaces')
 
         return { success: true, color: normalizedColor }
     } catch (error: any) {
@@ -251,7 +251,7 @@ export async function updateOrgBackgroundGradient(organizationId: string, gradie
         }
 
         revalidatePath('/settings')
-        revalidatePath('/projects')
+        revalidatePath('/spaces')
 
         return { success: true, gradient }
     } catch (error: any) {

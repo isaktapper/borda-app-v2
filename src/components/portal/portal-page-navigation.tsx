@@ -12,11 +12,11 @@ interface Page {
 
 interface PortalPageNavigationProps {
     pages: Page[]
-    projectId: string
+    spaceId: string
     currentSlug?: string // undefined means we're on overview
 }
 
-export function PortalPageNavigation({ pages, projectId, currentSlug }: PortalPageNavigationProps) {
+export function PortalPageNavigation({ pages, spaceId, currentSlug }: PortalPageNavigationProps) {
     // Create full navigation sequence: overview + pages
     const navigationSequence = [
         { title: 'Overview', slug: null }, // null slug = overview
@@ -38,7 +38,7 @@ export function PortalPageNavigation({ pages, projectId, currentSlug }: PortalPa
     }
 
     const getHref = (slug: string | null) => {
-        return slug ? `/portal/${projectId}/${slug}` : `/portal/${projectId}`
+        return slug ? `/space/${spaceId}/shared/${slug}` : `/space/${spaceId}/shared`
     }
 
     return (

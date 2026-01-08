@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { getProjectActivity } from '@/app/(app)/projects/progress-actions'
+import { getSpaceActivity } from '@/app/(app)/spaces/progress-actions'
 import {
     getActivityText,
     getActivityIcon,
@@ -24,23 +24,23 @@ interface ProgressData {
 }
 
 interface ActivityContentProps {
-    projectId: string
+    spaceId: string
     progress: ProgressData | null
 }
 
-export function ActivityContent({ projectId, progress }: ActivityContentProps) {
+export function ActivityContent({ spaceId, progress }: ActivityContentProps) {
     const [activities, setActivities] = useState<ActivityItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchActivities = async () => {
             setIsLoading(true)
-            const data = await getProjectActivity(projectId, 50)
+            const data = await getSpaceActivity(spaceId, 50)
             setActivities(data)
             setIsLoading(false)
         }
         fetchActivities()
-    }, [projectId])
+    }, [spaceId])
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -61,7 +61,7 @@ function ProgressSummary({ progress }: { progress: ProgressData | null }) {
     return (
         <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Project Progress</h3>
+                <h3 className="text-lg font-semibold">Space Progress</h3>
                 <span className="text-3xl font-bold text-primary">
                     {progress.progressPercentage}%
                 </span>

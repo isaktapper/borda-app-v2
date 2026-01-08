@@ -9,7 +9,7 @@ interface SlackMessage {
 }
 
 interface NotificationContext {
-  projectId: string
+  spaceId: string
   projectName: string
   clientName?: string
   actorEmail: string
@@ -94,7 +94,7 @@ export async function sendSlackNotification(
       .from('slack_notifications')
       .insert({
         slack_integration_id: integration.id,
-        project_id: context.projectId,
+        space_id: context.spaceId,
         event_type: context.action,
         message_payload: message,
         status: 'sent',
@@ -131,9 +131,9 @@ export async function sendSlackNotification(
 }
 
 function buildSlackMessage(context: NotificationContext, channel: string): SlackMessage {
-  const { projectName, actorEmail, action, metadata, projectId } = context
+  const { projectName, actorEmail, action, metadata, spaceId } = context
 
-  const projectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/projects/${projectId}`
+  const projectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/spaces/${spaceId}`
 
   // Get display name from email (part before @) or use email
   const actorName = actorEmail === 'anonymous' 

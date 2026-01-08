@@ -1,21 +1,21 @@
 import { createClient } from '@/lib/supabase/server'
 import { SettingsTabContent } from './settings-tab-content'
-import { ProjectBrandingSection } from './project-branding-section'
+import { SpaceBrandingSection } from './space-branding-section'
 
 interface SettingsTabWrapperProps {
-  projectId: string
+  spaceId: string
   organizationId: string
   projectName: string
 }
 
-export async function SettingsTabWrapper({ projectId, organizationId, projectName }: SettingsTabWrapperProps) {
+export async function SettingsTabWrapper({ spaceId, organizationId, projectName }: SettingsTabWrapperProps) {
   const supabase = await createClient()
 
   // Fetch project branding
   const { data: project } = await supabase
-    .from('projects')
+    .from('spaces')
     .select('logo_path, brand_color, client_logo_url, background_gradient')
-    .eq('id', projectId)
+    .eq('id', spaceId)
     .single()
 
   // Fetch organization branding
@@ -28,21 +28,21 @@ export async function SettingsTabWrapper({ projectId, organizationId, projectNam
   return (
     <div className="space-y-4">
       {/* Branding Section */}
-      <ProjectBrandingSection
-        projectId={projectId}
+      <SpaceBrandingSection
+        spaceId={spaceId}
         organizationId={organizationId}
         projectName={projectName}
         initialLogoPath={project?.logo_path || null}
         initialBrandColor={project?.brand_color || null}
         initialClientLogoUrl={project?.client_logo_url || null}
         organizationLogoPath={organization?.logo_path || null}
-        organizationBrandColor={organization?.brand_color || '#bef264'}
+        organizationBrandColor={organization?.brand_color || '#000000'}
         initialBackgroundGradient={project?.background_gradient || null}
         organizationBackgroundGradient={organization?.background_gradient || null}
       />
 
       {/* Templates Section */}
-      <SettingsTabContent projectId={projectId} />
+      <SettingsTabContent spaceId={spaceId} />
     </div>
   )
 }

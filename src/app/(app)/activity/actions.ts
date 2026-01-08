@@ -4,18 +4,18 @@ import { createClient } from '@/lib/supabase/server'
 
 export interface ActivityItem {
   id: string
-  project_id: string
+  space_id: string
   actor_email: string
   action: string
   resource_type: string | null
   resource_id: string | null
   metadata: Record<string, any>
   created_at: string
-  project_name: string
+  space_name: string
   client_name: string
 }
 
-export type ActivityFilter = 'all' | 'task' | 'file' | 'form' | 'checklist' | 'project'
+export type ActivityFilter = 'all' | 'task' | 'file' | 'form' | 'checklist' | 'space'
 
 export async function getActivities(
   scope: 'assigned' | 'organization' = 'assigned',
@@ -40,28 +40,28 @@ export async function getActivities(
     .from('activity_log')
     .select(`
       id,
-      project_id,
+      space_id,
       actor_email,
       action,
       resource_type,
       resource_id,
       metadata,
       created_at,
-      projects!inner (
+      spaces!inner (
         name,
         client_name,
         organization_id,
         assigned_to
       )
     `)
-    .eq('projects.organization_id', membership.organization_id)
+    .eq('spaces.organization_id', membership.organization_id)
     .order('created_at', { ascending: false })
     .limit(100)
 
   // Filter by scope
   if (scope === 'assigned') {
-    // Only show activities from projects assigned to the user
-    query = query.eq('projects.assigned_to', user.id)
+    // Only show activities from spaces assigned to the user
+    query = query.eq('spaces.assigned_to', user.id)
   }
 
   // Filter by action type
@@ -79,15 +79,15 @@ export async function getActivities(
   // Transform the data
   return (activities || []).map((activity: any) => ({
     id: activity.id,
-    project_id: activity.project_id,
+    space_id: activity.space_id,
     actor_email: activity.actor_email,
     action: activity.action,
     resource_type: activity.resource_type,
     resource_id: activity.resource_id,
     metadata: activity.metadata || {},
     created_at: activity.created_at,
-    project_name: activity.projects.name,
-    client_name: activity.projects.client_name,
+    space_name: activity.spaces.name,
+    client_name: activity.spaces.client_name,
   }))
 }
 
@@ -116,7 +116,7 @@ export async function getActivityStats(scope: 'assigned' | 'organization' = 'ass
 
   // First, get the project IDs based on scope
   let projectsQuery = supabase
-    .from('projects')
+    .from('spaces')
     .select('id')
     .eq('organization_id', membership.organization_id)
     .is('deleted_at', null)
@@ -131,13 +131,13 @@ export async function getActivityStats(scope: 'assigned' | 'organization' = 'ass
     return { totalActivities: 0, todayActivities: 0, taskCompletions: 0, fileUploads: 0 }
   }
 
-  const projectIds = projects.map(p => p.id)
+  const spaceIds = projects.map(p => p.id)
 
   // Query all activities for these projects
   const { data: allActivities } = await supabase
     .from('activity_log')
     .select('id, action, created_at')
-    .in('project_id', projectIds)
+    .in('space_id', spaceIds)
     .order('created_at', { ascending: false })
 
   if (!allActivities || allActivities.length === 0) {

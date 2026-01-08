@@ -45,17 +45,36 @@ export function SlackConnectionCard({
                 </CardDescription>
               </div>
             </div>
-            {isConnected && (
-              <Badge variant="default" className="flex items-center gap-1 bg-green-500">
+            {isConnected ? (
+              <Badge variant="default" className="flex items-center gap-1 bg-green-500 shrink-0">
                 <Check className="size-3" />
                 Connected
               </Badge>
-            )}
+            ) : canManage ? (
+              <Button
+                onClick={handleConnect}
+                disabled={isConnecting}
+                className="gap-2 shrink-0"
+                size="sm"
+              >
+                {isConnecting ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <SlackIcon className="size-4" />
+                    Connect Slack
+                  </>
+                )}
+              </Button>
+            ) : null}
           </div>
         </CardHeader>
 
-        <CardContent>
-          {isConnected ? (
+        {isConnected && (
+          <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                 <div className="space-y-1">
@@ -93,37 +112,8 @@ export function SlackConnectionCard({
                 </div>
               )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Connect your Slack workspace to receive notifications about customer activity.
-              </p>
-              {canManage ? (
-                <Button
-                  onClick={handleConnect}
-                  disabled={isConnecting}
-                  className="gap-2"
-                >
-                  {isConnecting ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <SlackIcon className="size-4" />
-                      Connect Slack
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Only organization admins can connect integrations
-                </p>
-              )}
-            </div>
-          )}
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
 
       {showSettings && integration && (

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
         page_id,
         pages!inner(
           id,
-          project_id,
+          space_id,
           projects!inner(
             id,
             name,
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     // Group tasks by customer email and project
     interface ProjectData {
       projectName: string
-      projectId: string
+      spaceId: string
       tasks: Array<{
         title: string
         description?: string
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         if (!customerProjects.has(project.id)) {
           customerProjects.set(project.id, {
             projectName: project.name,
-            projectId: project.id,
+            spaceId: project.id,
             tasks: []
           })
         }
@@ -105,8 +105,8 @@ export async function GET(request: NextRequest) {
     let emailsSent = 0
 
     for (const [email, projects] of tasksByCustomer) {
-      for (const [projectId, projectData] of projects) {
-        const portalLink = `${process.env.NEXT_PUBLIC_APP_URL}/portal/${projectId}`
+      for (const [spaceId, projectData] of projects) {
+        const portalLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared`
 
         await sendEmail({
           to: email,
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
           }),
           type: 'task_reminder',
           metadata: {
-            projectId,
+            spaceId,
             taskCount: projectData.tasks.length,
             dueDate: tomorrowDate
           }

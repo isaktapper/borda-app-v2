@@ -63,7 +63,7 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
             <SelectContent>
               <SelectItem value="me">
                 <div className="flex items-center gap-2">
-                  <span>Project owners</span>
+                  <span>Space owners</span>
                   <span className="text-[10px] bg-primary text-primary-foreground px-1 py-0.5 rounded font-medium">Me</span>
                 </div>
               </SelectItem>
@@ -117,9 +117,8 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
               title="Overdue"
               count={groupedTasks.overdue.length}
               tasks={groupedTasks.overdue}
-              emptyIcon="📅"
               emptyMessage="No overdue tasks"
-              emptySubtext="Good job, you did not miss a deadline."
+              emptySubtext="Good job, your customers are following the deadlines."
               variant="danger"
             />
             <TaskColumn

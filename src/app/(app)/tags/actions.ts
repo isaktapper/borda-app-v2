@@ -73,7 +73,7 @@ export async function createTag(name: string, color: string) {
   }
 
   revalidatePath('/dashboard/settings/tags')
-  revalidatePath('/projects')
+  revalidatePath('/spaces')
   return { success: true, tag }
 }
 
@@ -96,7 +96,7 @@ export async function updateTag(tagId: string, updates: { name?: string; color?:
   }
 
   revalidatePath('/dashboard/settings/tags')
-  revalidatePath('/projects')
+  revalidatePath('/spaces')
   return { success: true, tag }
 }
 
@@ -119,7 +119,7 @@ export async function deleteTag(tagId: string) {
 
   // Delete all project_tags associations
   const { error: deleteError } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .delete()
     .eq('tag_id', tagId)
 
@@ -128,21 +128,21 @@ export async function deleteTag(tagId: string) {
   }
 
   revalidatePath('/dashboard/settings/tags')
-  revalidatePath('/projects')
+  revalidatePath('/spaces')
   return { success: true }
 }
 
 // Get tags for a specific project
-export async function getProjectTags(projectId: string): Promise<Tag[]> {
+export async function getProjectTags(spaceId: string): Promise<Tag[]> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return []
 
   const { data, error } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .select('tag_id, tags(*)')
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
 
   if (error) {
     console.error('Error fetching project tags:', error)
@@ -153,16 +153,16 @@ export async function getProjectTags(projectId: string): Promise<Tag[]> {
 }
 
 // Add tag to project
-export async function addTagToProject(projectId: string, tagId: string) {
+export async function addTagToProject(spaceId: string, tagId: string) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { error } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .insert({
-      project_id: projectId,
+      space_id: spaceId,
       tag_id: tagId,
     })
 
@@ -174,35 +174,35 @@ export async function addTagToProject(projectId: string, tagId: string) {
     return { error: error.message }
   }
 
-  revalidatePath('/projects')
-  revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath('/spaces')
+  revalidatePath(`/dashboard/spaces/${spaceId}`)
   return { success: true }
 }
 
 // Remove tag from project
-export async function removeTagFromProject(projectId: string, tagId: string) {
+export async function removeTagFromProject(spaceId: string, tagId: string) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated' }
 
   const { error } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .delete()
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .eq('tag_id', tagId)
 
   if (error) {
     return { error: error.message }
   }
 
-  revalidatePath('/projects')
-  revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath('/spaces')
+  revalidatePath(`/dashboard/spaces/${spaceId}`)
   return { success: true }
 }
 
 // Set all tags for a project (replace existing)
-export async function setProjectTags(projectId: string, tagIds: string[]) {
+export async function setProjectTags(spaceId: string, tagIds: string[]) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -210,17 +210,17 @@ export async function setProjectTags(projectId: string, tagIds: string[]) {
 
   // Delete all existing tags
   await supabase
-    .from('project_tags')
+    .from('space_tags')
     .delete()
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
 
   // Insert new tags
   if (tagIds.length > 0) {
     const { error } = await supabase
-      .from('project_tags')
+      .from('space_tags')
       .insert(
         tagIds.map(tagId => ({
-          project_id: projectId,
+          space_id: spaceId,
           tag_id: tagId,
         }))
       )
@@ -230,13 +230,13 @@ export async function setProjectTags(projectId: string, tagIds: string[]) {
     }
   }
 
-  revalidatePath('/projects')
-  revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath('/spaces')
+  revalidatePath(`/dashboard/spaces/${spaceId}`)
   return { success: true }
 }
 
 // Create tag and add to project in one action
-export async function createAndAddTag(projectId: string, name: string, color: string) {
+export async function createAndAddTag(spaceId: string, name: string, color: string) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -268,9 +268,9 @@ export async function createAndAddTag(projectId: string, name: string, color: st
 
   // Add to project
   const { error: addError } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .insert({
-      project_id: projectId,
+      space_id: spaceId,
       tag_id: tag.id,
     })
 
@@ -278,8 +278,8 @@ export async function createAndAddTag(projectId: string, name: string, color: st
     return { error: addError.message }
   }
 
-  revalidatePath('/projects')
-  revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath('/spaces')
+  revalidatePath(`/dashboard/spaces/${spaceId}`)
   revalidatePath('/dashboard/settings/tags')
   return { success: true, tag }
 }
@@ -292,7 +292,7 @@ export async function getTagUsageCounts(): Promise<Record<string, number>> {
   if (!user) return {}
 
   const { data, error } = await supabase
-    .from('project_tags')
+    .from('space_tags')
     .select('tag_id')
 
   if (error) {

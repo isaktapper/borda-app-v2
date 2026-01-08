@@ -5,7 +5,6 @@ import { ProfileSection } from '@/components/dashboard/settings/profile-section'
 import { TeamSection } from '@/components/dashboard/settings/team-section'
 import { OrganizationSection } from '@/components/dashboard/settings/organization-section'
 import { TagsSection } from '@/components/dashboard/settings/tags-section'
-import { IntegrationsSection } from '@/components/dashboard/settings/integrations-section'
 import { Loader2 } from 'lucide-react'
 
 export default async function SettingsPage({
@@ -84,15 +83,6 @@ export default async function SettingsPage({
               </div>
             }>
               <TagsSection />
-            </Suspense>
-          ),
-          integrations: (
-            <Suspense fallback={
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
-              </div>
-            }>
-              <IntegrationsSection />
             </Suspense>
           ),
         }}

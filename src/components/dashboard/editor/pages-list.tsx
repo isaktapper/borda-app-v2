@@ -18,7 +18,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2, FileText, Plus, ChevronRight } from 'lucide-react'
+import { GripVertical, Trash2, FileText, Plus, ChevronRight, Layers, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CreatePageModal } from '@/components/dashboard/create-page-modal'
@@ -41,7 +41,7 @@ interface Page {
 }
 
 interface PagesListViewProps {
-    projectId: string
+    spaceId: string
     pages: Page[]
     onPageSelect: (pageId: string) => void
     onPageCreated: (page: Page) => void
@@ -50,7 +50,7 @@ interface PagesListViewProps {
 }
 
 export function PagesListView({
-    projectId,
+    spaceId,
     pages,
     onPageSelect,
     onPageCreated,
@@ -94,18 +94,50 @@ export function PagesListView({
             {/* Header */}
             <div className="p-4 border-b bg-muted/30">
                 <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm">Pages</h3>
-                    <CreatePageModal projectId={projectId} onPageCreated={onPageCreated} />
+                    <div className="flex items-center gap-2">
+                        <Layers className="size-4 text-muted-foreground" />
+                        <h3 className="font-semibold text-sm">Pages</h3>
+                        {sortedPages.length > 0 && (
+                            <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                                {sortedPages.length}
+                            </span>
+                        )}
+                    </div>
+                    <CreatePageModal spaceId={spaceId} onPageCreated={onPageCreated} />
                 </div>
             </div>
 
             {/* Pages List */}
             <div className="flex-1 overflow-y-auto p-2">
                 {sortedPages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <FileText className="size-10 text-muted-foreground/30 mb-3" />
-                        <p className="text-sm font-medium text-muted-foreground">No pages yet</p>
-                        <p className="text-xs text-muted-foreground mt-1">Create your first page to get started</p>
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                        {/* Decorative illustration */}
+                        <div className="relative mb-4">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                <FileText className="size-8 text-primary/60" />
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Sparkles className="size-3 text-primary" />
+                            </div>
+                        </div>
+
+                        <h4 className="font-semibold text-foreground mb-1">
+                            No pages yet
+                        </h4>
+                        <p className="text-xs text-muted-foreground mb-4 max-w-[200px]">
+                            Pages help you organize your content into logical sections for your client.
+                        </p>
+
+                        <CreatePageModal 
+                            spaceId={spaceId} 
+                            onPageCreated={onPageCreated}
+                            trigger={
+                                <Button size="sm" className="gap-1.5">
+                                    <Plus className="size-3.5" />
+                                    Create first page
+                                </Button>
+                            }
+                        />
                     </div>
                 ) : (
                     <DndContext
@@ -224,4 +256,3 @@ function SortablePageItem({ page, pageNumber, onSelect, onDelete }: SortablePage
         </div>
     )
 }
-

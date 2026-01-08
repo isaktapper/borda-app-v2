@@ -6,21 +6,21 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { CheckSquare, MessageSquare, Upload, ListChecks, Download, Square } from 'lucide-react'
+import { CheckSquare, MessageSquare, Upload, Download } from 'lucide-react'
 import { format } from 'date-fns'
-import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import type { ActionItem, TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
-type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
+type ActionType = 'task' | 'formField' | 'fileUpload'
 
 interface ActionDrawerProps {
   isOpen: boolean
   onClose: () => void
   type: ActionType | null
   item: ActionItem | null
-  projectId: string
+  spaceId: string
 }
 
-export function ActionDrawer({ isOpen, onClose, type, item, projectId }: ActionDrawerProps) {
+export function ActionDrawer({ isOpen, onClose, type, item, spaceId }: ActionDrawerProps) {
   if (!type || !item) return null
 
   const getTypeInfo = () => {
@@ -31,10 +31,10 @@ export function ActionDrawer({ isOpen, onClose, type, item, projectId }: ActionD
           label: 'Task',
           color: 'text-blue-600'
         }
-      case 'question':
+      case 'formField':
         return {
           icon: <MessageSquare className="h-5 w-5" />,
-          label: 'Question',
+          label: 'Form Field',
           color: 'text-purple-600'
         }
       case 'fileUpload':
@@ -43,11 +43,11 @@ export function ActionDrawer({ isOpen, onClose, type, item, projectId }: ActionD
           label: 'File Upload',
           color: 'text-orange-600'
         }
-      case 'checklist':
+      default:
         return {
-          icon: <ListChecks className="h-5 w-5" />,
-          label: 'Checklist',
-          color: 'text-green-600'
+          icon: <CheckSquare className="h-5 w-5" />,
+          label: 'Item',
+          color: 'text-gray-600'
         }
     }
   }
@@ -80,9 +80,8 @@ export function ActionDrawer({ isOpen, onClose, type, item, projectId }: ActionD
             </DrawerHeader>
             <DrawerBody className="p-6 bg-white">
               {type === 'task' && <UniversalTaskContent task={item as TaskItem} />}
-              {type === 'question' && <UniversalQuestionContent question={item as QuestionItem} />}
+              {type === 'formField' && <UniversalFormFieldContent formField={item as FormFieldItem} />}
               {type === 'fileUpload' && <UniversalFileUploadContent fileUpload={item as FileUploadItem} />}
-              {type === 'checklist' && <UniversalChecklistContent checklist={item as ChecklistItem} />}
             </DrawerBody>
           </>
         )}
@@ -142,14 +141,14 @@ function UniversalTaskContent({ task }: { task: TaskItem }) {
   )
 }
 
-// Universal Question Content
-function UniversalQuestionContent({ question }: { question: QuestionItem }) {
+// Universal Form Field Content
+function UniversalFormFieldContent({ formField }: { formField: FormFieldItem }) {
   return (
     <div className="space-y-8">
       {/* Question */}
       <div>
-        <h2 className="text-2xl font-semibold leading-tight">{question.question}</h2>
-        {question.required && (
+        <h2 className="text-2xl font-semibold leading-tight">{formField.question}</h2>
+        {formField.required && (
           <span className="text-xs text-red-600 mt-2 block">* Required</span>
         )}
       </div>
@@ -159,9 +158,9 @@ function UniversalQuestionContent({ question }: { question: QuestionItem }) {
       {/* Answer */}
       <div className="space-y-3">
         <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Answer</Label>
-        {question.response ? (
+        {formField.response ? (
           <div className="p-4 bg-muted/50 rounded-lg">
-            <AnswerDisplay type={question.type} value={question.response.value} />
+            <AnswerDisplay type={formField.type} value={formField.response.value} />
           </div>
         ) : (
           <p className="text-muted-foreground italic">Waiting for answer...</p>
@@ -169,17 +168,17 @@ function UniversalQuestionContent({ question }: { question: QuestionItem }) {
       </div>
 
       {/* Who & When */}
-      {question.response && (
+      {formField.response && (
         <>
           <Separator />
           <div className="space-y-4">
             <div className="space-y-2">
               <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Answered by</Label>
-              <p className="text-base">{question.response.answeredBy.name || question.response.answeredBy.email}</p>
+              <p className="text-base">{formField.response.answeredBy.name || formField.response.answeredBy.email}</p>
             </div>
             <div className="space-y-2">
               <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Answered at</Label>
-              <p className="text-base">{format(new Date(question.response.answeredAt), 'MMM d, yyyy \'at\' h:mm a')}</p>
+              <p className="text-base">{format(new Date(formField.response.answeredAt), 'MMM d, yyyy \'at\' h:mm a')}</p>
             </div>
           </div>
         </>
@@ -300,67 +299,3 @@ function UniversalFileUploadContent({ fileUpload }: { fileUpload: FileUploadItem
   )
 }
 
-// Universal Checklist Content
-function UniversalChecklistContent({ checklist }: { checklist: ChecklistItem }) {
-  const progress = checklist.totalCount > 0
-    ? (checklist.checkedCount / checklist.totalCount) * 100
-    : 0
-
-  return (
-    <div className="space-y-8">
-      {/* Title */}
-      {checklist.title && (
-        <h2 className="text-2xl font-semibold leading-tight">{checklist.title}</h2>
-      )}
-
-      {/* Progress */}
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Progress</Label>
-          <span className="text-sm font-semibold">{checklist.checkedCount}/{checklist.totalCount}</span>
-        </div>
-        <Progress value={progress} className="h-2" />
-      </div>
-
-      <Separator />
-
-      {/* Items */}
-      <div className="space-y-4">
-        {checklist.items.map(item => {
-          const isChecked = checklist.checkedItems.includes(item.id)
-          return (
-            <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/30 transition-colors">
-              {isChecked ? (
-                <CheckSquare className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
-              ) : (
-                <Square className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
-              )}
-              <span className={isChecked ? 'line-through text-muted-foreground' : 'text-base'}>
-                {item.label}
-              </span>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Who & When */}
-      {checklist.lastUpdatedAt && (
-        <>
-          <Separator />
-          <div className="space-y-4">
-            {checklist.lastUpdatedBy && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Updated by</Label>
-                <p className="text-base">{checklist.lastUpdatedBy.name || checklist.lastUpdatedBy.email}</p>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-muted-foreground text-xs uppercase font-medium tracking-wide">Updated at</Label>
-              <p className="text-base">{format(new Date(checklist.lastUpdatedAt), 'MMM d, yyyy \'at\' h:mm a')}</p>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}

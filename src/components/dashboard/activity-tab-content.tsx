@@ -1,4 +1,4 @@
-import { getProjectActivity } from '@/app/(app)/projects/progress-actions'
+import { getSpaceActivity } from '@/app/(app)/spaces/progress-actions'
 import { Card } from '@/components/ui/card'
 import { AlertCircle } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -9,12 +9,12 @@ import {
 } from '@/lib/activity-utils'
 
 interface ActivityTabContentProps {
-  projectId: string
+  spaceId: string
 }
 
-export async function ActivityTabContent({ projectId }: ActivityTabContentProps) {
+export async function ActivityTabContent({ spaceId }: ActivityTabContentProps) {
   // Fetch more activities for the activity tab (50 instead of 10)
-  const activities = await getProjectActivity(projectId, 50)
+  const activities = await getSpaceActivity(spaceId, 50)
 
   if (activities.length === 0) {
     return (

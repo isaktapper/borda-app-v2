@@ -64,7 +64,7 @@ interface Block {
 
 interface BlockEditorProps {
     pageId: string
-    projectId?: string
+    spaceId?: string
     blocks: Block[]
     onBlocksChange: (newBlocks: Block[]) => void
     isLoading?: boolean
@@ -82,7 +82,7 @@ const BLOCK_TYPES = [
     { type: 'meeting', label: 'Book meeting', icon: Calendar, description: 'Embed link for scheduling.', disabled: true },
 ]
 
-export function BlockEditor({ pageId, projectId, blocks, onBlocksChange, isLoading }: BlockEditorProps) {
+export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading }: BlockEditorProps) {
     const [isPickerOpen, setIsPickerOpen] = useState(false)
     const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -206,7 +206,7 @@ export function BlockEditor({ pageId, projectId, blocks, onBlocksChange, isLoadi
                                         {block.type === 'file_download' && (
                                             <FileDownloadBlockEditor
                                                 blockId={block.id}
-                                                projectId={projectId}
+                                                spaceId={spaceId}
                                                 content={block.content}
                                                 onChange={(newContent) => updateBlockContent(block.id, newContent)}
                                             />
@@ -280,7 +280,7 @@ export function BlockEditor({ pageId, projectId, blocks, onBlocksChange, isLoadi
                                     {blocks.find((b: Block) => b.id === activeId)?.type === 'file_download' && (
                                         <FileDownloadBlockEditor
                                             blockId={activeId}
-                                            projectId={projectId}
+                                            spaceId={spaceId}
                                             content={blocks.find((b: Block) => b.id === activeId)?.content}
                                             onChange={() => { }}
                                         />

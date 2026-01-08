@@ -84,26 +84,26 @@ export async function getInsightsData(): Promise<InsightsData> {
   ] = await Promise.all([
     // Get all projects for the org
     supabase
-      .from('projects')
+      .from('spaces')
       .select('id, name, client_name, status, created_at, target_go_live_date, engagement_level')
       .eq('organization_id', orgId)
       .is('deleted_at', null),
     
     // Get project members with invite data
     supabase
-      .from('project_members')
-      .select('project_id, invited_email, invited_at, role')
+      .from('space_members')
+      .select('space_id, invited_email, invited_at, role')
       .eq('role', 'customer'),
     
     // Get portal visits
     supabase
       .from('portal_visits')
-      .select('project_id, visitor_email, visited_at'),
+      .select('space_id, visitor_email, visited_at'),
     
     // Get status change activities
     supabase
       .from('activity_log')
-      .select('project_id, action, metadata, created_at')
+      .select('space_id, action, metadata, created_at')
       .eq('action', 'project.status_changed')
   ])
 
@@ -113,9 +113,9 @@ export async function getInsightsData(): Promise<InsightsData> {
   const activities = activityData.data || []
 
   // Filter to only org projects
-  const projectIds = new Set(projects.map(p => p.id))
-  const orgMembers = projectMembers.filter(pm => projectIds.has(pm.project_id))
-  const orgVisits = portalVisits.filter(pv => projectIds.has(pv.project_id))
+  const spaceIds = new Set(projects.map(p => p.id))
+  const orgMembers = projectMembers.filter(pm => spaceIds.has(pm.space_id))
+  const orgVisits = portalVisits.filter(pv => spaceIds.has(pv.space_id))
 
   // === KPI Calculations ===
   const kpis = calculateKPIs(projects, orgMembers, orgVisits, activities)
@@ -182,7 +182,7 @@ function calculateKPIs(
   for (const project of completedProjects) {
     // Find when project became active and when it became completed
     const projectActivities = activities
-      .filter(a => a.project_id === project.id)
+      .filter(a => a.space_id === project.id)
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
     
     let activeDate: Date | null = null
@@ -215,7 +215,7 @@ function calculateKPIs(
     
     // Find first visit for this member on this project
     const memberVisits = visits
-      .filter(v => v.project_id === member.project_id && v.visitor_email === member.invited_email)
+      .filter(v => v.space_id === member.space_id && v.visitor_email === member.invited_email)
       .sort((a, b) => new Date(a.visited_at).getTime() - new Date(b.visited_at).getTime())
     
     if (memberVisits.length > 0) {
@@ -339,7 +339,7 @@ function calculateTimeToAccessDistribution(members: any[], visits: any[]): TimeT
     
     // Find first visit
     const memberVisits = visits
-      .filter(v => v.project_id === member.project_id && v.visitor_email === member.invited_email)
+      .filter(v => v.space_id === member.space_id && v.visitor_email === member.invited_email)
       .sort((a, b) => new Date(a.visited_at).getTime() - new Date(b.visited_at).getTime())
     
     if (memberVisits.length === 0) {
@@ -394,8 +394,8 @@ async function calculateUpcomingProjects(
   
   // Calculate progress for each project
   for (const project of upcomingProjects) {
-    const { getProjectProgress } = await import('@/app/(app)/projects/progress-actions')
-    const progressData = await getProjectProgress(project.id)
+    const { getSpaceProgress } = await import('@/app/(app)/spaces/progress-actions')
+    const progressData = await getSpaceProgress(project.id)
     project.progress = progressData?.progressPercentage || 0
   }
   

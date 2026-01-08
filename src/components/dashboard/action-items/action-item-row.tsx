@@ -1,9 +1,9 @@
-import { CheckCircle2, Circle, ChevronRight, CheckSquare, MessageSquare, Upload, ListChecks } from 'lucide-react'
-import { format, isBefore, isAfter, addDays } from 'date-fns'
+import { CheckCircle2, Circle, ChevronRight, CheckSquare, MessageSquare, Upload } from 'lucide-react'
+import { format, isBefore, addDays } from 'date-fns'
 import { cn } from '@/lib/utils'
-import type { ActionItem, TaskItem, QuestionItem, FileUploadItem, ChecklistItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import type { ActionItem, TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
-type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
+type ActionType = 'task' | 'formField' | 'fileUpload'
 
 interface ActionItemRowProps {
   item: ActionItem
@@ -12,18 +12,16 @@ interface ActionItemRowProps {
 
 function getItemType(item: ActionItem): ActionType {
   if ('status' in item) return 'task'
-  if ('question' in item) return 'question'
+  if ('question' in item) return 'formField'
   if ('label' in item && 'files' in item) return 'fileUpload'
-  if ('checkedCount' in item) return 'checklist'
   return 'task' // fallback
 }
 
 function getItemTypeIcon(type: ActionType) {
   switch (type) {
     case 'task': return <CheckSquare className="h-3.5 w-3.5" />
-    case 'question': return <MessageSquare className="h-3.5 w-3.5" />
+    case 'formField': return <MessageSquare className="h-3.5 w-3.5" />
     case 'fileUpload': return <Upload className="h-3.5 w-3.5" />
-    case 'checklist': return <ListChecks className="h-3.5 w-3.5" />
   }
 }
 
@@ -50,13 +48,13 @@ function getItemStatusText(item: ActionItem): string {
       return 'Pending'
     }
 
-    case 'question': {
-      const question = item as QuestionItem
-      if (!question.response) return 'Waiting...'
+    case 'formField': {
+      const formField = item as FormFieldItem
+      if (!formField.response) return 'Waiting...'
 
-      const value = question.response.value
+      const value = formField.response.value
 
-      switch (question.type) {
+      switch (formField.type) {
         case 'text':
         case 'textarea': {
           const text = value.text || value || ''
@@ -117,10 +115,8 @@ function getItemStatusText(item: ActionItem): string {
       return 'No files'
     }
 
-    case 'checklist': {
-      const checklist = item as ChecklistItem
-      return `${checklist.checkedCount}/${checklist.totalCount}`
-    }
+    default:
+      return ''
   }
 }
 

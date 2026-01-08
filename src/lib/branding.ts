@@ -5,7 +5,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
 
-const DEFAULT_BRAND_COLOR = '#bef264' // Lime-300 (matches our primary)
+const DEFAULT_BRAND_COLOR = '#000000' // Lime-300 (matches our primary)
 
 interface Branding {
     color: string

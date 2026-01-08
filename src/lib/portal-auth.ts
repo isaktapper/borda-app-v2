@@ -7,16 +7,16 @@ const SECRET_KEY = new TextEncoder().encode(
 
 export interface PortalSession {
     email: string
-    projectId: string
+    spaceId: string
     expiresAt: string
 }
 
-export async function createPortalSession(projectId: string, email: string) {
+export async function createPortalSession(spaceId: string, email: string) {
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
 
     const session: PortalSession = {
         email,
-        projectId,
+        spaceId,
         expiresAt: expiresAt.toISOString(),
     }
 
@@ -27,7 +27,7 @@ export async function createPortalSession(projectId: string, email: string) {
         .sign(SECRET_KEY)
 
     const cookieStore = await cookies()
-    cookieStore.set(`portal_session_${projectId}`, token, {
+    cookieStore.set(`portal_session_${spaceId}`, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -38,9 +38,9 @@ export async function createPortalSession(projectId: string, email: string) {
     return session
 }
 
-export async function verifyPortalSession(projectId: string): Promise<PortalSession | null> {
+export async function verifyPortalSession(spaceId: string): Promise<PortalSession | null> {
     const cookieStore = await cookies()
-    const cookieName = `portal_session_${projectId}`
+    const cookieName = `portal_session_${spaceId}`
     const token = cookieStore.get(cookieName)?.value
 
     if (!token) return null
@@ -50,8 +50,8 @@ export async function verifyPortalSession(projectId: string): Promise<PortalSess
         const session = payload as unknown as PortalSession
 
         // Final sanity check: ensuring project ID match
-        if (session.projectId !== projectId) {
-            console.error('[verifyPortalSession] Project ID mismatch! Expected:', projectId, 'Got:', session.projectId)
+        if (session.spaceId !== spaceId) {
+            console.error('[verifyPortalSession] Project ID mismatch! Expected:', spaceId, 'Got:', session.spaceId)
             return null
         }
 
@@ -62,7 +62,7 @@ export async function verifyPortalSession(projectId: string): Promise<PortalSess
     }
 }
 
-export async function deletePortalSession(projectId: string) {
+export async function deletePortalSession(spaceId: string) {
     const cookieStore = await cookies()
-    cookieStore.delete(`portal_session_${projectId}`)
+    cookieStore.delete(`portal_session_${spaceId}`)
 }

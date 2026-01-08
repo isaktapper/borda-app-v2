@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import type { Template, TemplateData } from '@/lib/types/templates'
 
 export async function saveAsTemplate(
-  projectId: string,
+  spaceId: string,
   name: string,
   description?: string
 ) {
@@ -27,7 +27,7 @@ export async function saveAsTemplate(
   const { data: pages, error: pagesError } = await supabase
     .from('pages')
     .select('id, title, slug, description, sort_order')
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .is('deleted_at', null)
     .order('sort_order', { ascending: true })
 
@@ -154,7 +154,7 @@ export async function updateTemplate(
   return { success: true }
 }
 
-export async function createProjectFromTemplate(
+export async function createSpaceFromTemplate(
   templateId: string,
   clientName: string,
   projectName?: string,
@@ -189,7 +189,7 @@ export async function createProjectFromTemplate(
 
   // Create project
   const { data: project, error: projectError } = await supabase
-    .from('projects')
+    .from('spaces')
     .insert({
       organization_id: membership.organization_id,
       name: finalProjectName,
@@ -207,9 +207,9 @@ export async function createProjectFromTemplate(
 
   // Create project membership
   const { error: memberError } = await supabase
-    .from('project_members')
+    .from('space_members')
     .insert({
-      project_id: project.id,
+      space_id: project.id,
       user_id: user.id,
       role: 'owner',
       joined_at: new Date().toISOString()
@@ -217,7 +217,7 @@ export async function createProjectFromTemplate(
 
   if (memberError) {
     // Cleanup project if membership fails
-    await supabase.from('projects').delete().eq('id', project.id)
+    await supabase.from('spaces').delete().eq('id', project.id)
     return { error: memberError.message }
   }
 
@@ -228,7 +228,7 @@ export async function createProjectFromTemplate(
     const { data: page, error: pageError } = await supabase
       .from('pages')
       .insert({
-        project_id: project.id,
+        space_id: project.id,
         title: templatePage.title,
         slug: templatePage.slug,
         description: templatePage.description || null,
@@ -278,6 +278,6 @@ export async function createProjectFromTemplate(
     }
   }
 
-  revalidatePath('/projects')
-  return { success: true, projectId: project.id, organizationId: membership.organization_id }
+  revalidatePath('/spaces')
+  return { success: true, spaceId: project.id, organizationId: membership.organization_id }
 }

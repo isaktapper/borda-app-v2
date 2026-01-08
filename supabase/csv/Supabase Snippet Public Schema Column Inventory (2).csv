@@ -1,0 +1,23 @@
+table_name,view_definition
+projects_with_assigned," SELECT p.id,
+    p.organization_id,
+    p.name,
+    p.client_name,
+    p.client_logo_url,
+    p.status,
+    p.target_go_live_date,
+    p.created_by,
+    p.created_at,
+    p.updated_at,
+    p.deleted_at,
+    p.assigned_to,
+    p.logo_path,
+    p.brand_color,
+    p.template_id,
+    p.engagement_score,
+    p.engagement_level,
+    p.engagement_calculated_at,
+    p.engagement_factors,
+    jsonb_build_object('id', u.id, 'email', u.email, 'full_name', u.full_name, 'avatar_url', u.avatar_url) AS assigned_user
+   FROM (projects p
+     LEFT JOIN users u ON ((p.assigned_to = u.id)));"

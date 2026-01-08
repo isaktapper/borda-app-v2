@@ -13,12 +13,12 @@ interface Page {
 
 interface PortalSidebarProps {
     pages: Page[]
-    projectId: string
+    spaceId: string
 }
 
-export function PortalSidebar({ pages, projectId }: PortalSidebarProps) {
+export function PortalSidebar({ pages, spaceId }: PortalSidebarProps) {
     const pathname = usePathname()
-    const overviewHref = `/portal/${projectId}`
+    const overviewHref = `/space/${spaceId}/shared`
     const isOverviewActive = pathname === overviewHref
 
     return (
@@ -41,7 +41,7 @@ export function PortalSidebar({ pages, projectId }: PortalSidebarProps) {
 
                     {/* Custom Pages */}
                     {pages.map((page) => {
-                        const href = `/portal/${projectId}/${page.slug}`
+                        const href = `/space/${spaceId}/shared/${page.slug}`
                         const isActive = pathname === href
 
                         return (

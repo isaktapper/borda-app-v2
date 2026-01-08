@@ -23,7 +23,7 @@ export async function GET(
       original_name,
       storage_path,
       block_id,
-      project_id
+      space_id
     `)
     .eq('id', id)
     .is('deleted_at', null)
@@ -35,9 +35,9 @@ export async function GET(
 
   // Get project to verify access
   const { data: project } = await adminSupabase
-    .from('projects')
+    .from('spaces')
     .select('organization_id')
-    .eq('id', file.project_id)
+    .eq('id', file.space_id)
     .single()
 
   if (!project) {

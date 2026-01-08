@@ -2,7 +2,7 @@ import { format, isAfter, isBefore, addDays } from 'date-fns'
 import { CheckCircle2, Circle, ChevronRight, FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import type { TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import type { TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
 interface RowProps {
   onClick: () => void

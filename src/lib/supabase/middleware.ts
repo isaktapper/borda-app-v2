@@ -56,9 +56,9 @@ export const updateSession = async (request: NextRequest) => {
     const isPublicRoute = publicRoutes.some(route => path.startsWith(route))
 
     // Protected routes (all app routes that require auth)
-    const protectedRoutes = ['/projects', '/templates', '/settings']
+    const protectedRoutes = ['/spaces', '/templates', '/settings']
     const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route))
-    const isPortalRoute = path.startsWith('/portal')
+    const isSpaceSharedRoute = path.startsWith('/space/')
 
     // 1. Protected Routes (Supabase Auth)
     if (isProtectedRoute && !user) {
@@ -67,22 +67,24 @@ export const updateSession = async (request: NextRequest) => {
         return NextResponse.redirect(url)
     }
 
-    // 2. Portal Protection (Custom Cookie Session)
-    if (isPortalRoute) {
-        // Extract project ID from /portal/[projectId]/...
+    // 2. Space Shared Portal Protection (Custom Cookie Session)
+    // Route structure: /space/[spaceId]/shared/...
+    if (isSpaceSharedRoute) {
+        // Extract space ID from /space/[spaceId]/shared/...
         const segments = path.split('/')
-        const projectId = segments[2]
-        const isAccessPage = segments[3] === 'access'
+        const spaceId = segments[2]
+        const isSharedRoute = segments[3] === 'shared'
+        const isAccessPage = segments[4] === 'access'
 
-        if (projectId && !isAccessPage) {
+        if (spaceId && isSharedRoute && !isAccessPage) {
             // Check for custom portal session cookie
-            const sessionCookie = request.cookies.get(`portal_session_${projectId}`)
+            const sessionCookie = request.cookies.get(`portal_session_${spaceId}`)
 
             // If no cookie, redirect to access page
             if (!sessionCookie) {
                 // If the user is logged in as internal staff, we might want to let them through,
                 // but for now let's follow the strict customer flow.
-                url.pathname = `/portal/${projectId}/access`
+                url.pathname = `/space/${spaceId}/shared/access`
                 return NextResponse.redirect(url)
             }
         }
@@ -93,7 +95,7 @@ export const updateSession = async (request: NextRequest) => {
     const isAuthRoute = authRoutes.some(route => path.startsWith(route))
 
     if (user && isAuthRoute) {
-        url.pathname = '/projects'
+        url.pathname = '/spaces'
         return NextResponse.redirect(url)
     }
 

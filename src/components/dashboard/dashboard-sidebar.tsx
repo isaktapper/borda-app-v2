@@ -11,11 +11,11 @@ import {
     User,
     LogOut,
     Plus,
-    HelpCircle,
     X,
     CircleCheck,
     Activity,
     BarChart3,
+    Plug,
 } from "lucide-react"
 
 import {
@@ -38,7 +38,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+import { CreateSpaceModal } from "@/components/dashboard/create-space-modal"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signout } from "@/app/auth/actions"
@@ -50,18 +50,19 @@ interface DashboardSidebarProps extends React.ComponentProps<typeof Sidebar> {
         email: string
         avatar?: string
     }
+    isSlackConnected?: boolean
 }
 
-export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarProps) {
+export function DashboardSidebar({ orgName, user, isSlackConnected, ...props }: DashboardSidebarProps) {
     const pathname = usePathname()
     const [showNotification, setShowNotification] = React.useState(true)
 
     const mainNavItems = [
         {
-            title: "Projects",
-            url: "/projects",
+            title: "Spaces",
+            url: "/spaces",
             icon: FolderKanban,
-            isActive: pathname?.startsWith("/projects"),
+            isActive: pathname?.startsWith("/spaces"),
         },
         {
             title: "Tasks",
@@ -71,24 +72,31 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
         },
         {
             title: "Activity",
-            url: "#",
+            url: "/activity",
             icon: Activity,
-            isActive: false,
+            isActive: pathname?.startsWith("/activity"),
         },
     ]
 
     const secondaryNavItems = [
         {
-            title: "Analytics",
-            url: "#",
-            icon: BarChart3,
-            isActive: false,
+            title: "Integrations",
+            url: "/integrations",
+            icon: Plug,
+            isActive: pathname?.startsWith("/integrations"),
         },
         {
             title: "Templates",
             url: "/templates",
             icon: FileText,
             isActive: pathname?.startsWith("/templates"),
+        },
+        {
+            title: "Analytics",
+            url: "#",
+            icon: BarChart3,
+            isActive: false,
+            comingSoon: true,
         },
     ]
 
@@ -98,12 +106,6 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
             url: "/settings",
             icon: Settings,
             isActive: pathname?.startsWith("/settings"),
-        },
-        {
-            title: "Help Center",
-            url: "#",
-            icon: HelpCircle,
-            isActive: false,
         },
     ]
 
@@ -123,10 +125,10 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
 
     return (
         <Sidebar collapsible="icon" {...props}>
-            <SidebarHeader className="border-b border-sidebar-border/50 py-4">
+            <SidebarHeader className="border-b border-sidebar-border/50 py-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-2 px-2 w-full hover:bg-sidebar-accent rounded-md transition-colors">
+                        <button className="flex items-center gap-2 px-2 py-1 w-full hover:bg-sidebar-accent rounded-md transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
                             <Avatar className="h-8 w-8 shrink-0">
                                 <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
                                 <AvatarFallback className="text-xs bg-primary text-primary-foreground">
@@ -142,7 +144,7 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                         <DropdownMenuItem asChild>
-                            <Link href="/settings/profile" className="flex items-center gap-2 cursor-pointer">
+                            <Link href="/settings?tab=profile" className="flex items-center gap-2 cursor-pointer">
                                 <User className="size-4" />
                                 Profile
                             </Link>
@@ -157,20 +159,24 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
             <SidebarContent>
                 {/* Quick Action Button */}
                 <SidebarGroup>
-                    <SidebarGroupContent className="px-2">
-                        <Button className="w-full justify-start gap-2" variant="default">
-                            <Plus className="size-4" />
-                            <span className="group-data-[collapsible=icon]:hidden">Create new project</span>
-                        </Button>
+                    <SidebarGroupContent className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+                        <CreateSpaceModal 
+                            trigger={
+                                <button className="w-full group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 flex items-center justify-center gap-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg py-2 px-3 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:rounded-full transition-colors">
+                                    <Plus className="size-4 shrink-0" />
+                                    <span className="group-data-[collapsible=icon]:hidden">New project</span>
+                                </button>
+                            }
+                        />
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <SidebarSeparator className="my-2 mx-3" />
+                <SidebarSeparator className="my-2 w-16 mx-auto" />
 
                 {/* Main Navigation */}
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu className="px-2">
+                        <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
                             {mainNavItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton
@@ -189,24 +195,38 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <SidebarSeparator className="my-2 mx-3" />
+                <SidebarSeparator className="my-2 w-16 mx-auto" />
 
                 {/* Secondary Navigation */}
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu className="px-2">
+                        <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
                             {secondaryNavItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={item.isActive}
-                                        tooltip={item.title}
-                                    >
-                                        <Link href={item.url}>
+                                    {item.comingSoon ? (
+                                        <SidebarMenuButton
+                                            isActive={false}
+                                            tooltip={`${item.title} - Coming soon`}
+                                            className="cursor-not-allowed opacity-60"
+                                        >
                                             <item.icon className="size-4" />
                                             <span>{item.title}</span>
-                                        </Link>
-                                    </SidebarMenuButton>
+                                            <span className="ml-auto text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded group-data-[collapsible=icon]:hidden">
+                                                Soon
+                                            </span>
+                                        </SidebarMenuButton>
+                                    ) : (
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={item.isActive}
+                                            tooltip={item.title}
+                                        >
+                                            <Link href={item.url}>
+                                                <item.icon className="size-4" />
+                                                <span>{item.title}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    )}
                                 </SidebarMenuItem>
                             ))}
                         </SidebarMenu>
@@ -216,48 +236,46 @@ export function DashboardSidebar({ orgName, user, ...props }: DashboardSidebarPr
                 {/* Spacer to push notification and bottom nav down */}
                 <div className="flex-1" />
 
-                {/* Notification Card */}
-                {showNotification && (
+                {/* Slack Notification Card - only show if not connected */}
+                {!isSlackConnected && showNotification && (
                     <SidebarGroup>
-                        <SidebarGroupContent className="px-2 pb-2">
-                            <div className="relative rounded-lg bg-primary/5 border border-primary/20 p-3 group-data-[collapsible=icon]:hidden">
+                        <SidebarGroupContent className="px-2 pb-1">
+                            <div className="relative rounded-md bg-primary/5 border border-primary/20 p-2 group-data-[collapsible=icon]:hidden">
                                 <button
                                     onClick={() => setShowNotification(false)}
-                                    className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+                                    className="absolute top-1.5 right-1.5 text-muted-foreground hover:text-foreground"
                                 >
                                     <X className="size-3" />
                                 </button>
-                                <div className="flex items-center gap-1 mb-1">
-                                    <span className="text-xs font-semibold text-primary">New</span>
-                                </div>
-                                <h4 className="text-sm font-semibold mb-1 flex items-center gap-1.5">
+                                <div className="flex items-center gap-1.5">
                                     <Image
                                         src="/Slack_icon_2019.svg (1).png"
                                         alt="Slack"
-                                        width={16}
-                                        height={16}
+                                        width={14}
+                                        height={14}
                                         className="shrink-0"
                                     />
-                                    Slack integration
-                                </h4>
-                                <p className="text-xs text-muted-foreground mb-2">
-                                    Connect your Slack workspace to Borda for instant updates
+                                    <span className="text-[11px] font-medium">Slack integration</span>
+                                    <span className="text-[9px] font-medium text-primary bg-primary/10 px-1 py-0.5 rounded">New</span>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                                    Get instant updates in Slack
                                 </p>
-                                <Link href="/settings?tab=integrations" className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1">
+                                <Link href="/integrations" className="text-[10px] font-medium text-primary hover:underline inline-flex items-center gap-0.5 mt-1">
                                     Connect
-                                    <ChevronRight className="size-3" />
+                                    <ChevronRight className="size-2.5" />
                                 </Link>
                             </div>
                         </SidebarGroupContent>
                     </SidebarGroup>
                 )}
 
-                <SidebarSeparator className="my-2 mx-3" />
+                <SidebarSeparator className="my-2 w-16 mx-auto" />
 
                 {/* Bottom Navigation */}
                 <SidebarGroup>
                     <SidebarGroupContent>
-                        <SidebarMenu className="px-2">
+                        <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
                             {bottomNavItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton

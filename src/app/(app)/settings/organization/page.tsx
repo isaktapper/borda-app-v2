@@ -38,7 +38,7 @@ export default async function OrganizationSettingsPage() {
         organizationId={membership.organization_id}
         organizationName={organization?.name || 'Organization'}
         initialLogoPath={organization?.logo_path || null}
-        initialBrandColor={organization?.brand_color || '#bef264'}
+        initialBrandColor={organization?.brand_color || '#000000'}
         canManage={canManageOrg}
       />
     </div>

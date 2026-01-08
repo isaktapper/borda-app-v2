@@ -55,7 +55,7 @@ export function InviteMemberForm({ organizationId, currentRole }: InviteMemberFo
       <div className="flex-1">
         <Input
           type="email"
-          placeholder="namn@foretag.se"
+          placeholder="name@company.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={loading}
@@ -77,7 +77,7 @@ export function InviteMemberForm({ organizationId, currentRole }: InviteMemberFo
       </Select>
       <Button type="submit" disabled={loading}>
         {loading && <Loader2 className="size-4 mr-2 animate-spin" />}
-        Bjud in
+        Invite
       </Button>
     </form>
   )

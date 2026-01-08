@@ -59,7 +59,7 @@ export async function OrganizationSection() {
             organizationName={organization?.name || 'Organization'}
             initialLogoPath={organization?.logo_path || null}
             initialLogoUrl={logoUrl}
-            initialBrandColor={organization?.brand_color || '#bef264'}
+            initialBrandColor={organization?.brand_color || '#000000'}
             initialBackgroundGradient={organization?.background_gradient || null}
             canManage={canManageOrg}
           />

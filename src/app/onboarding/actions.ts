@@ -1,9 +1,98 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/sluggify'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+
+export async function createOrganizationWithOnboarding(formData: FormData) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        redirect('/login')
+    }
+
+    const name = formData.get('name') as string
+    if (!name) {
+        return { error: 'Organization name is required' }
+    }
+
+    const domain = formData.get('domain') as string | null
+    const brandColor = formData.get('brandColor') as string | null
+    const industry = formData.get('industry') as string | null
+    const companySize = formData.get('companySize') as string | null
+    const referralSource = formData.get('referralSource') as string | null
+    const referralSourceOther = formData.get('referralSourceOther') as string | null
+    const logoFile = formData.get('logo') as File | null
+
+    let slug = slugify(name)
+
+    // Ensure unique slug
+    let isUnique = false
+    let attempts = 0
+    while (!isUnique && attempts < 5) {
+        const checkSlug = attempts === 0 ? slug : `${slug}-${attempts + 1}`
+        const { data } = await supabase
+            .from('organizations')
+            .select('id')
+            .eq('slug', checkSlug)
+            .single()
+
+        if (!data) {
+            slug = checkSlug
+            isUnique = true
+        } else {
+            attempts++
+        }
+    }
+
+    if (!isUnique) {
+        return { error: 'Could not generate a unique handle for this organization' }
+    }
+
+    // Handle logo upload if provided
+    let logoPath: string | null = null
+    if (logoFile && logoFile.size > 0) {
+        const adminClient = await createAdminClient()
+        const fileExt = logoFile.name.split('.').pop()?.toLowerCase() || 'png'
+        const fileName = `${slug}/logo.${fileExt}`
+        
+        const { error: uploadError } = await adminClient.storage
+            .from('branding')
+            .upload(fileName, logoFile, {
+                upsert: true,
+                contentType: logoFile.type
+            })
+
+        if (uploadError) {
+            console.error('Logo upload error:', uploadError)
+            // Continue without logo if upload fails
+        } else {
+            logoPath = fileName
+        }
+    }
+
+    // Use RPC for atomic creation with all onboarding fields
+    const { error: rpcError } = await supabase.rpc('create_organization_rpc', {
+        p_name: name,
+        p_slug: slug,
+        p_domain: domain || null,
+        p_industry: industry || null,
+        p_company_size: companySize || null,
+        p_referral_source: referralSource || null,
+        p_referral_source_other: referralSourceOther || null,
+        p_brand_color: brandColor || null,
+        p_logo_path: logoPath
+    })
+
+    if (rpcError) {
+        return { error: rpcError.message }
+    }
+
+    revalidatePath('/', 'layout')
+    redirect('/spaces')
+}
 
 export async function createOrganization(formData: FormData) {
     const supabase = await createClient()
@@ -56,7 +145,7 @@ export async function createOrganization(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/projects')
+    redirect('/spaces')
 }
 
 export async function joinOrganization(formData: FormData) {
@@ -88,5 +177,5 @@ export async function joinOrganization(formData: FormData) {
     }
 
     revalidatePath('/', 'layout')
-    redirect('/projects')
+    redirect('/spaces')
 }

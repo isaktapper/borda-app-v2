@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useTransition, useRef } from 'react'
-import { toggleTaskStatus, saveResponse, uploadFile, deleteFile, logTaskActivity } from '@/app/portal/actions'
+import { toggleTaskStatus, saveResponse, uploadFile, deleteFile, logTaskActivity } from '@/app/space/actions'
 import { toast } from 'sonner'
 
 interface PortalState {
@@ -12,7 +12,7 @@ interface PortalState {
 
 interface PortalContextType {
     state: PortalState
-    projectId: string
+    spaceId: string
     toggleTask: (taskId: string, taskTitle?: string) => Promise<void>
     updateResponse: (blockId: string, value: any) => Promise<void>
     addFile: (blockId: string, file: any) => void
@@ -24,13 +24,13 @@ const PortalContext = createContext<PortalContextType | undefined>(undefined)
 
 export function PortalProvider({
     children,
-    projectId,
+    spaceId,
     initialTasks = {},
     initialResponses = {},
     initialFiles = {}
 }: {
     children: React.ReactNode
-    projectId: string
+    spaceId: string
     initialTasks?: Record<string, 'pending' | 'completed'>
     initialResponses?: Record<string, any>
     initialFiles?: Record<string, any[]>
@@ -79,7 +79,7 @@ export function PortalProvider({
             blockTasks[taskId] = newStatus
 
             // Save to responses table
-            const result = await saveResponse(blockId, projectId, { tasks: blockTasks })
+            const result = await saveResponse(blockId, spaceId, { tasks: blockTasks })
             if (result.error) {
                 // Rollback
                 setState(prev => ({
@@ -89,7 +89,7 @@ export function PortalProvider({
                 toast.error('Kunde inte uppdatera uppgiften')
             } else {
                 // Log task activity
-                await logTaskActivity(projectId, blockId, taskId, taskTitle || 'Task', newStatus)
+                await logTaskActivity(spaceId, blockId, taskId, taskTitle || 'Task', newStatus)
             }
         } catch (error) {
             setState(prev => ({
@@ -150,7 +150,7 @@ export function PortalProvider({
                     valueToSave = { questions: blockResponses }
                 }
 
-                const result = await saveResponse(blockId, projectId, valueToSave)
+                const result = await saveResponse(blockId, spaceId, valueToSave)
                 if (result.error) {
                     console.error('[saveResponse] Failed:', result.error)
                     toast.error('Kunde inte spara svaret')
@@ -183,7 +183,7 @@ export function PortalProvider({
         }))
 
         try {
-            const result = await deleteFile(fileId, projectId)
+            const result = await deleteFile(fileId, spaceId)
             if (result.error) {
                 setState(prev => ({
                     ...prev,
@@ -201,7 +201,7 @@ export function PortalProvider({
     }
 
     return (
-        <PortalContext.Provider value={{ state, projectId, toggleTask, updateResponse, addFile, removeFile, isPending }}>
+        <PortalContext.Provider value={{ state, spaceId, toggleTask, updateResponse, addFile, removeFile, isPending }}>
             {children}
         </PortalContext.Provider>
     )

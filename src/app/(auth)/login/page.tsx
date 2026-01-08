@@ -13,7 +13,7 @@ import { GoogleButton } from '@/components/ui/google-button'
 
 function LoginForm() {
     const searchParams = useSearchParams()
-    const redirect = searchParams.get('redirect') || '/projects'
+    const redirect = searchParams.get('redirect') || '/spaces'
     const errorMsg = searchParams.get('error')
 
     const [loading, setLoading] = useState(false)

@@ -1,0 +1,101 @@
+table_name,column_name,data_type,is_nullable
+activity_log,id,uuid,NO
+activity_log,project_id,text,NO
+activity_log,actor_email,text,NO
+activity_log,action,text,NO
+activity_log,resource_type,text,YES
+activity_log,resource_id,text,YES
+activity_log,metadata,jsonb,YES
+activity_log,created_at,timestamp with time zone,YES
+blocks,id,uuid,NO
+blocks,page_id,uuid,NO
+blocks,type,text,NO
+blocks,sort_order,integer,NO
+blocks,content,jsonb,NO
+blocks,created_at,timestamp with time zone,YES
+blocks,updated_at,timestamp with time zone,YES
+blocks,deleted_at,timestamp with time zone,YES
+files,id,uuid,NO
+files,block_id,uuid,NO
+files,project_id,text,NO
+files,organization_id,uuid,YES
+files,uploaded_by,uuid,YES
+files,original_name,text,NO
+files,storage_path,text,NO
+files,file_size_bytes,bigint,NO
+files,mime_type,text,YES
+files,created_at,timestamp with time zone,YES
+files,deleted_at,timestamp with time zone,YES
+generic_email_domains,domain,text,NO
+organization_members,id,uuid,NO
+organization_members,organization_id,uuid,YES
+organization_members,user_id,uuid,YES
+organization_members,role,text,YES
+organization_members,joined_at,timestamp with time zone,YES
+organization_members,deleted_at,timestamp with time zone,YES
+organization_members,invited_email,text,NO
+organization_members,invited_by,uuid,YES
+organization_members,invited_at,timestamp with time zone,YES
+organizations,id,uuid,NO
+organizations,name,text,NO
+organizations,slug,text,NO
+organizations,domain,text,YES
+organizations,logo_url,text,YES
+organizations,created_at,timestamp with time zone,YES
+organizations,updated_at,timestamp with time zone,YES
+organizations,deleted_at,timestamp with time zone,YES
+organizations,logo_path,text,YES
+organizations,brand_color,text,YES
+organizations,background_gradient,text,YES
+organizations,industry,text,YES
+organizations,company_size,text,YES
+organizations,referral_source,text,YES
+organizations,referral_source_other,text,YES
+pages,id,uuid,NO
+pages,project_id,text,NO
+pages,title,text,NO
+pages,slug,text,NO
+pages,description,text,YES
+pages,sort_order,integer,NO
+pages,is_visible,boolean,NO
+pages,created_at,timestamp with time zone,YES
+pages,updated_at,timestamp with time zone,YES
+pages,deleted_at,timestamp with time zone,YES
+portal_access_tokens,id,uuid,NO
+portal_access_tokens,project_id,text,NO
+portal_access_tokens,email,text,NO
+portal_access_tokens,token,text,NO
+portal_access_tokens,expires_at,timestamp with time zone,NO
+portal_access_tokens,used_at,timestamp with time zone,YES
+portal_access_tokens,created_at,timestamp with time zone,YES
+portal_visits,id,uuid,NO
+portal_visits,project_id,text,NO
+portal_visits,visitor_email,text,NO
+portal_visits,visited_at,timestamp with time zone,YES
+project_members,id,uuid,NO
+project_members,project_id,text,NO
+project_members,user_id,uuid,YES
+project_members,role,text,NO
+project_members,invited_email,text,YES
+project_members,invited_by,uuid,YES
+project_members,invited_at,timestamp with time zone,YES
+project_members,joined_at,timestamp with time zone,YES
+project_members,deleted_at,timestamp with time zone,YES
+project_members,invite_token,uuid,YES
+project_members,invite_expires_at,timestamp with time zone,YES
+project_tags,project_id,text,NO
+project_tags,tag_id,uuid,NO
+project_tags,created_at,timestamp with time zone,YES
+projects,id,text,NO
+projects,organization_id,uuid,NO
+projects,name,text,NO
+projects,client_name,text,NO
+projects,client_logo_url,text,YES
+projects,status,text,NO
+projects,target_go_live_date,date,YES
+projects,created_by,uuid,NO
+projects,created_at,timestamp with time zone,YES
+projects,updated_at,timestamp with time zone,YES
+projects,deleted_at,timestamp with time zone,YES
+projects,assigned_to,uuid,YES
+projects,logo_path,text,YES

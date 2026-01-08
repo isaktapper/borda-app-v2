@@ -109,14 +109,14 @@ async function calculateBlockProgress(block: Block, supabase: any): Promise<numb
  * Only considers interactive blocks (tasks, questions, checklists, upload files)
  * Returns a number between 0 and 100
  */
-export async function calculateProjectProgress(projectId: string): Promise<number> {
+export async function calculateProjectProgress(spaceId: string): Promise<number> {
     const supabase = await createClient()
 
     // Get all blocks for all pages in this project
     const { data: blocks } = await supabase
         .from('blocks')
-        .select('id, type, content, pages!inner(project_id)')
-        .eq('pages.project_id', projectId)
+        .select('id, type, content, pages!inner(space_id)')
+        .eq('pages.space_id', spaceId)
         .is('deleted_at', null)
 
     if (!blocks || blocks.length === 0) return 0

@@ -35,7 +35,7 @@ interface FileDownloadBlockContent {
 
 interface FileDownloadBlockEditorProps {
     blockId: string
-    projectId?: string
+    spaceId?: string
     content: FileDownloadBlockContent
     onChange: (content: FileDownloadBlockContent) => void
 }
@@ -64,7 +64,7 @@ function getFileIconColor(type: string): string {
     return 'text-muted-foreground'
 }
 
-export function FileDownloadBlockEditor({ blockId, projectId, content, onChange }: FileDownloadBlockEditorProps) {
+export function FileDownloadBlockEditor({ blockId, spaceId, content, onChange }: FileDownloadBlockEditorProps) {
     const [uploading, setUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
 
@@ -72,7 +72,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
         const files = e.target.files
         if (!files || files.length === 0) return
 
-        if (!projectId || !blockId) {
+        if (!spaceId || !blockId) {
             alert('The project must be saved before files can be uploaded')
             return
         }
@@ -85,9 +85,9 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
 
             // Get project to find organizationId
             const { data: project, error: projectError } = await supabase
-                .from('projects')
+                .from('spaces')
                 .select('organization_id')
-                .eq('id', projectId)
+                .eq('id', spaceId)
                 .single()
 
             if (projectError || !project) {
@@ -104,7 +104,7 @@ export function FileDownloadBlockEditor({ blockId, projectId, content, onChange 
                 const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'bin')
                 const fileName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
                 const uniqueId = crypto.randomUUID()
-                const storagePath = sanitizeStoragePath(`${project.organization_id}/${projectId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`)
+                const storagePath = sanitizeStoragePath(`${project.organization_id}/${spaceId}/downloads/${blockId}/${uniqueId}-${fileName}.${fileExt}`)
 
                 // Upload to Supabase Storage
                 const { data: uploadData, error: uploadError } = await supabase.storage

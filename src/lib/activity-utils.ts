@@ -18,8 +18,8 @@ export interface ActivityItem {
     resource_id: string | null
     metadata: Record<string, any>
     created_at: string
-    project_id?: string
-    project_name?: string
+    space_id?: string
+    space_name?: string
     client_name?: string
 }
 
@@ -85,11 +85,11 @@ export function getActivityText(activity: ActivityItem): string {
         case 'form.submitted':
             return `${actor} submitted form responses`
 
-        // Project status
-        case 'project.status_changed':
+        // Space status
+        case 'space.status_changed':
             return metadata.newStatus
-                ? `${actor} changed project status to "${metadata.newStatus}"`
-                : `${actor} changed project status`
+                ? `${actor} changed space status to "${metadata.newStatus}"`
+                : `${actor} changed space status`
 
         // Legacy/fallback
         case 'question.answered':

@@ -318,19 +318,19 @@ export async function resendInvitation(memberId: string) {
 }
 
 // Project-specific action
-export async function updateProjectAssignee(projectId: string, userId: string | null) {
+export async function updateProjectAssignee(spaceId: string, userId: string | null) {
   const supabase = await createClient()
 
   const { error } = await supabase
-    .from('projects')
+    .from('spaces')
     .update({ assigned_to: userId })
-    .eq('id', projectId)
+    .eq('id', spaceId)
 
   if (error) {
     console.error('Error updating project assignee:', error)
     return { error: error.message }
   }
 
-  revalidatePath(`/dashboard/projects/${projectId}`)
+  revalidatePath(`/dashboard/spaces/${spaceId}`)
   return { success: true }
 }

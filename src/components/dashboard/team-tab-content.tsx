@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { inviteCustomer, getProjectMembers, cancelInvite, resendInvite } from '@/app/(app)/projects/[projectId]/team-actions'
+import { inviteCustomer, getProjectMembers, cancelInvite, resendInvite } from '@/app/(app)/spaces/[spaceId]/team-actions'
 import { getOrgMembers } from '@/app/(app)/settings/team-actions'
 import { updateProjectAssignee } from '@/app/(app)/settings/team-actions'
 import { Mail, Send, Trash2, RefreshCw, Loader2, Users, AlertCircle, UserCheck } from 'lucide-react'
@@ -21,12 +21,12 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 interface TeamTabContentProps {
-    projectId: string
+    spaceId: string
     organizationId: string
     currentAssignee?: string | null
 }
 
-export function TeamTabContent({ projectId, organizationId, currentAssignee }: TeamTabContentProps) {
+export function TeamTabContent({ spaceId, organizationId, currentAssignee }: TeamTabContentProps) {
     const [email, setEmail] = useState('')
     const [loading, setLoading] = useState(false)
     const [members, setMembers] = useState<any[]>([])
@@ -37,7 +37,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
     const fetchMembers = async () => {
         setFetching(true)
         const [projectResult, orgResult] = await Promise.all([
-            getProjectMembers(projectId),
+            getProjectMembers(spaceId),
             getOrgMembers(organizationId)
         ])
         if (projectResult.data) {
@@ -51,14 +51,14 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
 
     useEffect(() => {
         fetchMembers()
-    }, [projectId, organizationId])
+    }, [spaceId, organizationId])
 
     const handleInvite = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!email) return
 
         setLoading(true)
-        const result = await inviteCustomer(projectId, email)
+        const result = await inviteCustomer(spaceId, email)
         setLoading(false)
 
         if (result.success) {
@@ -72,7 +72,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
 
     const handleCancel = async (memberId: string) => {
         if (!confirm('Are you sure you want to remove this invitation?')) return
-        const result = await cancelInvite(memberId, projectId)
+        const result = await cancelInvite(memberId, spaceId)
         if (result.success) {
             toast.success('Inbjudan borttagen')
             fetchMembers()
@@ -82,7 +82,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
     }
 
     const handleResend = async (memberId: string) => {
-        const result = await resendInvite(memberId, projectId)
+        const result = await resendInvite(memberId, spaceId)
         if (result.success) {
             toast.success('Invitation resent!')
         } else {
@@ -91,7 +91,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
     }
 
     const handleAssigneeChange = async (userId: string) => {
-        const result = await updateProjectAssignee(projectId, userId === 'none' ? null : userId)
+        const result = await updateProjectAssignee(spaceId, userId === 'none' ? null : userId)
         if (result.success) {
             setAssignee(userId === 'none' ? null : userId)
             toast.success('Ansvarig uppdaterad')
@@ -131,7 +131,7 @@ export function TeamTabContent({ projectId, organizationId, currentAssignee }: T
                     </div>
                     <Button type="submit" disabled={loading} className="h-11 px-6 rounded-xl gap-2 font-bold transition-all hover:scale-105 active:scale-95">
                         {loading ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
-                        Bjud in
+                        Invite
                     </Button>
                 </form>
             </Card>

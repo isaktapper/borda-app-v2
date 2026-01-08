@@ -10,8 +10,8 @@ import { EngagementBadge } from './engagement-badge'
 import { TagBadge } from './tag-badge'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
-import type { ProjectStatus } from '@/app/(app)/projects/[projectId]/status-utils'
-import type { DateRange } from './projects-table'
+import type { SpaceStatus } from '@/app/(app)/spaces/[spaceId]/status-utils'
+import type { DateRange } from './spaces-table'
 
 interface DataTableToolbarProps {
   // Filter state
@@ -31,7 +31,7 @@ interface DataTableToolbarProps {
   onGoLiveDateRangeChange: (range: DateRange | null) => void
 
   // Selection
-  selectedProjectIds: string[]
+  selectedSpaceIds: string[]
   onDelete: () => void
 
   // Column picker
@@ -57,7 +57,7 @@ export function DataTableToolbar({
   onStatusesChange,
   goLiveDateRange,
   onGoLiveDateRangeChange,
-  selectedProjectIds,
+  selectedSpaceIds,
   onDelete,
   columns,
   visibleColumns,
@@ -72,7 +72,7 @@ export function DataTableToolbar({
     goLiveDateRange !== null
 
   // Status options
-  const statusOptions: ProjectStatus[] = ['draft', 'active', 'completed', 'archived']
+  const statusOptions: SpaceStatus[] = ['draft', 'active', 'completed', 'archived']
 
   // Engagement level options
   const engagementOptions = [
@@ -86,7 +86,7 @@ export function DataTableToolbar({
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
         <Input
-          placeholder="Search projects..."
+          placeholder="Search spaces..."
           value={filter}
           onChange={(e) => onFilterChange(e.target.value)}
           className="h-8 w-[150px] lg:w-[250px]"
@@ -133,9 +133,8 @@ export function DataTableToolbar({
                   factors: {
                     visits: { score: 0, count: 0 },
                     tasks: { score: 0, completed: 0, total: 0 },
-                    questions: { score: 0, answered: 0, total: 0 },
+                    formFields: { score: 0, answered: 0, total: 0 },
                     files: { score: 0, uploaded: 0, total: 0 },
-                    checklists: { score: 0, completed: 0, total: 0 },
                   },
                   calculatedAt: new Date(),
                 }}
@@ -159,7 +158,7 @@ export function DataTableToolbar({
           </Badge>
         )}
 
-        {selectedProjectIds.length > 0 && (
+        {selectedSpaceIds.length > 0 && (
           <Button
             variant="destructive"
             size="sm"
@@ -167,7 +166,7 @@ export function DataTableToolbar({
             className="h-8"
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete ({selectedProjectIds.length})
+            Delete ({selectedSpaceIds.length})
           </Button>
         )}
 

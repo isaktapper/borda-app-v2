@@ -109,7 +109,7 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                 </p>
                 <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
                     <Plus className="size-4" />
-                    Ny tagg
+                    Add tag
                 </Button>
             </div>
 
@@ -118,8 +118,8 @@ export function TagsManager({ tags: initialTags, usageCounts }: TagsManagerProps
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-12"></TableHead>
-                            <TableHead>Namn</TableHead>
-                            <TableHead>Projekt</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Space</TableHead>
                             <TableHead className="w-24 text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>

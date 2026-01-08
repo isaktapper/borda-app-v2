@@ -15,14 +15,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Plus } from 'lucide-react'
-import { createPage } from '@/app/(app)/projects/[projectId]/pages-actions'
+import { createPage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 
 interface CreatePageModalProps {
-    projectId: string
+    spaceId: string
     onPageCreated?: (newPage: any) => void
+    trigger?: React.ReactNode
 }
 
-export function CreatePageModal({ projectId, onPageCreated }: CreatePageModalProps) {
+export function CreatePageModal({ spaceId, onPageCreated, trigger }: CreatePageModalProps) {
     const [open, setOpen] = useState(false)
     const [title, setTitle] = useState('')
     const [loading, setLoading] = useState(false)
@@ -34,7 +35,7 @@ export function CreatePageModal({ projectId, onPageCreated }: CreatePageModalPro
         setLoading(true)
         setError(null)
 
-        const result = await createPage(projectId, title)
+        const result = await createPage(spaceId, title)
 
         if (result.success && result.page) {
             setOpen(false)
@@ -61,9 +62,11 @@ export function CreatePageModal({ projectId, onPageCreated }: CreatePageModalPro
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-6">
-                    <Plus className="size-4" />
-                </Button>
+                {trigger || (
+                    <Button variant="ghost" size="icon" className="size-6">
+                        <Plus className="size-4" />
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent>
                 <form onSubmit={handleSubmit}>

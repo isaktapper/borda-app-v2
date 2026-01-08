@@ -17,7 +17,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
 interface GeneralSettingsSectionProps {
-    projectId: string
+    spaceId: string
     organizationId: string
     initialClientName: string
     initialProjectName?: string
@@ -34,7 +34,7 @@ const STATUS_OPTIONS = [
 ]
 
 export function GeneralSettingsSection({
-    projectId,
+    spaceId,
     organizationId,
     initialClientName,
     initialProjectName,
@@ -75,7 +75,7 @@ export function GeneralSettingsSection({
         const supabase = createClient()
 
         const { error } = await supabase
-            .from('projects')
+            .from('spaces')
             .update({
                 client_name: clientName,
                 name: projectName,
@@ -83,7 +83,7 @@ export function GeneralSettingsSection({
                 target_go_live_date: targetGoLiveDate || null,
                 assigned_to: assignee
             })
-            .eq('id', projectId)
+            .eq('id', spaceId)
 
         setLoading(false)
 
@@ -105,9 +105,9 @@ export function GeneralSettingsSection({
         const supabase = createClient()
 
         const { error } = await supabase
-            .from('projects')
+            .from('spaces')
             .update({ status: 'archived' })
-            .eq('id', projectId)
+            .eq('id', spaceId)
 
         setArchiveLoading(false)
 
@@ -115,8 +115,8 @@ export function GeneralSettingsSection({
             toast.error('Failed to archive project')
             console.error(error)
         } else {
-            toast.success('Project archived successfully')
-            router.push('/projects')
+            toast.success('Space archived successfully')
+            router.push('/spaces')
         }
     }
 
@@ -124,7 +124,7 @@ export function GeneralSettingsSection({
         <div className="space-y-6">
             {/* Settings Table */}
             <div className="divide-y rounded-lg border">
-                {/* Client Name */}
+                {/* Customer Name */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
                     <Label htmlFor="client-name" className="text-sm font-medium">
                         Customer Name
@@ -140,17 +140,17 @@ export function GeneralSettingsSection({
                     </div>
                 </div>
 
-                {/* Project Name */}
+                {/* Space Name */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
-                    <Label htmlFor="project-name" className="text-sm font-medium">
-                        Project Name
+                    <Label htmlFor="space-name" className="text-sm font-medium">
+                        Space Name
                     </Label>
                     <div className="flex justify-end">
                         <Input
-                            id="project-name"
+                            id="space-name"
                             value={projectName}
                             onChange={(e) => setProjectName(e.target.value)}
-                            placeholder="Enter project name"
+                            placeholder="Enter space name"
                             className="w-96"
                         />
                     </div>
@@ -229,7 +229,7 @@ export function GeneralSettingsSection({
                     ) : (
                         <Archive className="size-4" />
                     )}
-                    Archive Project
+                    Archive Space
                 </Button>
 
                 <Button onClick={handleSave} disabled={loading} className="gap-2">

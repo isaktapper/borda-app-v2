@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect } from 'react'
-import { logPageView } from '@/app/portal/actions'
+import { logPageView } from '@/app/space/actions'
 
 interface PageViewLoggerProps {
-    projectId: string
+    spaceId: string
     pageId: string
     pageName: string
 }
@@ -13,13 +13,13 @@ interface PageViewLoggerProps {
  * Client component that logs a page view when mounted
  * Should be placed in each portal page
  */
-export function PageViewLogger({ projectId, pageId, pageName }: PageViewLoggerProps) {
+export function PageViewLogger({ spaceId, pageId, pageName }: PageViewLoggerProps) {
     useEffect(() => {
         // Log the page view (server will handle logging)
-        logPageView(projectId, pageId, pageName).catch(error => {
+        logPageView(spaceId, pageId, pageName).catch(error => {
             console.error('[PageViewLogger] Failed to log page view:', error)
         })
-    }, [projectId, pageId, pageName])
+    }, [spaceId, pageId, pageName])
 
     // This component renders nothing
     return null

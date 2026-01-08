@@ -10,13 +10,13 @@ import { TagColorPicker } from './tag-color-picker'
 import { TAG_COLORS } from '@/lib/tag-colors'
 
 interface TagPickerProps {
-  projectId: string
+  spaceId: string
   selectedTagIds: string[]
   onTagsChange?: () => void
   className?: string
 }
 
-export function TagPicker({ projectId, selectedTagIds, onTagsChange, className }: TagPickerProps) {
+export function TagPicker({ spaceId, selectedTagIds, onTagsChange, className }: TagPickerProps) {
   const [search, setSearch] = useState('')
   const [tags, setTags] = useState<Tag[]>([])
   const [creatingTag, setCreatingTag] = useState(false)
@@ -53,9 +53,9 @@ export function TagPicker({ projectId, selectedTagIds, onTagsChange, className }
     setIsLoading(true)
 
     if (isSelected) {
-      await removeTagFromProject(projectId, tagId)
+      await removeTagFromProject(spaceId, tagId)
     } else {
-      await addTagToProject(projectId, tagId)
+      await addTagToProject(spaceId, tagId)
     }
 
     setIsLoading(false)
@@ -66,7 +66,7 @@ export function TagPicker({ projectId, selectedTagIds, onTagsChange, className }
     if (!search.trim()) return
 
     setIsLoading(true)
-    const result = await createAndAddTag(projectId, search.trim(), newTagColor)
+    const result = await createAndAddTag(spaceId, search.trim(), newTagColor)
 
     if (result.success) {
       await loadTags()

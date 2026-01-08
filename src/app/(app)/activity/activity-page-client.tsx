@@ -52,7 +52,7 @@ const ACTION_TYPES = [
   { value: 'file', label: 'Files' },
   { value: 'form', label: 'Forms' },
   { value: 'checklist', label: 'Checklists' },
-  { value: 'project', label: 'Projects' },
+  { value: 'space', label: 'Spaces' },
 ] as const
 
 function getActivityIcon(action: string) {
@@ -60,7 +60,7 @@ function getActivityIcon(action: string) {
   if (action.includes('uploaded') || action.includes('file')) return Upload
   if (action.includes('form') || action.includes('answered')) return FileText
   if (action.includes('checklist')) return ListChecks
-  if (action.includes('project')) return Activity
+  if (action.includes('space')) return Activity
   return AlertCircle
 }
 
@@ -70,7 +70,7 @@ function getActivityColor(action: string) {
   if (action.includes('uploaded') || action.includes('file')) return 'text-blue-600 bg-blue-50 dark:bg-blue-950/50'
   if (action.includes('form') || action.includes('answered')) return 'text-purple-600 bg-purple-50 dark:bg-purple-950/50'
   if (action.includes('checklist')) return 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/50'
-  if (action.includes('project')) return 'text-primary bg-primary/10'
+  if (action.includes('space')) return 'text-primary bg-primary/10'
   return 'text-gray-600 bg-gray-50 dark:bg-gray-950/50'
 }
 
@@ -92,12 +92,12 @@ function getActivityText(action: string, actorName: string): string {
       return `${actorName} updated a checklist`
     case 'checklist.completed':
       return `${actorName} completed a checklist item`
-    case 'project.created':
-      return `${actorName} created a project`
-    case 'project.updated':
-      return `${actorName} updated project settings`
-    case 'project.status_changed':
-      return `${actorName} changed project status`
+    case 'space.created':
+      return `${actorName} created a space`
+    case 'space.updated':
+      return `${actorName} updated space settings`
+    case 'space.status_changed':
+      return `${actorName} changed space status`
     default:
       return `${actorName} ${action.replace('.', ' ')}`
   }
@@ -170,7 +170,7 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
     const query = searchQuery.toLowerCase()
     return (
       activity.actor_email.toLowerCase().includes(query) ||
-      activity.project_name.toLowerCase().includes(query) ||
+      activity.space_name.toLowerCase().includes(query) ||
       activity.client_name.toLowerCase().includes(query) ||
       activity.action.toLowerCase().includes(query)
     )
@@ -186,7 +186,7 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Track all project activities and updates.
+            Track all space activities and updates.
           </p>
         </div>
       </div>
@@ -231,7 +231,7 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
             <div className="flex items-center gap-2">
               <User className="size-4 text-muted-foreground" />
               <Label htmlFor="scope-switch" className="text-sm font-medium cursor-pointer">
-                My Projects
+                My Spaces
               </Label>
             </div>
             <Switch
@@ -241,7 +241,7 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
             />
             <div className="flex items-center gap-2">
               <Label htmlFor="scope-switch" className="text-sm font-medium cursor-pointer">
-                All Projects
+                All Spaces
               </Label>
               <Users className="size-4 text-muted-foreground" />
             </div>
@@ -297,7 +297,7 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
               {searchQuery 
                 ? 'Try adjusting your search terms or filters.'
                 : scope === 'assigned'
-                  ? 'No activities yet for your assigned projects. Activities will appear here as team members interact with projects.'
+                  ? 'No activities yet for your assigned spaces. Activities will appear here as team members interact with spaces.'
                   : 'No activities yet in your organization.'}
             </p>
           </div>
@@ -340,10 +340,10 @@ export function ActivityPageClient({ initialActivities, stats }: ActivityPageCli
                                 </p>
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <Link 
-                                    href={`/projects/${activity.project_id}`}
+                                    href={`/spaces/${activity.space_id}`}
                                     className="text-xs text-primary hover:underline font-medium"
                                   >
-                                    {activity.client_name} — {activity.project_name}
+                                    {activity.client_name} — {activity.space_name}
                                   </Link>
                                   {activity.metadata?.task_title && (
                                     <span className="text-xs text-muted-foreground">

@@ -149,7 +149,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                                     onClick={() => handleSort('name')}
                                     className="h-7 px-2 text-xs font-medium hover:bg-transparent gap-1.5"
                                 >
-                                    NAMN
+                                    NAME
                                     <SortIcon field="name" />
                                 </Button>
                             </TableHead>
@@ -171,7 +171,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                                     onClick={() => handleSort('role')}
                                     className="h-7 px-2 text-xs font-medium hover:bg-transparent gap-1.5"
                                 >
-                                    ROLL
+                                    ROLE
                                     <SortIcon field="role" />
                                 </Button>
                             </TableHead>
@@ -182,7 +182,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                                     onClick={() => handleSort('invited_at')}
                                     className="h-7 px-2 text-xs font-medium hover:bg-transparent gap-1.5"
                                 >
-                                    SKAPAD
+                                    CREATED
                                     <SortIcon field="invited_at" />
                                 </Button>
                             </TableHead>
@@ -193,7 +193,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                                     onClick={() => handleSort('joined_at')}
                                     className="h-7 px-2 text-xs font-medium hover:bg-transparent gap-1.5"
                                 >
-                                    SENAST AKTIV
+                                    LAST ACTIVE
                                     <SortIcon field="joined_at" />
                                 </Button>
                             </TableHead>
@@ -223,7 +223,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                                                 <span className="font-medium text-sm">{displayName}</span>
                                                 {isCurrentUser && (
                                                     <Badge variant="outline" className="text-xs">
-                                                        Du
+                                                        You
                                                     </Badge>
                                                 )}
                                             </div>

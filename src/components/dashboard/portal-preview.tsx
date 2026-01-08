@@ -36,7 +36,7 @@ interface Project {
 }
 
 interface PortalPreviewProps {
-    projectId: string
+    spaceId: string
     projectName: string
 }
 
@@ -76,7 +76,7 @@ function hexToHSL(hex: string): string {
     return `${hDeg} ${sPercent}% ${lPercent}%`
 }
 
-export function PortalPreview({ projectId, projectName }: PortalPreviewProps) {
+export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
     const [open, setOpen] = useState(false)
     const [project, setProject] = useState<Project | null>(null)
     const [pages, setPages] = useState<Page[]>([])
@@ -105,14 +105,14 @@ export function PortalPreview({ projectId, projectName }: PortalPreviewProps) {
     const fetchProjectData = async () => {
         setLoading(true)
         try {
-            const { getProject } = await import('@/app/(app)/projects/actions')
-            const { getPages } = await import('@/app/(app)/projects/[projectId]/pages-actions')
-            const { getPortalBranding } = await import('@/app/portal/branding-actions')
+            const { getProject } = await import('@/app/(app)/spaces/actions')
+            const { getPages } = await import('@/app/(app)/spaces/[spaceId]/pages-actions')
+            const { getPortalBranding } = await import('@/app/space/branding-actions')
 
             const [projectData, pagesData, brandingData] = await Promise.all([
-                getProject(projectId),
-                getPages(projectId),
-                getPortalBranding(projectId)
+                getProject(spaceId),
+                getPages(spaceId),
+                getPortalBranding(spaceId)
             ])
 
             if (projectData) {
@@ -135,7 +135,7 @@ export function PortalPreview({ projectId, projectName }: PortalPreviewProps) {
     const fetchBlocks = async (pageId: string) => {
         setBlocksLoading(true)
         try {
-            const { getBlocks } = await import('@/app/(app)/projects/[projectId]/block-actions')
+            const { getBlocks } = await import('@/app/(app)/spaces/[spaceId]/block-actions')
             const blocksData = await getBlocks(pageId)
             setBlocks(blocksData as Block[])
         } catch (error) {
@@ -193,7 +193,7 @@ export function PortalPreview({ projectId, projectName }: PortalPreviewProps) {
                     <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
                         <div className="max-w-7xl mx-auto">
                             <div className="grid grid-cols-3 items-center px-6 h-16 gap-4">
-                                {/* Left: Logo + Project Name */}
+                                {/* Left: Logo + Space Name */}
                                 <div className="flex items-center gap-3 shrink-0">
                                     {loading ? (
                                         <div className="h-7 w-24 bg-muted animate-pulse rounded" />
@@ -305,7 +305,7 @@ export function PortalPreview({ projectId, projectName }: PortalPreviewProps) {
                                 </div>
                             ) : selectedPage ? (
                                 /* Page Content */
-                                <PortalProvider projectId={projectId}>
+                                <PortalProvider spaceId={spaceId}>
                                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                                         {blocksLoading ? (
                                             <div className="flex flex-col items-center justify-center py-20">

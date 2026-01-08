@@ -22,7 +22,7 @@ interface TasksTableProps {
   tasks: Task[]
 }
 
-type SortField = 'title' | 'project_id' | 'due_date' | 'status'
+type SortField = 'title' | 'space_id' | 'due_date' | 'status'
 type SortOrder = 'asc' | 'desc' | null
 
 export function TasksTable({ tasks }: TasksTableProps) {
@@ -105,7 +105,7 @@ export function TasksTable({ tasks }: TasksTableProps) {
               <SortButton field="title">Task</SortButton>
             </TableHead>
             <TableHead>
-              <SortButton field="project_id">Project</SortButton>
+              <SortButton field="space_id">Space</SortButton>
             </TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Last Visit</TableHead>
@@ -134,26 +134,26 @@ export function TasksTable({ tasks }: TasksTableProps) {
                 </TableCell>
                 <TableCell>
                   <Link
-                    href={`/projects/${task.project_id}`}
+                    href={`/spaces/${task.space_id}`}
                     className="font-medium hover:underline"
                   >
                     {task.title}
                   </Link>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{task.project?.name || 'Unknown Project'}</span>
+                  <span className="text-sm">{task.space?.name || 'Unknown Space'}</span>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      {task.project?.client_logo_url && (
-                        <AvatarImage src={task.project.client_logo_url} className="object-contain" />
+                      {task.space?.client_logo_url && (
+                        <AvatarImage src={task.space.client_logo_url} className="object-contain" />
                       )}
                       <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                        {task.project?.client_name?.charAt(0).toUpperCase() || '?'}
+                        {task.space?.client_name?.charAt(0).toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm">{task.project?.client_name || '-'}</span>
+                    <span className="text-sm">{task.space?.client_name || '-'}</span>
                   </div>
                 </TableCell>
                 <TableCell>

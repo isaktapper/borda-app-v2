@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 export type Task = {
   id: string
   block_id: string
-  project_id: string
+  space_id: string
   title: string
   description: string | null
   status: 'pending' | 'in_progress' | 'completed'
@@ -15,7 +15,7 @@ export type Task = {
   completed_by: string | null
   created_at: string
   updated_at: string
-  project?: {
+  space?: {
     id: string
     name: string
     client_name: string
@@ -42,15 +42,15 @@ export async function getTasks(): Promise<GroupedTasks> {
     return { overdue: [], upcoming: [], noDueDate: [] }
   }
 
-  // Get all pages with their projects
+  // Get all pages with their spaces
   const { data: pages } = await supabase
     .from('pages')
     .select(`
       id,
-      project_id,
-      project:projects!inner(id, name, client_name, client_logo_url, deleted_at)
+      space_id,
+      space:spaces!inner(id, name, client_name, client_logo_url, deleted_at)
     `)
-    .is('project.deleted_at', null)
+    .is('space.deleted_at', null)
 
   if (!pages || pages.length === 0) {
     return { overdue: [], upcoming: [], noDueDate: [] }
@@ -89,12 +89,15 @@ export async function getTasks(): Promise<GroupedTasks> {
     const page = pages.find(p => p.id === block.page_id)
     if (!page) continue
 
+    // Supabase returns space as an object (not array) for inner join
+    const spaceData = page.space as any
+
     // Generate signed URL for client logo if exists
     let clientLogoUrl = null
-    if (page.project?.client_logo_url) {
+    if (spaceData?.client_logo_url) {
       const { data } = await supabase.storage
         .from('client-logos')
-        .createSignedUrl(page.project.client_logo_url, 60 * 60 * 24)
+        .createSignedUrl(spaceData.client_logo_url, 60 * 60 * 24)
       clientLogoUrl = data?.signedUrl || null
     }
 
@@ -107,7 +110,7 @@ export async function getTasks(): Promise<GroupedTasks> {
       allTasks.push({
         id: `${block.id}-${task.id}`,
         block_id: block.id,
-        project_id: page.project_id,
+        space_id: page.space_id,
         title: task.title || 'Untitled',
         description: task.description || null,
         status: status as 'pending' | 'in_progress' | 'completed',
@@ -117,10 +120,10 @@ export async function getTasks(): Promise<GroupedTasks> {
         completed_by: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        project: {
-          id: page.project.id,
-          name: page.project.name,
-          client_name: page.project.client_name,
+        space: {
+          id: spaceData?.id,
+          name: spaceData?.name,
+          client_name: spaceData?.client_name,
           client_logo_url: clientLogoUrl
         }
       })

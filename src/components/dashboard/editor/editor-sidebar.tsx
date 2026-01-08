@@ -19,7 +19,7 @@ interface Block {
 }
 
 interface EditorSidebarProps {
-    projectId: string
+    spaceId: string
     pages: Page[]
     selectedPageId: string | null
     blocks: Block[]
@@ -37,7 +37,7 @@ interface EditorSidebarProps {
 }
 
 export function EditorSidebar({
-    projectId,
+    spaceId,
     pages,
     selectedPageId,
     blocks,
@@ -71,7 +71,7 @@ export function EditorSidebar({
                 />
             ) : (
                 <PagesListView
-                    projectId={projectId}
+                    spaceId={spaceId}
                     pages={pages}
                     onPageSelect={onPageSelect}
                     onPageCreated={onPageCreated}

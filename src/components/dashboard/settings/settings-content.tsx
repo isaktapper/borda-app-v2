@@ -9,7 +9,7 @@ import { BrandingSettingsSection } from './branding-settings-section'
 import { TeamTabContent } from '@/components/dashboard/team-tab-content'
 
 interface SettingsContentProps {
-    projectId: string
+    spaceId: string
     organizationId: string
     projectName: string
     currentAssignee?: string | null
@@ -32,7 +32,7 @@ interface OrgData {
     background_gradient: string | null
 }
 
-export function SettingsContent({ projectId, organizationId, projectName, currentAssignee }: SettingsContentProps) {
+export function SettingsContent({ spaceId, organizationId, projectName, currentAssignee }: SettingsContentProps) {
     const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'team'>('general')
     const [projectData, setProjectData] = useState<ProjectData | null>(null)
     const [orgData, setOrgData] = useState<OrgData | null>(null)
@@ -45,9 +45,9 @@ export function SettingsContent({ projectId, organizationId, projectName, curren
 
             const [projectResult, orgResult] = await Promise.all([
                 supabase
-                    .from('projects')
+                    .from('spaces')
                     .select('client_name, name, status, target_go_live_date, logo_path, brand_color, client_logo_url, background_gradient')
-                    .eq('id', projectId)
+                    .eq('id', spaceId)
                     .single(),
                 supabase
                     .from('organizations')
@@ -62,7 +62,7 @@ export function SettingsContent({ projectId, organizationId, projectName, curren
         }
 
         fetchData()
-    }, [projectId, organizationId])
+    }, [spaceId, organizationId])
 
     if (isLoading) {
         return (
@@ -101,7 +101,7 @@ export function SettingsContent({ projectId, organizationId, projectName, curren
                                 </p>
                             </div>
                             <GeneralSettingsSection
-                                projectId={projectId}
+                                spaceId={spaceId}
                                 organizationId={organizationId}
                                 initialClientName={projectData.client_name}
                                 initialProjectName={projectData.name}
@@ -121,14 +121,14 @@ export function SettingsContent({ projectId, organizationId, projectName, curren
                                 </p>
                             </div>
                             <BrandingSettingsSection
-                                projectId={projectId}
+                                spaceId={spaceId}
                                 organizationId={organizationId}
                                 initialLogoPath={projectData.logo_path}
                                 initialClientLogoUrl={projectData.client_logo_url}
                                 initialBrandColor={projectData.brand_color}
                                 initialBackgroundGradient={projectData.background_gradient}
                                 organizationLogoPath={orgData.logo_path}
-                                organizationBrandColor={orgData.brand_color || '#bef264'}
+                                organizationBrandColor={orgData.brand_color || '#000000'}
                                 organizationBackgroundGradient={orgData.background_gradient}
                             />
                         </>
@@ -143,7 +143,7 @@ export function SettingsContent({ projectId, organizationId, projectName, curren
                                 </p>
                             </div>
                             <TeamTabContent
-                                projectId={projectId}
+                                spaceId={spaceId}
                                 organizationId={organizationId}
                                 currentAssignee={currentAssignee}
                             />

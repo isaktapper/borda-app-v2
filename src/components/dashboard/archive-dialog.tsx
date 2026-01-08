@@ -30,7 +30,7 @@ export function ArchiveDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Arkivera projekt?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{projectName}" will be archived and hidden from the project list.
+            "{projectName}" will be archived and hidden from the space list.
             The customer will lose access to the portal.
             You can restore the project later.
           </AlertDialogDescription>

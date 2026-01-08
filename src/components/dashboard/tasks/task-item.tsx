@@ -35,11 +35,11 @@ export function TaskItem({ task }: TaskItemProps) {
 
       {/* Client Logo */}
       <Avatar className="h-10 w-10 flex-shrink-0">
-        {task.project?.client_logo_url && (
-          <AvatarImage src={task.project.client_logo_url} className="object-contain" />
+        {task.space?.client_logo_url && (
+          <AvatarImage src={task.space.client_logo_url} className="object-contain" />
         )}
         <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-          {task.project?.client_name?.charAt(0).toUpperCase() || '?'}
+          {task.space?.client_name?.charAt(0).toUpperCase() || '?'}
         </AvatarFallback>
       </Avatar>
 
@@ -48,7 +48,7 @@ export function TaskItem({ task }: TaskItemProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-0.5">
-              {task.project?.client_name || 'Unknown Customer'}
+              {task.space?.client_name || 'Unknown Customer'}
             </p>
             <h4 className="font-medium text-sm mb-0.5">{task.title}</h4>
             {task.description && (

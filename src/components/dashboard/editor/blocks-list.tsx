@@ -32,7 +32,8 @@ import {
     Plus,
     Trash2,
     Loader2,
-    LayoutGrid
+    Blocks,
+    Sparkles
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -42,6 +43,8 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
 
 interface Block {
@@ -64,14 +67,14 @@ interface BlocksListViewProps {
 }
 
 const BLOCK_TYPES = [
-    { type: 'text', label: 'Text', icon: Type },
-    { type: 'task', label: 'To-do', icon: CheckSquare },
-    { type: 'form', label: 'Form', icon: HelpCircle },
-    { type: 'file_upload', label: 'File Upload', icon: Upload },
-    { type: 'file_download', label: 'File Download', icon: Download },
-    { type: 'embed', label: 'Video / Embed', icon: Video },
-    { type: 'contact', label: 'Contact Card', icon: User },
-    { type: 'divider', label: 'Divider', icon: Minus },
+    { type: 'text', label: 'Text', icon: Type, description: 'Rich text content' },
+    { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Checkable tasks' },
+    { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses' },
+    { type: 'file_upload', label: 'File Upload', icon: Upload, description: 'Customer uploads' },
+    { type: 'file_download', label: 'File Download', icon: Download, description: 'Share files' },
+    { type: 'embed', label: 'Video / Embed', icon: Video, description: 'YouTube, Loom' },
+    { type: 'contact', label: 'Contact Card', icon: User, description: 'Contact info' },
+    { type: 'divider', label: 'Divider', icon: Minus, description: 'Visual separator' },
 ]
 
 const BLOCK_ICONS: Record<string, any> = {
@@ -84,6 +87,8 @@ const BLOCK_ICONS: Record<string, any> = {
     contact: User,
     divider: Minus,
 }
+
+const QUICK_ADD_TYPES = ['text', 'task', 'form', 'file_upload']
 
 export function BlocksListView({
     pageTitle,
@@ -155,7 +160,14 @@ export function BlocksListView({
                     <ArrowLeft className="size-4" />
                     Back to pages
                 </button>
-                <h3 className="font-semibold text-sm truncate">{pageTitle}</h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm truncate">{pageTitle}</h3>
+                    {sortedBlocks.length > 0 && (
+                        <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
+                            {sortedBlocks.length}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Blocks List */}
@@ -166,10 +178,42 @@ export function BlocksListView({
                         <p className="text-sm text-muted-foreground">Loading blocks...</p>
                     </div>
                 ) : sortedBlocks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <LayoutGrid className="size-10 text-muted-foreground/30 mb-3" />
-                        <p className="text-sm font-medium text-muted-foreground">No blocks yet</p>
-                        <p className="text-xs text-muted-foreground mt-1">Add your first block to get started</p>
+                    <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                        {/* Decorative illustration */}
+                        <div className="relative mb-4">
+                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                                <Blocks className="size-8 text-primary/60" />
+                            </div>
+                            <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Sparkles className="size-3 text-primary" />
+                            </div>
+                        </div>
+
+                        <h4 className="font-semibold text-foreground mb-1">
+                            Start building
+                        </h4>
+                        <p className="text-xs text-muted-foreground mb-4 max-w-[200px]">
+                            Add content blocks to create an engaging experience for your client.
+                        </p>
+
+                        {/* Quick add buttons */}
+                        <div className="grid grid-cols-2 gap-2 w-full max-w-[220px]">
+                            {QUICK_ADD_TYPES.map((type) => {
+                                const blockType = BLOCK_TYPES.find(b => b.type === type)
+                                if (!blockType) return null
+                                const Icon = blockType.icon
+                                return (
+                                    <button
+                                        key={type}
+                                        onClick={() => onAddBlock(type)}
+                                        className="flex items-center gap-2 p-2.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors text-left"
+                                    >
+                                        <Icon className="size-4 text-muted-foreground shrink-0" />
+                                        <span className="text-xs font-medium truncate">{blockType.label}</span>
+                                    </button>
+                                )
+                            })}
+                        </div>
                     </div>
                 ) : (
                     <DndContext
@@ -208,15 +252,24 @@ export function BlocksListView({
                             Add block
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center" className="w-56">
+                    <DropdownMenuContent align="center" className="w-64">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+                            Choose a block type
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
                         {BLOCK_TYPES.map((type) => (
                             <DropdownMenuItem
                                 key={type.type}
                                 onClick={() => onAddBlock(type.type)}
-                                className="gap-2"
+                                className="gap-3 py-2.5"
                             >
-                                <type.icon className="size-4 text-muted-foreground" />
-                                {type.label}
+                                <div className="p-1.5 rounded bg-muted">
+                                    <type.icon className="size-4 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="font-medium text-sm">{type.label}</div>
+                                    <div className="text-xs text-muted-foreground">{type.description}</div>
+                                </div>
                             </DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>
@@ -273,7 +326,9 @@ function SortableBlockItem({ block, title, icon: Icon, onSelect, onToggle, onDel
                 <GripVertical className="size-4" />
             </button>
 
-            <Icon className="size-4 text-muted-foreground shrink-0" />
+            <div className="p-1 rounded bg-muted/50">
+                <Icon className="size-4 text-muted-foreground" />
+            </div>
 
             <span className={cn(
                 "flex-1 text-sm font-medium truncate",
@@ -303,4 +358,3 @@ function SortableBlockItem({ block, title, icon: Icon, onSelect, onToggle, onDel
         </div>
     )
 }
-

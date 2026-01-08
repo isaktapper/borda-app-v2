@@ -7,16 +7,16 @@ import { ActionSection } from './action-section'
 import { TaskRow, FormFieldRow, FileUploadRow } from './action-rows'
 import { ActionDrawer } from './action-drawer'
 import { ActionItemsByPage } from './action-items-by-page'
-import type { ActionItemsData, ActionItem, TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import type { ActionItemsData, ActionItem, TaskItem, FormFieldItem, FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
 type ActionType = 'task' | 'formField' | 'fileUpload'
 
 interface ActionItemsOverviewProps {
   data: ActionItemsData
-  projectId: string
+  spaceId: string
 }
 
-export function ActionItemsOverview({ data, projectId }: ActionItemsOverviewProps) {
+export function ActionItemsOverview({ data, spaceId }: ActionItemsOverviewProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedType, setSelectedType] = useState<ActionType | null>(null)
   const [selectedItem, setSelectedItem] = useState<ActionItem | null>(null)
@@ -59,7 +59,7 @@ export function ActionItemsOverview({ data, projectId }: ActionItemsOverviewProp
           <ActionItemsByPage
             data={data.byPage}
             onItemClick={openDrawer}
-            projectId={projectId}
+            spaceId={spaceId}
           />
         </TabsContent>
 
@@ -125,7 +125,7 @@ export function ActionItemsOverview({ data, projectId }: ActionItemsOverviewProp
         onClose={closeDrawer}
         type={selectedType}
         item={selectedItem}
-        projectId={projectId}
+        spaceId={spaceId}
       />
     </>
   )

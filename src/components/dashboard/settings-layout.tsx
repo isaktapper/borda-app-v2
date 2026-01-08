@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Users, Building, Tag, Puzzle } from 'lucide-react'
+import { User, Users, Building, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,6 @@ interface SettingsLayoutProps {
     team: React.ReactNode
     organization: React.ReactNode
     tags: React.ReactNode
-    integrations: React.ReactNode
   }
   defaultTab?: string
 }
@@ -44,13 +43,6 @@ const navigationItems = [
     label: 'Tags',
     icon: Tag,
     description: 'Tag management',
-    disabled: false
-  },
-  {
-    id: 'integrations',
-    label: 'Integrations',
-    icon: Puzzle,
-    description: 'Connect third-party services',
     disabled: false
   }
 ]
@@ -113,7 +105,6 @@ export function SettingsLayout({ sections, defaultTab = 'profile' }: SettingsLay
         {currentTab === 'team' && sections.team}
         {currentTab === 'organization' && sections.organization}
         {currentTab === 'tags' && sections.tags}
-        {currentTab === 'integrations' && sections.integrations}
       </div>
     </div>
   )

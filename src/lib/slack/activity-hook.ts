@@ -6,7 +6,7 @@ import { createAdminClient } from '@/lib/supabase/server'
  * Call this after logging activity in activity_log table
  */
 export async function triggerSlackNotification(
-  projectId: string,
+  spaceId: string,
   organizationId: string,
   actorEmail: string,
   action: string,
@@ -28,16 +28,16 @@ export async function triggerSlackNotification(
   const supabase = await createAdminClient()
 
   const { data: project } = await supabase
-    .from('projects')
+    .from('spaces')
     .select('name, client_name')
-    .eq('id', projectId)
+    .eq('id', spaceId)
     .single()
 
   if (!project) return
 
   // Send notification (fire-and-forget, don't block)
   sendSlackNotification(organizationId, {
-    projectId,
+    spaceId,
     projectName: project.name,
     clientName: project.client_name,
     actorEmail,

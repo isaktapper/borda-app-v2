@@ -4,9 +4,9 @@ import { useState, useEffect, useTransition } from 'react'
 import { FileText, Save, Loader2 } from 'lucide-react'
 import { PagesSidebar } from './pages-sidebar'
 import { Button } from '@/components/ui/button'
-import { reorderPages, deletePage } from '@/app/(app)/projects/[projectId]/pages-actions'
+import { reorderPages, deletePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 import { BlockEditor } from './editor/block-editor'
-import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/projects/[projectId]/block-actions'
+import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/spaces/[spaceId]/block-actions'
 
 interface Block {
     id: string
@@ -23,11 +23,11 @@ interface Page {
 }
 
 interface PagesTabContentProps {
-    projectId: string
+    spaceId: string
     initialPages: Page[]
 }
 
-export function PagesTabContent({ projectId, initialPages }: PagesTabContentProps) {
+export function PagesTabContent({ spaceId, initialPages }: PagesTabContentProps) {
     const [pages, setPages] = useState<Page[]>(initialPages)
     const [pageBlocks, setPageBlocks] = useState<Record<string, Block[]>>({})
     const [deletedBlockIds, setDeletedBlockIds] = useState<string[]>([])
@@ -75,7 +75,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
     const handleSaveAll = async () => {
         startTransition(async () => {
             // 1. Save Page Order
-            const pageRes = await reorderPages(projectId, pages.map(p => p.id))
+            const pageRes = await reorderPages(spaceId, pages.map(p => p.id))
 
             // 2. Handle Deletions (Cleanup tasks and soft-delete blocks)
             const deleteResults = await Promise.all(deletedBlockIds.map(id => deleteTaskBlock(id)))
@@ -89,7 +89,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
 
             // 3. Save Blocks for ALL "touched" pages
             const blockSavePromises = Object.entries(pageBlocks).map(([pageId, blocks]) =>
-                bulkUpdateBlocks(pageId, projectId, blocks)
+                bulkUpdateBlocks(pageId, spaceId, blocks)
             )
             const blockResults = await Promise.all(blockSavePromises)
 
@@ -111,7 +111,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
 
     const handlePageDelete = async (pageId: string) => {
         startTransition(async () => {
-            const res = await deletePage(pageId, projectId)
+            const res = await deletePage(pageId, spaceId)
             if (res.success) {
                 setPages(prev => prev.filter(p => p.id !== pageId))
                 if (selectedPageId === pageId) {
@@ -130,7 +130,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
     return (
         <div className="flex h-full">
             <PagesSidebar
-                projectId={projectId}
+                spaceId={spaceId}
                 pages={pages}
                 selectedPageId={selectedPageId}
                 onSelect={handlePageSelect}
@@ -177,7 +177,7 @@ export function PagesTabContent({ projectId, initialPages }: PagesTabContentProp
                             <div className="flex-1 overflow-y-auto pr-2 -mr-2 scrollbar-none">
                                 <BlockEditor
                                     pageId={selectedPage.id}
-                                    projectId={projectId}
+                                    spaceId={spaceId}
                                     blocks={pageBlocks[selectedPage.id] || []}
                                     onBlocksChange={(newBlocks) => handleBlocksChange(selectedPage.id, newBlocks)}
                                     isLoading={isLoadingBlocks}

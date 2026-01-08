@@ -18,15 +18,15 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { getProjectActionItems, type ActionItemsData, type TaskItem, type FormFieldItem, type FileUploadItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import { getProjectActionItems, type ActionItemsData, type TaskItem, type FormFieldItem, type FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
 interface ResponsesTabContentProps {
-  projectId: string
+  spaceId: string
 }
 
 type FilterType = 'all' | 'tasks' | 'forms' | 'files'
 
-export function ResponsesTabContent({ projectId }: ResponsesTabContentProps) {
+export function ResponsesTabContent({ spaceId }: ResponsesTabContentProps) {
   const [data, setData] = useState<ActionItemsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
@@ -34,12 +34,12 @@ export function ResponsesTabContent({ projectId }: ResponsesTabContentProps) {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
-      const result = await getProjectActionItems(projectId)
+      const result = await getProjectActionItems(spaceId)
       setData(result)
       setIsLoading(false)
     }
     fetchData()
-  }, [projectId])
+  }, [spaceId])
 
   if (isLoading) {
     return (

@@ -1,16 +1,16 @@
 import { FileText } from 'lucide-react'
 import { ActionItemRow } from './action-item-row'
-import type { PageWithItems, ActionItem } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import type { PageWithItems, ActionItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 
-type ActionType = 'task' | 'question' | 'fileUpload' | 'checklist'
+type ActionType = 'task' | 'formField' | 'fileUpload'
 
 interface ActionItemsByPageProps {
   data: PageWithItems[]
   onItemClick: (type: ActionType, item: ActionItem) => void
-  projectId: string
+  spaceId: string
 }
 
-export function ActionItemsByPage({ data, onItemClick, projectId }: ActionItemsByPageProps) {
+export function ActionItemsByPage({ data, onItemClick, spaceId }: ActionItemsByPageProps) {
   if (data.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-12 text-center">

@@ -22,7 +22,7 @@ import { GripVertical, Trash2, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { CreatePageModal } from './create-page-modal'
-import { deletePage, reorderPages } from '@/app/(app)/projects/[projectId]/pages-actions'
+import { deletePage, reorderPages } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -42,7 +42,7 @@ interface Page {
 }
 
 interface PagesSidebarProps {
-    projectId: string
+    spaceId: string
     pages: Page[]
     selectedPageId?: string
     onSelect: (id: string) => void
@@ -51,7 +51,7 @@ interface PagesSidebarProps {
     onPageCreated?: (newPage: Page) => void
 }
 
-export function PagesSidebar({ projectId, pages, selectedPageId, onSelect, onOrderChange, onPageDelete, onPageCreated }: PagesSidebarProps) {
+export function PagesSidebar({ spaceId, pages, selectedPageId, onSelect, onOrderChange, onPageDelete, onPageCreated }: PagesSidebarProps) {
     const [deleteId, setDeleteId] = useState<string | null>(null)
 
     // Sync state with props when server-side data changes (e.g. after revalidatePath)
@@ -88,7 +88,7 @@ export function PagesSidebar({ projectId, pages, selectedPageId, onSelect, onOrd
         <div className="w-64 border-r bg-muted/30 flex flex-col h-full overflow-hidden">
             <div className="p-4 flex items-center justify-between border-b bg-background/50">
                 <h3 className="font-semibold text-sm">Pages</h3>
-                <CreatePageModal projectId={projectId} onPageCreated={onPageCreated} />
+                <CreatePageModal spaceId={spaceId} onPageCreated={onPageCreated} />
             </div>
 
             <div className="flex-1 overflow-y-auto p-2">

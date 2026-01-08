@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Upload, X, Loader2 } from 'lucide-react'
-import { uploadProjectLogo, removeProjectLogo } from '@/app/(app)/projects/[projectId]/branding-actions'
-import { uploadClientLogo, removeClientLogo, getClientLogoUrl } from '@/app/(app)/projects/[projectId]/client-logo-actions'
-import { updateProjectBrandColor, updateProjectBackgroundGradient } from '@/app/(app)/projects/[projectId]/branding-actions'
+import { uploadProjectLogo, removeProjectLogo } from '@/app/(app)/spaces/[spaceId]/branding-actions'
+import { uploadClientLogo, removeClientLogo, getClientLogoUrl } from '@/app/(app)/spaces/[spaceId]/client-logo-actions'
+import { updateProjectBrandColor, updateProjectBackgroundGradient } from '@/app/(app)/spaces/[spaceId]/branding-actions'
 import { PRESET_GRADIENTS, getSignedLogoUrl } from '@/lib/branding'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface BrandingSettingsSectionProps {
-    projectId: string
+    spaceId: string
     organizationId: string
     initialLogoPath: string | null
     initialClientLogoUrl: string | null
@@ -26,7 +26,7 @@ interface BrandingSettingsSectionProps {
 }
 
 export function BrandingSettingsSection({
-    projectId,
+    spaceId,
     organizationId,
     initialLogoPath,
     initialClientLogoUrl,
@@ -80,7 +80,7 @@ export function BrandingSettingsSection({
         const formData = new FormData()
         formData.append('file', file)
 
-        const result = await uploadProjectLogo(projectId, organizationId, formData)
+        const result = await uploadProjectLogo(spaceId, organizationId, formData)
 
         if (result.error) {
             toast.error(result.error)
@@ -99,7 +99,7 @@ export function BrandingSettingsSection({
     }
 
     const handleRemoveLogo = async () => {
-        const result = await removeProjectLogo(projectId)
+        const result = await removeProjectLogo(spaceId)
 
         if (result.error) {
             toast.error(result.error)
@@ -120,7 +120,7 @@ export function BrandingSettingsSection({
         const formData = new FormData()
         formData.append('file', file)
 
-        const result = await uploadClientLogo(projectId, formData)
+        const result = await uploadClientLogo(spaceId, formData)
 
         if (result.error) {
             toast.error(result.error)
@@ -139,7 +139,7 @@ export function BrandingSettingsSection({
     }
 
     const handleRemoveClientLogo = async () => {
-        const result = await removeClientLogo(projectId)
+        const result = await removeClientLogo(spaceId)
 
         if (result.error) {
             toast.error(result.error)
@@ -153,7 +153,7 @@ export function BrandingSettingsSection({
 
     const handleColorChange = async (color: string) => {
         setBrandColor(color)
-        const result = await updateProjectBrandColor(projectId, color)
+        const result = await updateProjectBrandColor(spaceId, color)
 
         if (result.error) {
             toast.error(result.error)
@@ -165,7 +165,7 @@ export function BrandingSettingsSection({
 
     const handleGradientSelect = async (gradientValue: string) => {
         setBackgroundGradient(gradientValue)
-        const result = await updateProjectBackgroundGradient(projectId, gradientValue)
+        const result = await updateProjectBackgroundGradient(spaceId, gradientValue)
 
         if (result.error) {
             toast.error(result.error)
@@ -177,7 +177,7 @@ export function BrandingSettingsSection({
 
     const handleResetGradient = async () => {
         setBackgroundGradient(null)
-        const result = await updateProjectBackgroundGradient(projectId, null)
+        const result = await updateProjectBackgroundGradient(spaceId, null)
 
         if (result.error) {
             toast.error(result.error)

@@ -15,7 +15,7 @@ import Image from "next/image"
 
 // Map route segments to display names
 const segmentNames: Record<string, string> = {
-    'projects': 'Projects',
+    'spaces': 'Spaces',
     'templates': 'Templates',
     'settings': 'Settings',
     'profile': 'Profile',

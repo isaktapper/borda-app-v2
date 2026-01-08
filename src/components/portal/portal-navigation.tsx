@@ -13,12 +13,12 @@ interface Page {
 
 interface PortalNavigationProps {
     pages: Page[]
-    projectId: string
+    spaceId: string
 }
 
-export function PortalNavigation({ pages, projectId }: PortalNavigationProps) {
+export function PortalNavigation({ pages, spaceId }: PortalNavigationProps) {
     const pathname = usePathname()
-    const overviewHref = `/portal/${projectId}`
+    const overviewHref = `/space/${spaceId}/shared`
     const isOverviewActive = pathname === overviewHref
 
     return (
@@ -40,7 +40,7 @@ export function PortalNavigation({ pages, projectId }: PortalNavigationProps) {
 
                 {/* Page Tabs */}
                 {pages.map((page) => {
-                    const href = `/portal/${projectId}/${page.slug}`
+                    const href = `/space/${spaceId}/shared/${page.slug}`
                     const isActive = pathname === href
 
                     return (

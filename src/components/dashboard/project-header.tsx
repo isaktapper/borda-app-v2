@@ -17,7 +17,7 @@ interface Page {
 }
 
 interface ProjectHeaderProps {
-    projectId: string
+    spaceId: string
     projectName: string
     projectStatus?: string
     activeTab: 'editor' | 'activity' | 'responses' | 'settings'
@@ -39,7 +39,7 @@ const TABS = [
 ]
 
 export function ProjectHeader({
-    projectId,
+    spaceId,
     projectName,
     projectStatus,
     activeTab,
@@ -129,7 +129,7 @@ export function ProjectHeader({
                             </Button>
                         )}
 
-                        <PortalPreview projectId={projectId} projectName={projectName} />
+                        <PortalPreview spaceId={spaceId} projectName={projectName} />
 
                         <Button
                             variant="outline"
@@ -147,7 +147,7 @@ export function ProjectHeader({
             <ShareModal
                 open={shareModalOpen}
                 onOpenChange={setShareModalOpen}
-                projectId={projectId}
+                spaceId={spaceId}
                 onStatusChange={onStatusChange}
             />
         </header>

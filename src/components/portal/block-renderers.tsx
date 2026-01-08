@@ -19,7 +19,7 @@ import { usePortal } from './portal-context'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Progress } from '@/components/ui/progress'
-import { uploadFile as saveFileToDb, logFileDownload } from '@/app/portal/actions'
+import { uploadFile as saveFileToDb, logFileDownload } from '@/app/space/actions'
 
 interface Block {
     id: string
@@ -156,7 +156,7 @@ function TaskRenderer({ blockId, content }: { blockId: string; content: any }) {
 }
 
 function FileUploadRenderer({ blockId, content }: { blockId: string; content: any }) {
-    const { state, projectId, addFile, removeFile } = usePortal()
+    const { state, spaceId, addFile, removeFile } = usePortal()
     const [isUploading, setIsUploading] = useState(false)
     const [progress, setProgress] = useState(0)
     const files = state.files[blockId] || []
@@ -177,7 +177,7 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
             const supabase = createClient()
             const fileExt = sanitizeFileExtension(file.name.split('.').pop() || 'bin')
             const fileName = `${Math.random().toString(36).substring(2, 12)}.${fileExt}`
-            const storagePath = sanitizeStoragePath(`portal/${projectId}/${blockId}/${fileName}`)
+            const storagePath = sanitizeStoragePath(`portal/${spaceId}/${blockId}/${fileName}`)
 
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('project-files')
@@ -188,7 +188,7 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
 
             const result = await saveFileToDb(
                 blockId,
-                projectId,
+                spaceId,
                 file.name,
                 file.type,
                 file.size,
@@ -278,7 +278,7 @@ function FileUploadRenderer({ blockId, content }: { blockId: string; content: an
 }
 
 function FileDownloadRenderer({ content }: { content: any }) {
-    const { projectId } = usePortal()
+    const { spaceId } = usePortal()
     const files = content.files || []
 
     const getFileIcon = (type: string) => {
@@ -321,7 +321,7 @@ function FileDownloadRenderer({ content }: { content: any }) {
             if (error) throw error
 
             // Log the download activity
-            await logFileDownload(projectId, file.id, file.name)
+            await logFileDownload(spaceId, file.id, file.name)
 
             // Open in new tab to trigger download
             window.open(data.signedUrl, '_blank')

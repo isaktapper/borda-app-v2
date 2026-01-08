@@ -31,19 +31,19 @@ import {
     updateShareSettings,
     addApprovedEmail,
     removeApprovedEmail,
-    updateProjectStatus,
+    updateSpaceStatus,
     type ShareSettings
-} from '@/app/(app)/projects/[projectId]/share-actions'
+} from '@/app/(app)/spaces/[spaceId]/share-actions'
 import { toast } from 'sonner'
 
 interface ShareModalProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    projectId: string
+    spaceId: string
     onStatusChange?: (status: string) => void
 }
 
-export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: ShareModalProps) {
+export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: ShareModalProps) {
     const [settings, setSettings] = useState<ShareSettings | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -55,18 +55,18 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
     const [activating, setActivating] = useState(false)
 
     const portalUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/portal/${projectId}`
-        : `/portal/${projectId}`
+        ? `${window.location.origin}/space/${spaceId}/shared`
+        : `/space/${spaceId}/shared`
 
     useEffect(() => {
         if (open) {
             loadSettings()
         }
-    }, [open, projectId])
+    }, [open, spaceId])
 
     const loadSettings = async () => {
         setLoading(true)
-        const result = await getShareSettings(projectId)
+        const result = await getShareSettings(spaceId)
         if (result.success) {
             setSettings(result.data)
             setPassword('')
@@ -86,7 +86,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
     const handleAccessModeChange = async (mode: 'public' | 'restricted') => {
         if (!settings) return
         setSaving(true)
-        const result = await updateShareSettings(projectId, { accessMode: mode })
+        const result = await updateShareSettings(spaceId, { accessMode: mode })
         if (result.success) {
             setSettings({ ...settings, accessMode: mode })
         } else {
@@ -105,7 +105,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
             setSaving(false)
         } else {
             // Remove password
-            const result = await updateShareSettings(projectId, { password: null })
+            const result = await updateShareSettings(spaceId, { password: null })
             if (result.success) {
                 setSettings({ ...settings, hasPassword: false })
                 setPassword('')
@@ -119,7 +119,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
     const handlePasswordSave = async () => {
         if (!password.trim()) return
         setSaving(true)
-        const result = await updateShareSettings(projectId, { password })
+        const result = await updateShareSettings(spaceId, { password })
         if (result.success) {
             toast.success('Password saved successfully')
             setPassword('')
@@ -135,7 +135,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
     const handleAnalyticsToggle = async (enabled: boolean) => {
         if (!settings) return
         setSaving(true)
-        const result = await updateShareSettings(projectId, { requireEmailForAnalytics: enabled })
+        const result = await updateShareSettings(spaceId, { requireEmailForAnalytics: enabled })
         if (result.success) {
             setSettings({ ...settings, requireEmailForAnalytics: enabled })
         } else {
@@ -149,7 +149,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
         if (!newEmail.trim() || !settings) return
 
         setAddingEmail(true)
-        const result = await addApprovedEmail(projectId, newEmail.trim())
+        const result = await addApprovedEmail(spaceId, newEmail.trim())
         if (result.success) {
             setSettings({
                 ...settings,
@@ -168,7 +168,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
 
     const handleRemoveEmail = async (memberId: string) => {
         if (!settings) return
-        const result = await removeApprovedEmail(projectId, memberId)
+        const result = await removeApprovedEmail(spaceId, memberId)
         if (result.success) {
             setSettings({
                 ...settings,
@@ -182,7 +182,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
 
     const handleActivateProject = async () => {
         setActivating(true)
-        const result = await updateProjectStatus(projectId, 'active')
+        const result = await updateSpaceStatus(spaceId, 'active')
         if (result.success) {
             if (settings) {
                 setSettings({ ...settings, projectStatus: 'active' })
@@ -221,7 +221,7 @@ export function ShareModal({ open, onOpenChange, projectId, onStatusChange }: Sh
                                         <Sparkles className="size-6 text-amber-600 dark:text-amber-400" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="font-semibold text-lg">Project is in draft mode</h3>
+                                        <h3 className="font-semibold text-lg">Space is in draft mode</h3>
                                         <p className="text-sm text-muted-foreground max-w-xs">
                                             Activate the project to share it with customers.
                                         </p>

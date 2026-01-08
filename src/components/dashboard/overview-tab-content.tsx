@@ -1,5 +1,5 @@
-import { getProjectProgress } from '@/app/(app)/projects/progress-actions'
-import { getProjectActionItems } from '@/app/(app)/projects/[projectId]/action-items-actions'
+import { getSpaceProgress } from '@/app/(app)/spaces/progress-actions'
+import { getProjectActionItems } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
 import { ProgressBar } from './progress-bar'
 import { ActionItemsOverview } from './action-items/action-items-overview'
 import { Card } from '@/components/ui/card'
@@ -8,15 +8,15 @@ import { Edit3, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 interface OverviewTabContentProps {
-  projectId: string
+  spaceId: string
   targetGoLive?: string | null
   hasPages: boolean
 }
 
-export async function OverviewTabContent({ projectId, targetGoLive, hasPages }: OverviewTabContentProps) {
+export async function OverviewTabContent({ spaceId, targetGoLive, hasPages }: OverviewTabContentProps) {
   const [progress, actionItems] = await Promise.all([
-    getProjectProgress(projectId),
-    getProjectActionItems(projectId)
+    getSpaceProgress(spaceId),
+    getProjectActionItems(spaceId)
   ])
 
   // Show empty state if no pages exist
@@ -52,7 +52,7 @@ export async function OverviewTabContent({ projectId, targetGoLive, hasPages }: 
       {/* Progress Bar */}
       <Card className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Project progress</h3>
+          <h3 className="text-lg font-semibold">Space progress</h3>
           <span className="text-3xl font-bold text-primary">
             {progress?.progressPercentage || 0}%
           </span>
@@ -81,7 +81,7 @@ export async function OverviewTabContent({ projectId, targetGoLive, hasPages }: 
       {/* Action Items Overview */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Responses</h2>
-        <ActionItemsOverview data={actionItems} projectId={projectId} />
+        <ActionItemsOverview data={actionItems} spaceId={spaceId} />
       </div>
     </div>
   )

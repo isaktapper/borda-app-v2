@@ -11,11 +11,11 @@ import { useState } from 'react'
 interface EngagementBadgeProps {
   engagement: EngagementScoreResult | null
   showPopover?: boolean
-  projectId?: string
+  spaceId?: string
   onRefresh?: () => Promise<void>
 }
 
-export function EngagementBadge({ engagement, showPopover = true, projectId, onRefresh }: EngagementBadgeProps) {
+export function EngagementBadge({ engagement, showPopover = true, spaceId, onRefresh }: EngagementBadgeProps) {
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   const handleRefresh = async () => {

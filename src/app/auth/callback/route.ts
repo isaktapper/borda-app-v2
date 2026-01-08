@@ -30,10 +30,10 @@ export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
     const code = searchParams.get('code')
     // if "next" is in param, use it as the redirect URL
-    const nextParam = searchParams.get('next') ?? '/dashboard'
+    const nextParam = searchParams.get('next') ?? '/spaces'
     
-    // Validate the next parameter - fallback to dashboard if invalid
-    const next = isValidRedirectPath(nextParam) ? nextParam : '/dashboard'
+    // Validate the next parameter - fallback to projects if invalid
+    const next = isValidRedirectPath(nextParam) ? nextParam : '/spaces'
 
     if (code) {
         const supabase = await createClient()
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
                     .eq('user_id', user.id)
                     .maybeSingle()
 
-                // If they have an org, go to dashboard. Otherwise onboarding.
+                // If they have an org, go to projects. Otherwise onboarding.
                 const finalNext = membership ? next : '/onboarding'
 
                 const forwardedHost = request.headers.get('x-forwarded-host')

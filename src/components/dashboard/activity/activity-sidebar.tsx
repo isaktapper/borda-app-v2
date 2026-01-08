@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Loader2, Filter, ChevronDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { getProjectActivity } from '@/app/(app)/projects/progress-actions'
+import { getSpaceActivity } from '@/app/(app)/spaces/progress-actions'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
@@ -26,7 +26,7 @@ interface ProgressData {
 }
 
 interface ActivitySidebarProps {
-    projectId: string
+    spaceId: string
     progress: ProgressData | null
 }
 
@@ -39,7 +39,7 @@ const ACTIVITY_FILTERS = [
     { id: 'tasks', label: 'Tasks', action: 'task' },
 ]
 
-export function ActivitySidebar({ projectId, progress }: ActivitySidebarProps) {
+export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
     const [activities, setActivities] = useState<ActivityItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
     // All filters are active by default - unchecking removes that type
@@ -50,12 +50,12 @@ export function ActivitySidebar({ projectId, progress }: ActivitySidebarProps) {
     useEffect(() => {
         const fetchActivities = async () => {
             setIsLoading(true)
-            const data = await getProjectActivity(projectId, 100)
+            const data = await getSpaceActivity(spaceId, 100)
             setActivities(data)
             setIsLoading(false)
         }
         fetchActivities()
-    }, [projectId])
+    }, [spaceId])
 
     // Calculate stats
     const stats = useMemo(() => {

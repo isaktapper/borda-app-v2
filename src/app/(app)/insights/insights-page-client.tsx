@@ -23,12 +23,12 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
   // Format data for charts with proper labels
   const projectsData = projectsByMonth.map(item => ({
     month: item.month,
-    'Projects': item.count,
+    'Spaces': item.count,
   }))
 
   const engagementData = engagementDistribution.map(item => ({
     level: item.level,
-    'Projects': item.count,
+    'Spaces': item.count,
   }))
 
   const timeToAccessData = timeToAccessDistribution.map(item => ({
@@ -66,14 +66,14 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Projects"
+          title="Total Spaces"
           value={kpis.totalProjects}
           description="All time"
           icon={FolderKanban}
           variant="default"
         />
         <StatCard
-          title="Active Projects"
+          title="Active Spaces"
           value={kpis.activeProjects}
           description="In progress"
           icon={Activity}
@@ -97,18 +97,18 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
 
       {/* Charts Row 1 */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Projects Created Over Time */}
+        {/* Spaces Created Over Time */}
         <Card className="p-6">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold">Projects Created Over Time</h3>
+            <h3 className="text-sm font-semibold">Spaces Created Over Time</h3>
             <p className="text-xs text-muted-foreground">Monthly breakdown of new projects</p>
           </div>
-          {projectsData.some(d => d.Projects > 0) ? (
+          {projectsData.some(d => d.Spaces > 0) ? (
             <AreaChart
               className="h-64"
               data={projectsData}
               index="month"
-              categories={['Projects']}
+              categories={['Spaces']}
               colors={['blue']}
               showLegend={false}
               showAnimation
@@ -130,7 +130,7 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
         {/* Status Distribution */}
         <Card className="p-6">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold">Project Status Distribution</h3>
+            <h3 className="text-sm font-semibold">Space Status Distribution</h3>
             <p className="text-xs text-muted-foreground">Current status breakdown</p>
           </div>
           {statusDistribution.length > 0 ? (
@@ -161,7 +161,7 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
             <div className="flex items-center justify-center h-64 text-muted-foreground">
               <div className="text-center">
                 <FolderKanban className="size-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No projects yet</p>
+                <p className="text-sm">No spaces yet</p>
               </div>
             </div>
           )}
@@ -181,7 +181,7 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
               className="h-64"
               data={engagementData}
               index="level"
-              categories={['Projects']}
+              categories={['Spaces']}
               colors={['blue']}
               showLegend={false}
               showAnimation
@@ -202,7 +202,7 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
         {/* Completion Funnel */}
         <Card className="p-6">
           <div className="mb-4">
-            <h3 className="text-sm font-semibold">Project Funnel</h3>
+            <h3 className="text-sm font-semibold">Space Funnel</h3>
             <p className="text-xs text-muted-foreground">From creation to completion</p>
           </div>
           {funnelData.length > 0 && funnelData[0].value > 0 ? (
@@ -278,14 +278,14 @@ export function InsightsPageClient({ data }: InsightsPageClientProps) {
         <Card className="p-6">
           <div className="mb-4">
             <h3 className="text-sm font-semibold">Upcoming Go-Live Dates</h3>
-            <p className="text-xs text-muted-foreground">Projects with go-live in the next 30 days</p>
+            <p className="text-xs text-muted-foreground">Spaces with go-live in the next 30 days</p>
           </div>
           {upcomingProjects.length > 0 ? (
             <div className="space-y-3">
               {upcomingProjects.map(project => (
                 <Link
                   key={project.id}
-                  href={`/projects/${project.id}`}
+                  href={`/spaces/${project.id}`}
                   className="block p-3 rounded-lg hover:bg-muted/50 transition-colors border"
                 >
                   <div className="flex items-start justify-between gap-2">

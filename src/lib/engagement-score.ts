@@ -20,13 +20,13 @@ function calculateVisitScore(visits: number): number {
   return 20
 }
 
-async function getVisitCount(projectId: string, days: number): Promise<number> {
+async function getVisitCount(spaceId: string, days: number): Promise<number> {
   const supabase = await createClient()
 
   const { count, error } = await supabase
     .from('portal_visits')
     .select('id', { count: 'exact', head: true })
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .gte('visited_at', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
 
   if (error) {
@@ -37,14 +37,14 @@ async function getVisitCount(projectId: string, days: number): Promise<number> {
   return count || 0
 }
 
-async function getTaskStats(projectId: string): Promise<{ completed: number; total: number }> {
+async function getTaskStats(spaceId: string): Promise<{ completed: number; total: number }> {
   const supabase = await createClient()
 
   // Get all pages for this project
   const { data: pages } = await supabase
     .from('pages')
     .select('id')
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .is('deleted_at', null)
 
   if (!pages || pages.length === 0) {
@@ -105,14 +105,14 @@ async function getTaskStats(projectId: string): Promise<{ completed: number; tot
   }
 }
 
-async function getFormFieldStats(projectId: string): Promise<{ answered: number; total: number }> {
+async function getFormFieldStats(spaceId: string): Promise<{ answered: number; total: number }> {
   const supabase = await createClient()
 
   // Get all form blocks for this project
   const { data: pages } = await supabase
     .from('pages')
     .select('id')
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .is('deleted_at', null)
 
   if (!pages || pages.length === 0) {
@@ -181,14 +181,14 @@ async function getFormFieldStats(projectId: string): Promise<{ answered: number;
   }
 }
 
-async function getFileUploadStats(projectId: string): Promise<{ uploaded: number; total: number }> {
+async function getFileUploadStats(spaceId: string): Promise<{ uploaded: number; total: number }> {
   const supabase = await createClient()
 
   // Get all file_upload blocks for this project
   const { data: pages } = await supabase
     .from('pages')
     .select('id')
-    .eq('project_id', projectId)
+    .eq('space_id', spaceId)
     .is('deleted_at', null)
 
   if (!pages || pages.length === 0) {
@@ -224,18 +224,18 @@ async function getFileUploadStats(projectId: string): Promise<{ uploaded: number
   }
 }
 
-export async function calculateEngagementScore(projectId: string): Promise<EngagementScoreResult> {
+export async function calculateEngagementScore(spaceId: string): Promise<EngagementScoreResult> {
   // 1. Fetch visits from last 14 days
-  const visitCount = await getVisitCount(projectId, 14)
+  const visitCount = await getVisitCount(spaceId, 14)
 
   // 2. Fetch task completion
-  const tasks = await getTaskStats(projectId)
+  const tasks = await getTaskStats(spaceId)
 
   // 3. Fetch form field stats
-  const formFields = await getFormFieldStats(projectId)
+  const formFields = await getFormFieldStats(spaceId)
 
   // 4. Fetch file upload stats
-  const files = await getFileUploadStats(projectId)
+  const files = await getFileUploadStats(spaceId)
 
   // 5. Calculate partial scores
   // Total: 100 points = Visits (20) + Tasks (30) + Form Fields (30) + Files (20)

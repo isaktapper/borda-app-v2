@@ -19,10 +19,10 @@ import { toast } from 'sonner'
 import { Save } from 'lucide-react'
 
 interface SettingsTabContentProps {
-    projectId: string
+    spaceId: string
 }
 
-export function SettingsTabContent({ projectId }: SettingsTabContentProps) {
+export function SettingsTabContent({ spaceId }: SettingsTabContentProps) {
     const [dialogOpen, setDialogOpen] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [templateName, setTemplateName] = useState('')
@@ -32,7 +32,7 @@ export function SettingsTabContent({ projectId }: SettingsTabContentProps) {
         e.preventDefault()
         setIsSaving(true)
         try {
-            const result = await saveAsTemplate(projectId, templateName, templateDescription)
+            const result = await saveAsTemplate(spaceId, templateName, templateDescription)
             if (result.error) {
                 toast.error(result.error)
             } else {
