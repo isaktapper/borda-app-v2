@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { User, Users, Building, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Badge } from '@/components/ui/badge'
 
 interface SettingsLayoutProps {
   sections: {
@@ -89,11 +88,6 @@ export function SettingsLayout({ sections, defaultTab = 'profile' }: SettingsLay
                 <Icon className="size-4 flex-shrink-0" />
                 <span>{item.label}</span>
               </div>
-              {item.badge && (
-                <Badge variant="secondary" className="text-xs">
-                  {item.badge}
-                </Badge>
-              )}
             </button>
           )
         })}

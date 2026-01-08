@@ -120,7 +120,7 @@ export function BrandingSettingsSection({
         const formData = new FormData()
         formData.append('file', file)
 
-        const result = await uploadClientLogo(spaceId, formData)
+        const result = await uploadClientLogo(spaceId, organizationId, formData)
 
         if (result.error) {
             toast.error(result.error)
