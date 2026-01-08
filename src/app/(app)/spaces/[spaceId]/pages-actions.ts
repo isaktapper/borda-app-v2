@@ -81,8 +81,7 @@ export async function deletePage(pageId: string, spaceId: string) {
     const supabase = await createClient()
 
     const { error } = await supabase.rpc('delete_page_rpc', {
-        p_page_id: pageId,
-        p_space_id: spaceId
+        p_page_id: pageId
     })
 
     if (error) {
