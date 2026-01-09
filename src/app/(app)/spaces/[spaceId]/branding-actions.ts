@@ -23,10 +23,10 @@ export async function uploadProjectLogo(spaceId: string, organizationId: string,
             return { error: 'No file provided' }
         }
 
-        // Validate file type
-        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml', 'image/webp']
+        // Validate file type (SVG not supported by Supabase Storage by default)
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
         if (!allowedTypes.includes(file.type)) {
-            return { error: 'Invalid file type. Allowed: PNG, JPG, SVG, WEBP' }
+            return { error: 'Invalid file type. Allowed: PNG, JPG, WEBP' }
         }
 
         // Validate file size (2MB max)
@@ -73,9 +73,9 @@ export async function uploadProjectLogo(spaceId: string, organizationId: string,
 
         revalidatePath(`/dashboard/spaces/${spaceId}`)
         revalidatePath(`/space/${spaceId}/shared`)
-
         return { success: true, logoPath }
     } catch (error: any) {
+        logEntry('caught error', { error: error.message })
         console.error('Upload project logo failed:', error)
         return { error: error.message || 'Upload failed' }
     }

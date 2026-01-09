@@ -205,7 +205,7 @@ export function BrandingSection({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleFileSelect}
               className="hidden"
             />

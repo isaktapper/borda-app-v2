@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { SettingsSidebar } from './settings-sidebar'
 import { GeneralSettingsSection } from './general-settings-section'
 import { BrandingSettingsSection } from './branding-settings-section'
+import { TemplateSettingsSection } from './template-settings-section'
 import { TeamTabContent } from '@/components/dashboard/team-tab-content'
 
 interface SettingsContentProps {
@@ -33,7 +34,7 @@ interface OrgData {
 }
 
 export function SettingsContent({ spaceId, organizationId, projectName, currentAssignee }: SettingsContentProps) {
-    const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'team'>('general')
+    const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'team' | 'templates'>('general')
     const [projectData, setProjectData] = useState<ProjectData | null>(null)
     const [orgData, setOrgData] = useState<OrgData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -146,6 +147,21 @@ export function SettingsContent({ spaceId, organizationId, projectName, currentA
                                 spaceId={spaceId}
                                 organizationId={organizationId}
                                 currentAssignee={currentAssignee}
+                            />
+                        </>
+                    )}
+
+                    {activeSection === 'templates' && (
+                        <>
+                            <div>
+                                <h2 className="text-2xl font-bold mb-2">Templates</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Save this space as a reusable template
+                                </p>
+                            </div>
+                            <TemplateSettingsSection
+                                spaceId={spaceId}
+                                spaceName={projectData.client_name}
                             />
                         </>
                     )}

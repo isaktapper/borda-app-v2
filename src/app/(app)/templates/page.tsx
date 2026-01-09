@@ -13,7 +13,7 @@ export default async function TemplatesPage() {
 
             {templates.length === 0 ? (
                 <div className="flex flex-col items-center justify-center border border-dashed rounded py-8 text-center">
-                    <h3 className="text-sm font-semibold mb-1">No templates yet</h3>
+                    <h3 className="text-sm font-semibold mb-1">No  yet</h3>
                     <p className="text-xs text-muted-foreground">
                         Create a space and save it as a template to reuse the structure.
                     </p>

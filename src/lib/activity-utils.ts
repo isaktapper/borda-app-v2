@@ -149,6 +149,7 @@ export function getActivityLabel(action: string): string {
         case 'task.completed':
             return 'Task completed'
         case 'task.reopened':
+            return 'Task reopened'
         case 'task.uncompleted':
             return 'Task reopened'
         case 'file.uploaded':
@@ -158,6 +159,7 @@ export function getActivityLabel(action: string): string {
         case 'file.deleted':
             return 'File deleted'
         case 'form.submitted':
+            return 'Form submitted'
         case 'form.answered':
         case 'question.answered':
             return 'Form answered'

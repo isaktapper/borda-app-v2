@@ -222,7 +222,7 @@ export function BrandingSettingsSection({
                             <input
                                 ref={logoInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
                                 onChange={handleLogoSelect}
                                 className="hidden"
                             />
@@ -273,7 +273,7 @@ export function BrandingSettingsSection({
                             <input
                                 ref={clientLogoInputRef}
                                 type="file"
-                                accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
                                 onChange={handleClientLogoSelect}
                                 className="hidden"
                             />

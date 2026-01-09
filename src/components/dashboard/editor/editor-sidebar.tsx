@@ -34,6 +34,7 @@ interface EditorSidebarProps {
     onPageCreated: (page: Page) => void
     onPageDelete: (pageId: string) => void
     onPagesReorder: (pages: Page[]) => void
+    onPageRename?: (pageId: string, newTitle: string) => void
 }
 
 export function EditorSidebar({
@@ -51,7 +52,8 @@ export function EditorSidebar({
     onAddBlock,
     onPageCreated,
     onPageDelete,
-    onPagesReorder
+    onPagesReorder,
+    onPageRename
 }: EditorSidebarProps) {
     const selectedPage = pages.find(p => p.id === selectedPageId)
 
@@ -68,6 +70,7 @@ export function EditorSidebar({
                     onBlockReorder={onBlockReorder}
                     onBlockDelete={onBlockDelete}
                     onAddBlock={onAddBlock}
+                    onPageRename={onPageRename ? (newTitle) => onPageRename(selectedPageId, newTitle) : undefined}
                 />
             ) : (
                 <PagesListView

@@ -92,6 +92,44 @@ export async function deletePage(pageId: string, spaceId: string) {
     return { success: true }
 }
 
+export async function renamePage(pageId: string, spaceId: string, newTitle: string) {
+    const supabase = await createClient()
+
+    // Generate new slug from title
+    let slug = slugify(newTitle)
+
+    // Check for unique slug in project (excluding current page)
+    const { data: existingPages } = await supabase
+        .from('pages')
+        .select('id, slug')
+        .eq('space_id', spaceId)
+        .neq('id', pageId)
+        .ilike('slug', `${slug}%`)
+
+    if (existingPages && existingPages.length > 0) {
+        const slugs = existingPages.map(p => p.slug)
+        let count = 1
+        let newSlug = slug
+        while (slugs.includes(newSlug)) {
+            newSlug = `${slug}-${count}`
+            count++
+        }
+        slug = newSlug
+    }
+
+    const { error } = await supabase
+        .from('pages')
+        .update({ title: newTitle, slug })
+        .eq('id', pageId)
+
+    if (error) {
+        return { error: error.message }
+    }
+
+    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    return { success: true, slug }
+}
+
 export async function reorderPages(spaceId: string, pageIds: string[]) {
     const supabase = await createClient()
 

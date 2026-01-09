@@ -181,14 +181,14 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
                             --primary: hsl(${primaryHSL});
                             --ring: hsl(${primaryHSL});
                         }
-                        .preview-portal .portal-gradient-bg {
-                            background: ${gradientCSS};
-                        }
                     `
                 }} />
 
                 {/* Exact Portal Layout - Matching portal/(portal)/layout.tsx */}
-                <div className="preview-portal flex flex-col h-full portal-gradient-bg selection:bg-primary/10 overflow-hidden">
+                <div 
+                    className="preview-portal flex flex-col h-full selection:bg-primary/10 overflow-hidden"
+                    style={{ background: gradientCSS }}
+                >
                     {/* Header with Logo + Navigation + Contact */}
                     <header className="bg-white border-b sticky top-0 z-10 shadow-sm flex-shrink-0">
                         <div className="max-w-7xl mx-auto">

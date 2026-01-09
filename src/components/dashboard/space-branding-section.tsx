@@ -290,7 +290,7 @@ export function SpaceBrandingSection({
           <input
             ref={clientLogoInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
             onChange={handleClientLogoSelect}
             className="hidden"
           />
@@ -328,7 +328,7 @@ export function SpaceBrandingSection({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={handleFileSelect}
               className="hidden"
             />

@@ -307,7 +307,7 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
                                         <input
                                             ref={fileInputRef}
                                             type="file"
-                                            accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                                            accept="image/png,image/jpeg,image/jpg,image/webp"
                                             onChange={handleLogoChange}
                                             className="hidden"
                                         />

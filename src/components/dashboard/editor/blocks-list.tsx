@@ -64,6 +64,7 @@ interface BlocksListViewProps {
     onBlockReorder: (blocks: Block[]) => void
     onBlockDelete: (blockId: string) => void
     onAddBlock: (type: string) => void
+    onPageRename?: (newTitle: string) => void
 }
 
 const BLOCK_TYPES = [
@@ -99,9 +100,31 @@ export function BlocksListView({
     onBlockToggle,
     onBlockReorder,
     onBlockDelete,
-    onAddBlock
+    onAddBlock,
+    onPageRename
 }: BlocksListViewProps) {
+    const [isEditingTitle, setIsEditingTitle] = useState(false)
+    const [editedTitle, setEditedTitle] = useState(pageTitle)
     const sortedBlocks = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
+
+    const handleTitleSubmit = () => {
+        const trimmedTitle = editedTitle.trim()
+        if (trimmedTitle && trimmedTitle !== pageTitle && onPageRename) {
+            onPageRename(trimmedTitle)
+        } else {
+            setEditedTitle(pageTitle) // Reset if empty or unchanged
+        }
+        setIsEditingTitle(false)
+    }
+
+    const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            handleTitleSubmit()
+        } else if (e.key === 'Escape') {
+            setEditedTitle(pageTitle)
+            setIsEditingTitle(false)
+        }
+    }
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -161,8 +184,34 @@ export function BlocksListView({
                     Back to pages
                 </button>
                 <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-sm truncate">{pageTitle}</h3>
-                    {sortedBlocks.length > 0 && (
+                    {isEditingTitle ? (
+                        <input
+                            type="text"
+                            value={editedTitle}
+                            onChange={(e) => setEditedTitle(e.target.value)}
+                            onBlur={handleTitleSubmit}
+                            onKeyDown={handleTitleKeyDown}
+                            autoFocus
+                            className="font-semibold text-sm bg-background border rounded px-2 py-1 w-full mr-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        />
+                    ) : (
+                        <h3
+                            onClick={() => {
+                                if (onPageRename) {
+                                    setEditedTitle(pageTitle)
+                                    setIsEditingTitle(true)
+                                }
+                            }}
+                            className={cn(
+                                "font-semibold text-sm truncate",
+                                onPageRename && "cursor-pointer hover:bg-muted px-2 py-1 -mx-2 -my-1 rounded transition-colors"
+                            )}
+                            title={onPageRename ? "Click to rename" : undefined}
+                        >
+                            {pageTitle}
+                        </h3>
+                    )}
+                    {sortedBlocks.length > 0 && !isEditingTitle && (
                         <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
                             {sortedBlocks.length}
                         </span>

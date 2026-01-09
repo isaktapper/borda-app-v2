@@ -11,7 +11,7 @@ import { ActivitySidebar } from '@/components/dashboard/activity/activity-sideba
 import { SettingsContent } from '@/components/dashboard/settings/settings-content'
 import { ResponsesTabContent } from '@/components/dashboard/responses-tab-content'
 import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/spaces/[spaceId]/block-actions'
-import { reorderPages, deletePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
+import { reorderPages, deletePage, renamePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 import type { EngagementScoreResult } from '@/lib/engagement-score'
 
 interface Block {
@@ -212,6 +212,7 @@ export function ProjectV2Client({
         if (!selectedPageId) return
 
         const block = currentBlocks.find(b => b.id === blockId)
+
         if (block && !block.id.startsWith('new-')) {
             setDeletedBlockIds(prev => [...prev, blockId])
         }
@@ -250,6 +251,18 @@ export function ProjectV2Client({
     const handlePagesReorder = (newPages: Page[]) => {
         setPages(newPages)
         setIsDirty(true)
+    }
+
+    // Handle page rename
+    const handlePageRename = async (pageId: string, newTitle: string) => {
+        startTransition(async () => {
+            const res = await renamePage(pageId, spaceId, newTitle)
+            if (res.success) {
+                setPages(prev => prev.map(p =>
+                    p.id === pageId ? { ...p, title: newTitle, slug: res.slug || p.slug } : p
+                ))
+            }
+        })
     }
 
     // Handle save
@@ -323,6 +336,7 @@ export function ProjectV2Client({
                             onPageCreated={handlePageCreated}
                             onPageDelete={handlePageDelete}
                             onPagesReorder={handlePagesReorder}
+                            onPageRename={handlePageRename}
                         />
 
                         {/* Main Content */}

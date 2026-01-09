@@ -267,7 +267,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                                         ref={fileInputRef}
                                         id="clientLogo"
                                         type="file"
-                                        accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp"
+                                        accept="image/png,image/jpeg,image/jpg,image/webp"
                                         onChange={handleLogoChange}
                                         className="hidden"
                                     />

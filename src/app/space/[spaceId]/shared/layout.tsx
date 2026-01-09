@@ -58,20 +58,20 @@ export default async function PortalLayout({
             {/* Log portal visit (client-side, once per session) */}
             <VisitLogger spaceId={spaceId} visitorEmail={visitorEmail} />
 
-            {/* Apply brand color AND gradient as CSS variables */}
+            {/* Apply brand color as CSS variables */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                     :root {
                         --primary: hsl(${primaryHSL});
                         --ring: hsl(${primaryHSL});
                     }
-                    .portal-gradient-bg {
-                        background: ${branding.gradientCSS};
-                    }
                 `
             }} />
 
-            <div className="flex flex-col min-h-screen portal-gradient-bg selection:bg-primary/10">
+            <div 
+                className="flex flex-col min-h-screen selection:bg-primary/10"
+                style={{ background: branding.gradientCSS }}
+            >
                 {/* Header with Logo + Navigation + Contact */}
                 <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
                     <div className="max-w-7xl mx-auto">
