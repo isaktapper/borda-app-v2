@@ -39,7 +39,7 @@ export const PLANS = {
       },
       year: {
         // TODO: Replace with new $492 price ID from Stripe
-        id: 'price_1So9yBGa0mrbt3N8NNgRd1nR', // Currently $1 test price!
+        id: 'price_1SoAzaGa0mrbt3N8NpuXVX7c', // Currently $1 test price!
         amount: 49200, // $492 ($41/month)
       },
     },
