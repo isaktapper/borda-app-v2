@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getSpaceProgress } from '@/app/(app)/spaces/progress-actions'
 import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
+import { canCreateSpace } from '@/lib/permissions'
 
 export async function createSpace(formData: FormData) {
     const supabase = await createClient()
@@ -19,6 +20,17 @@ export async function createSpace(formData: FormData) {
         .single()
 
     if (!membership) throw new Error('User has no organization')
+
+    // Check if organization can create more spaces
+    const spacePermission = await canCreateSpace(membership.organization_id)
+    if (!spacePermission.allowed) {
+        return { 
+            error: spacePermission.message,
+            limitReached: true,
+            current: spacePermission.current,
+            limit: spacePermission.limit,
+        }
+    }
 
     const clientName = formData.get('clientName') as string
     const projectNameInput = formData.get('projectName') as string

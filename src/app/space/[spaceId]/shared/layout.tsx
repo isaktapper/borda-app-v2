@@ -11,6 +11,7 @@ import { hexToHSL } from '@/lib/branding'
 import { VisitLogger } from '@/components/portal/visit-logger'
 import { cookies } from 'next/headers'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BordaBrandingServer } from '@/components/portal/borda-branding'
 
 export default async function PortalLayout({
     children,
@@ -157,6 +158,14 @@ export default async function PortalLayout({
                         {children}
                     </div>
                 </main>
+
+                {/* Powered by Borda footer */}
+                <footer>
+                    <BordaBrandingServer 
+                        organizationId={project.organization_id} 
+                        spaceId={spaceId} 
+                    />
+                </footer>
 
                 <Toaster position="bottom-right" />
             </div>

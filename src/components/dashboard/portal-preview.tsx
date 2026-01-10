@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { PortalBlockRenderer } from '@/components/portal/block-renderers'
 import { PortalProvider } from '@/components/portal/portal-context'
+import { BordaBranding } from '@/components/portal/borda-branding'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 
@@ -330,6 +331,9 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
                                 </PortalProvider>
                             ) : null}
                         </div>
+
+                        {/* Powered by Borda footer - always shown in preview */}
+                        <BordaBranding show={true} />
                     </main>
                 </div>
             </DialogContent>

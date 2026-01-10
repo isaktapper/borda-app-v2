@@ -5,10 +5,13 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Upload, X } from 'lucide-react'
-import { uploadOrgLogo, removeOrgLogo, updateOrgBrandColor } from '@/app/(app)/settings/branding-actions'
+import { Switch } from '@/components/ui/switch'
+import { Upload, X, Lock, ArrowRight } from 'lucide-react'
+import { uploadOrgLogo, removeOrgLogo, updateOrgBrandColor, updateOrgBordaBranding } from '@/app/(app)/settings/branding-actions'
 import { getSignedLogoUrl, isValidHexColor, normalizeHexColor } from '@/lib/branding'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { toast } from 'sonner'
 
 interface BrandingSectionProps {
   organizationId: string
@@ -16,6 +19,8 @@ interface BrandingSectionProps {
   initialLogoPath: string | null
   initialBrandColor: string
   canManage: boolean
+  canRemoveBranding?: boolean
+  showBordaBranding?: boolean
 }
 
 export function BrandingSection({
@@ -23,7 +28,9 @@ export function BrandingSection({
   organizationName,
   initialLogoPath,
   initialBrandColor,
-  canManage
+  canManage,
+  canRemoveBranding = false,
+  showBordaBranding = true,
 }: BrandingSectionProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -37,6 +44,7 @@ export function BrandingSection({
   const [error, setError] = useState<string | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const [isMounted, setIsMounted] = useState(false)
+  const [showBranding, setShowBranding] = useState(showBordaBranding)
 
   // Mark as mounted (fix hydration)
   useEffect(() => {
@@ -244,6 +252,47 @@ export function BrandingSection({
         {error && (
           <p className="text-xs text-destructive">{error}</p>
         )}
+
+        {/* Borda Branding Toggle */}
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Remove Borda branding</Label>
+              <p className="text-xs text-muted-foreground">
+                Hide "Powered by Borda" from customer portals
+              </p>
+            </div>
+            {canRemoveBranding ? (
+              <Switch
+                checked={!showBranding}
+                onCheckedChange={async (checked) => {
+                  setShowBranding(!checked)
+                  const result = await updateOrgBordaBranding(organizationId, !checked)
+                  if (result.error) {
+                    toast.error(result.error)
+                    setShowBranding(checked) // Revert
+                  } else {
+                    toast.success(checked ? 'Branding hidden' : 'Branding restored')
+                    router.refresh()
+                  }
+                }}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-md">
+                  <Lock className="size-3" />
+                  <span>Scale plan</span>
+                </div>
+                <Link 
+                  href="/settings?tab=billing"
+                  className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  Upgrade <ArrowRight className="size-3" />
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </Card>
   )

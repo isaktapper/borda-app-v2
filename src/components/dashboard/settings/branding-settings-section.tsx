@@ -4,14 +4,16 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Upload, X, Loader2 } from 'lucide-react'
-import { uploadProjectLogo, removeProjectLogo } from '@/app/(app)/spaces/[spaceId]/branding-actions'
+import { Switch } from '@/components/ui/switch'
+import { Upload, X, Loader2, Lock, ArrowRight } from 'lucide-react'
+import { uploadProjectLogo, removeProjectLogo, updateSpaceBordaBranding } from '@/app/(app)/spaces/[spaceId]/branding-actions'
 import { uploadClientLogo, removeClientLogo, getClientLogoUrl } from '@/app/(app)/spaces/[spaceId]/client-logo-actions'
 import { updateProjectBrandColor, updateProjectBackgroundGradient } from '@/app/(app)/spaces/[spaceId]/branding-actions'
 import { PRESET_GRADIENTS, getSignedLogoUrl } from '@/lib/branding'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 interface BrandingSettingsSectionProps {
     spaceId: string
@@ -23,6 +25,8 @@ interface BrandingSettingsSectionProps {
     organizationLogoPath: string | null
     organizationBrandColor: string
     organizationBackgroundGradient: string | null
+    canRemoveBranding?: boolean
+    showBordaBranding?: boolean
 }
 
 export function BrandingSettingsSection({
@@ -34,7 +38,9 @@ export function BrandingSettingsSection({
     initialBackgroundGradient,
     organizationLogoPath,
     organizationBrandColor,
-    organizationBackgroundGradient
+    organizationBackgroundGradient,
+    canRemoveBranding = false,
+    showBordaBranding = true,
 }: BrandingSettingsSectionProps) {
     const router = useRouter()
     const logoInputRef = useRef<HTMLInputElement>(null)
@@ -48,6 +54,7 @@ export function BrandingSettingsSection({
     const [backgroundGradient, setBackgroundGradient] = useState(initialBackgroundGradient)
     const [uploadingLogo, setUploadingLogo] = useState(false)
     const [uploadingClientLogo, setUploadingClientLogo] = useState(false)
+    const [showBranding, setShowBranding] = useState(showBordaBranding)
 
     // Load logos
     useEffect(() => {
@@ -357,6 +364,47 @@ export function BrandingSettingsSection({
                                 </Button>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                {/* Borda Branding Toggle */}
+                <div className="grid grid-cols-[300px_1fr] p-4 items-center">
+                    <div>
+                        <Label className="text-sm font-medium">Remove Borda branding</Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                            Hide "Powered by Borda" from this space
+                        </p>
+                    </div>
+                    <div className="flex justify-end">
+                        {canRemoveBranding ? (
+                            <Switch
+                                checked={!showBranding}
+                                onCheckedChange={async (checked) => {
+                                    setShowBranding(!checked)
+                                    const result = await updateSpaceBordaBranding(spaceId, !checked)
+                                    if (result.error) {
+                                        toast.error(result.error)
+                                        setShowBranding(checked) // Revert
+                                    } else {
+                                        toast.success(checked ? 'Branding hidden' : 'Branding restored')
+                                        router.refresh()
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-md">
+                                    <Lock className="size-3" />
+                                    <span>Scale plan</span>
+                                </div>
+                                <Link 
+                                    href="/settings?tab=billing"
+                                    className="text-xs text-primary hover:underline inline-flex items-center gap-1"
+                                >
+                                    Upgrade <ArrowRight className="size-3" />
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -4,6 +4,7 @@ import { getPages } from "@/app/(app)/spaces/[spaceId]/pages-actions"
 import { getProjectEngagement } from "@/app/(app)/spaces/[spaceId]/engagement-actions"
 import { getSpaceProgress } from "@/app/(app)/spaces/progress-actions"
 import { ProjectV2Client } from "@/components/dashboard/space-v2-client"
+import { canRemoveBranding } from "@/lib/permissions"
 
 interface ProjectPageProps {
     params: Promise<{ spaceId: string }>
@@ -25,6 +26,9 @@ export default async function ProjectEditorPage({ params, searchParams }: Projec
         notFound()
     }
 
+    // Check if organization's plan allows removing branding
+    const canRemove = await canRemoveBranding(project.organization_id)
+
     return (
         <ProjectV2Client
             project={project}
@@ -34,6 +38,7 @@ export default async function ProjectEditorPage({ params, searchParams }: Projec
             progress={progress}
             initialTab={tab as 'editor' | 'activity' | 'responses' | 'settings'}
             initialPageId={page}
+            canRemoveBranding={canRemove}
         />
     )
 }

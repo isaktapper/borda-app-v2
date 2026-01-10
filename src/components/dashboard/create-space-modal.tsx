@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Plus, Calendar as CalendarIcon, Loader2, Upload, X } from "lucide-react"
+import { Plus, Calendar as CalendarIcon, Loader2, Upload, X, AlertTriangle, ArrowRight } from "lucide-react"
 import { createSpace } from "@/app/(app)/spaces/actions"
 import { createSpaceFromTemplate, getTemplates } from "@/app/(app)/templates/actions"
 import { uploadClientLogo } from "@/app/(app)/spaces/[spaceId]/client-logo-actions"
@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils"
 import type { Template } from "@/lib/types/templates"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
+import Link from 'next/link'
 
 interface CreateSpaceModalProps {
     trigger?: React.ReactNode
@@ -45,6 +46,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [limitReached, setLimitReached] = useState(false)
     const [date, setDate] = useState<Date>()
     const [selectedTemplate, setSelectedTemplate] = useState<string>('blank')
     const [templates, setTemplates] = useState<Template[]>([])
@@ -124,6 +126,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
 
         if (result.error) {
             setError(result.error)
+            setLimitReached('limitReached' in result && result.limitReached === true)
             setLoading(false)
             return
         }
@@ -309,7 +312,25 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                             )}
                         </div>
                         {error && (
-                            <p className="text-sm font-medium text-destructive">{error}</p>
+                            limitReached ? (
+                                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                                    <div className="flex items-start gap-2">
+                                        <AlertTriangle className="size-4 text-amber-600 mt-0.5 shrink-0" />
+                                        <div className="space-y-1">
+                                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{error}</p>
+                                            <Link 
+                                                href="/settings?tab=billing" 
+                                                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                                                onClick={() => setOpen(false)}
+                                            >
+                                                Upgrade now <ArrowRight className="size-3" />
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-sm font-medium text-destructive">{error}</p>
+                            )
                         )}
                     </div>
                     <DialogFooter>

@@ -259,3 +259,38 @@ export async function updateOrgBackgroundGradient(organizationId: string, gradie
         return { error: error.message || 'Update failed' }
     }
 }
+
+/**
+ * Update organization Borda branding visibility
+ */
+export async function updateOrgBordaBranding(organizationId: string, showBranding: boolean) {
+    const supabase = await createClient()
+
+    // Auth check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        console.error('[updateOrgBordaBranding] Not authenticated')
+        return { error: 'Not authenticated' }
+    }
+
+    try {
+        // Update organization record
+        const { error: updateError } = await supabase
+            .from('organizations')
+            .update({ show_borda_branding: showBranding })
+            .eq('id', organizationId)
+
+        if (updateError) {
+            console.error('[updateOrgBordaBranding] Update error:', updateError)
+            return { error: updateError.message }
+        }
+
+        revalidatePath('/settings')
+        revalidatePath('/spaces')
+
+        return { success: true, showBranding }
+    } catch (error: any) {
+        console.error('[updateOrgBordaBranding] Unexpected error:', error)
+        return { error: error.message || 'Update failed' }
+    }
+}

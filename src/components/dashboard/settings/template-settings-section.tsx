@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Loader2, LayoutTemplate, CheckCircle, ArrowRight } from 'lucide-react'
+import { Loader2, LayoutTemplate, CheckCircle, ArrowRight, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import { saveAsTemplate } from '@/app/(app)/templates/actions'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface TemplateSettingsSectionProps {
     spaceId: string
@@ -21,6 +22,8 @@ export function TemplateSettingsSection({ spaceId, spaceName }: TemplateSettings
     const [saved, setSaved] = useState(false)
     const [templateName, setTemplateName] = useState(`${spaceName} Template`)
     const [templateDescription, setTemplateDescription] = useState('')
+    const [limitReached, setLimitReached] = useState(false)
+    const [limitError, setLimitError] = useState<string | null>(null)
 
     const handleSaveAsTemplate = async () => {
         if (!templateName.trim()) {
@@ -29,11 +32,19 @@ export function TemplateSettingsSection({ spaceId, spaceName }: TemplateSettings
         }
 
         setLoading(true)
+        setLimitReached(false)
+        setLimitError(null)
+        
         try {
             const result = await saveAsTemplate(spaceId, templateName.trim(), templateDescription.trim() || undefined)
             
             if (result.error) {
-                toast.error(result.error)
+                if (result.limitReached) {
+                    setLimitReached(true)
+                    setLimitError(result.error)
+                } else {
+                    toast.error(result.error)
+                }
             } else {
                 setSaved(true)
                 toast.success('Template saved successfully!')
@@ -126,9 +137,27 @@ export function TemplateSettingsSection({ spaceId, spaceName }: TemplateSettings
                 </div>
             </div>
 
+            {/* Limit Reached Warning */}
+            {limitReached && limitError && (
+                <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/20 dark:border-amber-800">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle className="size-5 text-amber-600 mt-0.5 shrink-0" />
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{limitError}</p>
+                            <Link 
+                                href="/settings?tab=billing" 
+                                className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                                Upgrade now <ArrowRight className="size-3" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Action Button */}
             <div className="flex justify-end pt-4 border-t">
-                <Button onClick={handleSaveAsTemplate} disabled={loading} className="gap-2">
+                <Button onClick={handleSaveAsTemplate} disabled={loading || limitReached} className="gap-2">
                     {loading ? (
                         <Loader2 className="size-4 animate-spin" />
                     ) : (

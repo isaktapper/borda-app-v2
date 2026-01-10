@@ -204,3 +204,36 @@ export async function updateProjectBackgroundGradient(spaceId: string, gradient:
         return { error: error.message || 'Update failed' }
     }
 }
+
+/**
+ * Update space-level Borda branding visibility
+ */
+export async function updateSpaceBordaBranding(spaceId: string, showBranding: boolean) {
+    const supabase = await createClient()
+
+    // Auth check
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { error: 'Not authenticated' }
+    }
+
+    try {
+        // Update space record
+        const { error: updateError } = await supabase
+            .from('spaces')
+            .update({ show_borda_branding: showBranding })
+            .eq('id', spaceId)
+
+        if (updateError) {
+            return { error: updateError.message }
+        }
+
+        revalidatePath(`/dashboard/spaces/${spaceId}`)
+        revalidatePath(`/space/${spaceId}/shared`)
+
+        return { success: true, showBranding }
+    } catch (error: any) {
+        console.error('Update space branding failed:', error)
+        return { error: error.message || 'Update failed' }
+    }
+}

@@ -45,6 +45,7 @@ interface ProjectV2ClientProps {
     progress: Progress | null
     initialTab: 'editor' | 'activity' | 'responses' | 'settings'
     initialPageId?: string
+    canRemoveBranding?: boolean
 }
 
 export function ProjectV2Client({
@@ -54,7 +55,8 @@ export function ProjectV2Client({
     engagement,
     progress,
     initialTab,
-    initialPageId
+    initialPageId,
+    canRemoveBranding = false,
 }: ProjectV2ClientProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
@@ -401,6 +403,7 @@ export function ProjectV2Client({
                             organizationId={project.organization_id}
                             projectName={project.client_name}
                             currentAssignee={project.assigned_to}
+                            canRemoveBranding={canRemoveBranding}
                         />
                     </div>
                 )}

@@ -14,6 +14,7 @@ interface SettingsContentProps {
     organizationId: string
     projectName: string
     currentAssignee?: string | null
+    canRemoveBranding?: boolean
 }
 
 interface ProjectData {
@@ -25,6 +26,7 @@ interface ProjectData {
     brand_color: string | null
     client_logo_url: string | null
     background_gradient: string | null
+    show_borda_branding: boolean | null
 }
 
 interface OrgData {
@@ -33,7 +35,7 @@ interface OrgData {
     background_gradient: string | null
 }
 
-export function SettingsContent({ spaceId, organizationId, projectName, currentAssignee }: SettingsContentProps) {
+export function SettingsContent({ spaceId, organizationId, projectName, currentAssignee, canRemoveBranding = false }: SettingsContentProps) {
     const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'team' | 'templates'>('general')
     const [projectData, setProjectData] = useState<ProjectData | null>(null)
     const [orgData, setOrgData] = useState<OrgData | null>(null)
@@ -47,7 +49,7 @@ export function SettingsContent({ spaceId, organizationId, projectName, currentA
             const [projectResult, orgResult] = await Promise.all([
                 supabase
                     .from('spaces')
-                    .select('client_name, name, status, target_go_live_date, logo_path, brand_color, client_logo_url, background_gradient')
+                    .select('client_name, name, status, target_go_live_date, logo_path, brand_color, client_logo_url, background_gradient, show_borda_branding')
                     .eq('id', spaceId)
                     .single(),
                 supabase
@@ -131,6 +133,8 @@ export function SettingsContent({ spaceId, organizationId, projectName, currentA
                                 organizationLogoPath={orgData.logo_path}
                                 organizationBrandColor={orgData.brand_color || '#000000'}
                                 organizationBackgroundGradient={orgData.background_gradient}
+                                canRemoveBranding={canRemoveBranding}
+                                showBordaBranding={projectData.show_borda_branding ?? true}
                             />
                         </>
                     )}

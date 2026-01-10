@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Template, TemplateData } from '@/lib/types/templates'
+import { canCreateTemplate } from '@/lib/permissions'
 
 export async function saveAsTemplate(
   spaceId: string,
@@ -22,6 +23,17 @@ export async function saveAsTemplate(
     .single()
 
   if (!membership) throw new Error('User has no organization')
+
+  // Check if organization can create more templates
+  const templatePermission = await canCreateTemplate(membership.organization_id)
+  if (!templatePermission.allowed) {
+    return { 
+      error: templatePermission.message,
+      limitReached: true,
+      current: templatePermission.current,
+      limit: templatePermission.limit,
+    }
+  }
 
   // Fetch all pages for the project
   const { data: pages, error: pagesError } = await supabase
