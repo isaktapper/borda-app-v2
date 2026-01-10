@@ -47,14 +47,45 @@ export async function POST(request: NextRequest) {
       .eq('organization_id', organizationId)
       .single()
 
-    if (!subscription?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
+    let customerId = subscription?.stripe_customer_id
+
+    // If no valid customer ID, create one
+    if (!customerId || customerId.startsWith('cus_test')) {
+      const { data: org } = await adminSupabase
+        .from('organizations')
+        .select('name')
+        .eq('id', organizationId)
+        .single()
+
+      const customer = await stripe.customers.create({
+        email: user.email!,
+        name: org?.name || 'Organization',
+        metadata: { organization_id: organizationId },
+      })
+      customerId = customer.id
+
+      // Update subscription record
+      if (subscription) {
+        await adminSupabase
+          .from('subscriptions')
+          .update({ stripe_customer_id: customerId })
+          .eq('organization_id', organizationId)
+      } else {
+        await adminSupabase
+          .from('subscriptions')
+          .insert({
+            organization_id: organizationId,
+            stripe_customer_id: customerId,
+            plan: 'trial',
+            status: 'trialing',
+          })
+      }
     }
 
     // Create portal session
     const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripe_customer_id,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`,
+      customer: customerId,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing`,
     })
 
     return NextResponse.json({ url: session.url })

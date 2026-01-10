@@ -43,14 +43,48 @@ export async function POST(request: NextRequest) {
 
     // Get subscription record
     const adminSupabase = await createAdminClient()
-    const { data: subscription } = await adminSupabase
+    let { data: subscription } = await adminSupabase
       .from('subscriptions')
       .select('stripe_customer_id, status')
       .eq('organization_id', organizationId)
       .single()
 
-    if (!subscription?.stripe_customer_id) {
-      return NextResponse.json({ error: 'No subscription found' }, { status: 404 })
+    // Get organization name for Stripe customer
+    const { data: org } = await adminSupabase
+      .from('organizations')
+      .select('name')
+      .eq('id', organizationId)
+      .single()
+
+    let customerId = subscription?.stripe_customer_id
+
+    // If no customer ID or it's a test ID, create a real Stripe customer
+    if (!customerId || customerId.startsWith('cus_test')) {
+      const customer = await stripe.customers.create({
+        email: user.email!,
+        name: org?.name || 'Organization',
+        metadata: {
+          organization_id: organizationId,
+        },
+      })
+      customerId = customer.id
+
+      // Update or create subscription record
+      if (subscription) {
+        await adminSupabase
+          .from('subscriptions')
+          .update({ stripe_customer_id: customerId })
+          .eq('organization_id', organizationId)
+      } else {
+        await adminSupabase
+          .from('subscriptions')
+          .insert({
+            organization_id: organizationId,
+            stripe_customer_id: customerId,
+            plan: 'trial',
+            status: 'trialing',
+          })
+      }
     }
 
     // Get price ID
@@ -58,7 +92,7 @@ export async function POST(request: NextRequest) {
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
-      customer: subscription.stripe_customer_id,
+      customer: customerId,
       mode: 'subscription',
       line_items: [
         {
@@ -67,11 +101,11 @@ export async function POST(request: NextRequest) {
         },
       ],
       // Add trial if currently on trial
-      subscription_data: subscription.status === 'trialing' ? {
+      subscription_data: subscription?.status === 'trialing' ? {
         trial_period_days: TRIAL_DAYS,
       } : undefined,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?success=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing?canceled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing&success=true`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing&canceled=true`,
       metadata: {
         organization_id: organizationId,
         plan,
