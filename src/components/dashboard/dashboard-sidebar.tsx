@@ -16,6 +16,7 @@ import {
     Activity,
     BarChart3,
     Plug,
+    ArrowUpRight,
 } from "lucide-react"
 
 import {
@@ -51,9 +52,10 @@ interface DashboardSidebarProps extends React.ComponentProps<typeof Sidebar> {
         avatar?: string
     }
     isSlackConnected?: boolean
+    spaceLimitReached?: boolean
 }
 
-export function DashboardSidebar({ orgName, user, isSlackConnected, ...props }: DashboardSidebarProps) {
+export function DashboardSidebar({ orgName, user, isSlackConnected, spaceLimitReached = false, ...props }: DashboardSidebarProps) {
     const pathname = usePathname()
     const [showNotification, setShowNotification] = React.useState(true)
 
@@ -160,14 +162,24 @@ export function DashboardSidebar({ orgName, user, isSlackConnected, ...props }: 
                 {/* Quick Action Button */}
                 <SidebarGroup className="mt-2">
                     <SidebarGroupContent className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
-                        <CreateSpaceModal
-                            trigger={
-                                <button className="w-full group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 flex items-center justify-center gap-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg py-2 px-3 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:rounded-full transition-colors">
-                                    <Plus className="size-4 shrink-0" />
-                                    <span className="group-data-[collapsible=icon]:hidden">New Space</span>
-                                </button>
-                            }
-                        />
+                        {spaceLimitReached ? (
+                            <Link 
+                                href="/settings?tab=billing"
+                                className="w-full group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 flex items-center justify-center gap-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg py-2 px-3 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:rounded-full transition-colors"
+                            >
+                                <ArrowUpRight className="size-4 shrink-0" />
+                                <span className="group-data-[collapsible=icon]:hidden">Upgrade to Scale</span>
+                            </Link>
+                        ) : (
+                            <CreateSpaceModal
+                                trigger={
+                                    <button className="w-full group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:h-8 flex items-center justify-center gap-2 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg py-2 px-3 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:rounded-full transition-colors">
+                                        <Plus className="size-4 shrink-0" />
+                                        <span className="group-data-[collapsible=icon]:hidden">New Space</span>
+                                    </button>
+                                }
+                            />
+                        )}
                     </SidebarGroupContent>
                 </SidebarGroup>
 

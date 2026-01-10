@@ -3,6 +3,7 @@ import { getSpaceStats } from './progress-actions'
 import { SpacesPageClient } from './spaces-page-client'
 import { redirect } from 'next/navigation'
 import { getCachedUser, getCachedOrgMember, getCachedProfile } from '@/lib/queries/user'
+import { canCreateSpace } from '@/lib/permissions'
 
 export default async function SpacesPage() {
     // Use cached user query (deduplicates with layout.tsx)
@@ -19,14 +20,23 @@ export default async function SpacesPage() {
         redirect('/onboarding')
     }
 
-    // Fetch spaces and stats in parallel
-    const [spaces, stats, { data: profile }] = await Promise.all([
+    // Fetch spaces, stats, and permission check in parallel
+    const [spaces, stats, { data: profile }, spacePermission] = await Promise.all([
         getSpaces(),
         getSpaceStats(membership.organization_id),
-        getCachedProfile(user.id) // Use cached profile query
+        getCachedProfile(user.id), // Use cached profile query
+        canCreateSpace(membership.organization_id),
     ])
 
     const userName = profile?.full_name || user.email?.split('@')[0] || 'User'
 
-    return <SpacesPageClient spaces={spaces} stats={stats} userName={userName} />
+    return (
+        <SpacesPageClient 
+            spaces={spaces} 
+            stats={stats} 
+            userName={userName}
+            spaceLimitReached={!spacePermission.allowed}
+            spaceLimit={spacePermission.limit}
+        />
+    )
 }

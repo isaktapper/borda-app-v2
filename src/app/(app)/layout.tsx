@@ -11,6 +11,7 @@ import {
     getCachedSlackIntegration
 } from '@/lib/queries/user'
 import { getTrialDaysRemaining, isTrialExpired, getOrganizationSubscription } from '@/lib/stripe/subscription'
+import { canCreateSpace } from '@/lib/permissions'
 
 export default async function DashboardLayout({
     children,
@@ -40,19 +41,22 @@ export default async function DashboardLayout({
     let trialDaysRemaining = 0
     let trialExpired = false
     let isTrialing = false
+    let spaceLimitReached = false
 
     if (memberData.data?.organization_id) {
-        const [slackData, subscription, daysRemaining, expired] = await Promise.all([
+        const [slackData, subscription, daysRemaining, expired, spacePermission] = await Promise.all([
             getCachedSlackIntegration(memberData.data.organization_id),
             getOrganizationSubscription(memberData.data.organization_id),
             getTrialDaysRemaining(memberData.data.organization_id),
-            isTrialExpired(memberData.data.organization_id)
+            isTrialExpired(memberData.data.organization_id),
+            canCreateSpace(memberData.data.organization_id),
         ])
         
         isSlackConnected = !!(slackData.data && slackData.data.enabled)
         trialDaysRemaining = daysRemaining
         trialExpired = expired
         isTrialing = subscription?.status === 'trialing' && !expired
+        spaceLimitReached = !spacePermission.allowed
     }
 
     const orgName = memberData.data?.organizations && !Array.isArray(memberData.data.organizations)
@@ -77,7 +81,7 @@ export default async function DashboardLayout({
                 <TrialExpiredBlocker organizationId={memberData.data.organization_id} />
             )}
             
-            <DashboardSidebar orgName={orgName} user={userData} isSlackConnected={isSlackConnected} />
+            <DashboardSidebar orgName={orgName} user={userData} isSlackConnected={isSlackConnected} spaceLimitReached={spaceLimitReached} />
             <SidebarInset className="h-screen flex flex-col overflow-hidden">
                 <DashboardHeader 
                     trialDaysRemaining={trialDaysRemaining}

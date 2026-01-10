@@ -4,9 +4,11 @@ import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { CreateSpaceModal } from "@/components/dashboard/create-space-modal"
 import { SpacesTable } from "@/components/dashboard/spaces-table"
-import { FolderKanban } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { FolderKanban, Lock, ArrowRight } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
+import Link from 'next/link'
 
 interface SpacesPageClientProps {
     spaces: any[]
@@ -17,6 +19,8 @@ interface SpacesPageClientProps {
         goLiveThisMonth: number
     }
     userName?: string
+    spaceLimitReached?: boolean
+    spaceLimit?: number
 }
 
 function getEngagementLabel(score: number): string {
@@ -25,7 +29,7 @@ function getEngagementLabel(score: number): string {
     return 'Low'
 }
 
-export function SpacesPageClient({ spaces, stats, userName = 'User' }: SpacesPageClientProps) {
+export function SpacesPageClient({ spaces, stats, userName = 'User', spaceLimitReached = false, spaceLimit = 5 }: SpacesPageClientProps) {
     const router = useRouter()
     const tableRef = useRef<{
         setEngagementFilter: (levels: string[]) => void
@@ -70,7 +74,29 @@ export function SpacesPageClient({ spaces, stats, userName = 'User' }: SpacesPag
                 <h1 className="text-2xl tracking-tight text-foreground/90">
                     {greeting}, <span className="font-semibold text-foreground">{firstName}</span> 👋
                 </h1>
-                <CreateSpaceModal />
+                <div className="flex items-center gap-3">
+                    {spaceLimitReached && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                            <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                                Limit reached ({spaceLimit}/{spaceLimit})
+                            </span>
+                            <Link 
+                                href="/settings?tab=billing" 
+                                className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                                Upgrade <ArrowRight className="size-3" />
+                            </Link>
+                        </div>
+                    )}
+                    {spaceLimitReached ? (
+                        <Button variant="outline" disabled className="gap-2 opacity-60">
+                            <Lock className="size-4" />
+                            New Space
+                        </Button>
+                    ) : (
+                        <CreateSpaceModal />
+                    )}
+                </div>
             </div>
 
             {/* Stats Strip */}
@@ -141,7 +167,14 @@ export function SpacesPageClient({ spaces, stats, userName = 'User' }: SpacesPag
                     <p className="text-xs text-muted-foreground mb-3">
                         You haven't created any spaces yet. Click the button above to get started.
                     </p>
-                    <CreateSpaceModal />
+                    {spaceLimitReached ? (
+                        <Button variant="outline" disabled className="gap-2 opacity-60">
+                            <Lock className="size-4" />
+                            New Space
+                        </Button>
+                    ) : (
+                        <CreateSpaceModal />
+                    )}
                 </div>
             ) : (
                 <SpacesTable ref={tableRef} spaces={spaces} />
