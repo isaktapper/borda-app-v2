@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        console.log('Checkout completed for customer:', session.customer)
         
         if (session.mode === 'subscription' && session.subscription) {
           // Get the subscription details
@@ -64,6 +65,8 @@ export async function POST(request: NextRequest) {
           const plan = getPlanFromPriceId(priceId)
           const interval = getIntervalFromPriceId(priceId)
           
+          console.log('Checkout - Price ID:', priceId, 'Plan:', plan, 'Interval:', interval)
+          
           // Get period timestamps from the subscription object
           const periodStart = (subscription as any).current_period_start
           const periodEnd = (subscription as any).current_period_end
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
             .update({
               stripe_subscription_id: subscription.id,
               plan: plan || 'growth',
-              billing_interval: interval,
+              billing_interval: interval || 'year',
               status: subscription.status,
               current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
               current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
@@ -86,11 +89,14 @@ export async function POST(request: NextRequest) {
 
           if (error) {
             console.error('Failed to update subscription:', error)
+          } else {
+            console.log('Checkout subscription updated successfully')
           }
         }
         break
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         
@@ -103,11 +109,15 @@ export async function POST(request: NextRequest) {
         const periodEnd = (subscription as any).current_period_end
         const trialEnd = (subscription as any).trial_end
 
+        console.log(`Processing ${event.type} for customer:`, subscription.customer)
+        console.log('Plan:', plan, 'Interval:', interval, 'Status:', subscription.status)
+
         const { error } = await supabase
           .from('subscriptions')
           .update({
-            plan: plan || undefined,
-            billing_interval: interval || undefined,
+            stripe_subscription_id: subscription.id,
+            plan: plan || 'growth', // Default to growth if price not recognized
+            billing_interval: interval || 'year', // Default to year
             status: subscription.status,
             current_period_start: periodStart ? new Date(periodStart * 1000).toISOString() : null,
             current_period_end: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
@@ -119,6 +129,8 @@ export async function POST(request: NextRequest) {
 
         if (error) {
           console.error('Failed to update subscription:', error)
+        } else {
+          console.log('Subscription updated successfully')
         }
         break
       }
