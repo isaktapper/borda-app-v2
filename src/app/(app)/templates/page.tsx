@@ -1,7 +1,16 @@
 import { getTemplates } from "./actions"
 import { TemplatesTable } from "@/components/dashboard/templates-table"
+import { getCachedUser } from "@/lib/queries/user"
+import { redirect } from "next/navigation"
 
 export default async function TemplatesPage() {
+    // Use cached user query (deduplicates with layout)
+    const { user } = await getCachedUser()
+
+    if (!user) {
+        redirect('/login')
+    }
+
     const templates = await getTemplates()
 
     return (

@@ -12,6 +12,7 @@ interface TaskColumnProps {
   emptyMessage?: string
   emptySubtext?: string
   variant?: 'danger' | 'info' | 'warning'
+  onToggle: (taskId: string) => void
 }
 
 export function TaskColumn({
@@ -21,7 +22,8 @@ export function TaskColumn({
   emptyIcon,
   emptyMessage,
   emptySubtext,
-  variant = 'info'
+  variant = 'info',
+  onToggle
 }: TaskColumnProps) {
   const variantStyles = {
     danger: 'bg-red-50 border-red-200',
@@ -62,7 +64,7 @@ export function TaskColumn({
         ) : (
           <>
             {tasks.slice(0, 6).map(task => (
-              <TaskItem key={task.id} task={task} />
+              <TaskItem key={task.id} task={task} onToggle={onToggle} />
             ))}
             {tasks.length > 6 && (
               <button className="text-sm text-primary hover:underline flex items-center gap-1">

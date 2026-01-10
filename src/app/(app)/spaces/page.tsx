@@ -1,39 +1,32 @@
 import { getSpaces } from "./actions"
-import { createClient } from '@/lib/supabase/server'
 import { getSpaceStats } from './progress-actions'
 import { SpacesPageClient } from './spaces-page-client'
 import { redirect } from 'next/navigation'
+import { getCachedUser, getCachedOrgMember, getCachedProfile } from '@/lib/queries/user'
 
 export default async function SpacesPage() {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Use cached user query (deduplicates with layout.tsx)
+    const { user } = await getCachedUser()
 
     if (!user) {
         redirect('/login')
     }
 
-    // Get user's organization
-    const { data: membership } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .single()
+    // Use cached org member query (deduplicates with layout.tsx)
+    const { data: membership } = await getCachedOrgMember(user.id)
 
     if (!membership) {
         redirect('/onboarding')
     }
 
-    const [spaces, stats, profile] = await Promise.all([
+    // Fetch spaces and stats in parallel
+    const [spaces, stats, { data: profile }] = await Promise.all([
         getSpaces(),
         getSpaceStats(membership.organization_id),
-        supabase
-            .from('users')
-            .select('full_name')
-            .eq('id', user.id)
-            .single()
+        getCachedProfile(user.id) // Use cached profile query
     ])
 
-    const userName = profile.data?.full_name || user.email?.split('@')[0] || 'User'
+    const userName = profile?.full_name || user.email?.split('@')[0] || 'User'
 
     return <SpacesPageClient spaces={spaces} stats={stats} userName={userName} />
 }

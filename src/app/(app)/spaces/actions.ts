@@ -141,18 +141,32 @@ export async function getSpaces(includeArchived: boolean = false) {
         .select('space_id, tag_id, tags(id, name, color)')
         .in('space_id', spaceIds)
 
-    const { data: taskBlocks } = await supabase
+    // Fetch ALL blocks for ALL pages (for progress calculation)
+    const { data: allBlocks } = await supabase
         .from('blocks')
-        .select('id, page_id, content')
+        .select('id, page_id, type, content')
         .in('page_id', pageIds)
-        .eq('type', 'task')
 
-    const taskBlockIds = taskBlocks?.map(b => b.id) || []
+    const allBlockIds = allBlocks?.map(b => b.id) || []
 
-    const { data: taskResponses } = await supabase
+    // Fetch ALL responses for ALL blocks (covers tasks, forms, etc.)
+    const { data: allResponses } = await supabase
         .from('responses')
         .select('block_id, value')
-        .in('block_id', taskBlockIds)
+        .in('block_id', allBlockIds)
+
+    // Fetch ALL files for file_upload blocks
+    const fileBlockIds = allBlocks?.filter(b => b.type === 'file_upload').map(b => b.id) || []
+    const { data: allFiles } = await supabase
+        .from('files')
+        .select('block_id')
+        .in('block_id', fileBlockIds)
+        .is('deleted_at', null)
+
+    // Separate task blocks for overdue calculation
+    const taskBlocks = allBlocks?.filter(b => b.type === 'task') || []
+    const taskBlockIds = taskBlocks?.map(b => b.id) || []
+    const taskResponses = allResponses?.filter(r => taskBlockIds.includes(r.block_id)) || []
 
     // Build lookup maps for computed fields
     const lastActivityMap = new Map<string, string>()
@@ -220,6 +234,102 @@ export async function getSpaces(includeArchived: boolean = false) {
         }
     })
 
+    // Build progress map - calculate progress for ALL spaces in memory
+    const progressMap = new Map<string, number>()
+
+    // Create lookup maps for efficient progress calculation
+    const pageToSpaceMapForProgress = new Map<string, string>()
+    pages?.forEach(p => pageToSpaceMapForProgress.set(p.id, p.space_id))
+
+    const blockToPageMap = new Map<string, string>()
+    allBlocks?.forEach(b => blockToPageMap.set(b.id, b.page_id))
+
+    const responsesByBlockId = new Map<string, any>()
+    allResponses?.forEach(r => responsesByBlockId.set(r.block_id, r))
+
+    const filesSet = new Set(allFiles?.map(f => f.block_id) || [])
+
+    // Calculate progress for each space
+    spaceIds.forEach(spaceId => {
+        // Get pages for this space
+        const spacePagesIds = pages?.filter(p => p.space_id === spaceId).map(p => p.id) || []
+
+        // Get blocks for these pages
+        const spaceBlocks = allBlocks?.filter(b => spacePagesIds.includes(b.page_id)) || []
+
+        let totalTasks = 0
+        let completedTasks = 0
+        let totalForms = 0
+        let answeredForms = 0
+        let totalFiles = 0
+        let uploadedFiles = 0
+
+        spaceBlocks.forEach(block => {
+            const response = responsesByBlockId.get(block.id)
+            const content = block.content as any
+
+            // Count tasks
+            if (block.type === 'task') {
+                const blockTasks = content?.tasks || []
+                const taskStatuses = response?.value?.tasks || {}
+
+                blockTasks.forEach((task: any) => {
+                    totalTasks++
+                    const status = taskStatuses[task.id] || 'pending'
+                    if (status === 'completed') {
+                        completedTasks++
+                    }
+                })
+            }
+
+            // Count forms
+            if (block.type === 'form') {
+                const blockQuestions = content?.questions || []
+                const questionAnswers = response?.value?.questions || {}
+
+                blockQuestions.forEach((question: any) => {
+                    totalForms++
+                    const answer = questionAnswers[question.id]
+
+                    // Check if there's a meaningful answer
+                    let hasAnswer = false
+                    if (answer) {
+                        if (answer.text && answer.text.trim() !== '') {
+                            hasAnswer = true
+                        } else if (answer.selected) {
+                            if (Array.isArray(answer.selected)) {
+                                hasAnswer = answer.selected.length > 0
+                            } else {
+                                hasAnswer = answer.selected !== ''
+                            }
+                        } else if (answer.date) {
+                            hasAnswer = true
+                        }
+                    }
+
+                    if (hasAnswer) {
+                        answeredForms++
+                    }
+                })
+            }
+
+            // Count file uploads
+            if (block.type === 'file_upload') {
+                totalFiles++
+                if (filesSet.has(block.id)) {
+                    uploadedFiles++
+                }
+            }
+        })
+
+        // Calculate progress percentage
+        const totalItems = totalTasks + totalForms + totalFiles
+        const completedItems = completedTasks + answeredForms + uploadedFiles
+        const progressPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0
+
+        progressMap.set(spaceId, progressPercentage)
+    })
+
     // Enhance projects with computed fields and avatars
     const enhancedProjects = await Promise.all(
         projects.map(async (project) => {
@@ -246,9 +356,8 @@ export async function getSpaces(includeArchived: boolean = false) {
                 clientLogoUrl = data?.signedUrl || null
             }
 
-            // Calculate project progress
-            const progressData = await getSpaceProgress(project.id)
-            const progress = progressData?.progressPercentage || 0
+            // Get pre-calculated project progress from map
+            const progress = progressMap.get(project.id) || 0
 
             return {
                 ...project,

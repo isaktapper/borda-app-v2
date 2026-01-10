@@ -1,37 +1,33 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
+import { TrialExpiredBlocker } from '@/components/dashboard/trial-expired-blocker'
 import { getAvatarSignedUrl } from './settings/profile/avatar-actions'
+import {
+    getCachedUser,
+    getCachedOrgMember,
+    getCachedProfile,
+    getCachedSlackIntegration
+} from '@/lib/queries/user'
+import { getTrialDaysRemaining, isTrialExpired, getOrganizationSubscription } from '@/lib/stripe/subscription'
 
 export default async function DashboardLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
-
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    // Use cached queries to avoid duplicate requests
+    const { user } = await getCachedUser()
 
     if (!user) {
         redirect('/login')
     }
 
-    // Fetch organization membership, user profile, and Slack integration status
+    // Fetch organization membership and user profile using cached queries
     const [memberData, profileData] = await Promise.all([
-        supabase
-            .from('organization_members')
-            .select('role, organization_id, organizations(name)')
-            .eq('user_id', user.id)
-            .single(),
-        supabase
-            .from('users')
-            .select('full_name, avatar_url')
-            .eq('id', user.id)
-            .single()
+        getCachedOrgMember(user.id),
+        getCachedProfile(user.id)
     ])
 
     // If user has no organization, redirect to onboarding
@@ -39,16 +35,24 @@ export default async function DashboardLayout({
         redirect('/onboarding')
     }
 
-    // Check if Slack is connected
+    // Check if Slack is connected and get subscription info
     let isSlackConnected = false
+    let trialDaysRemaining = 0
+    let trialExpired = false
+    let isTrialing = false
+
     if (memberData.data?.organization_id) {
-        const { data: slackIntegration } = await supabase
-            .from('slack_integrations')
-            .select('id, enabled')
-            .eq('organization_id', memberData.data.organization_id)
-            .is('deleted_at', null)
-            .single()
-        isSlackConnected = !!(slackIntegration && slackIntegration.enabled)
+        const [slackData, subscription, daysRemaining, expired] = await Promise.all([
+            getCachedSlackIntegration(memberData.data.organization_id),
+            getOrganizationSubscription(memberData.data.organization_id),
+            getTrialDaysRemaining(memberData.data.organization_id),
+            isTrialExpired(memberData.data.organization_id)
+        ])
+        
+        isSlackConnected = !!(slackData.data && slackData.data.enabled)
+        trialDaysRemaining = daysRemaining
+        trialExpired = expired
+        isTrialing = subscription?.status === 'trialing' && !expired
     }
 
     const orgName = memberData.data?.organizations && !Array.isArray(memberData.data.organizations)
@@ -68,12 +72,22 @@ export default async function DashboardLayout({
 
     return (
         <SidebarProvider>
+            {/* Show blocker modal if trial has expired */}
+            {trialExpired && memberData.data?.organization_id && (
+                <TrialExpiredBlocker organizationId={memberData.data.organization_id} />
+            )}
+            
             <DashboardSidebar orgName={orgName} user={userData} isSlackConnected={isSlackConnected} />
-            <SidebarInset className="overflow-x-hidden">
-                <DashboardHeader />
-                <main className="flex-1 p-6 max-w-full overflow-x-hidden">
-                    {children}
-                </main>
+            <SidebarInset className="h-screen flex flex-col overflow-hidden">
+                <DashboardHeader 
+                    trialDaysRemaining={trialDaysRemaining}
+                    isTrialing={isTrialing}
+                />
+                <div className="flex-1 overflow-y-auto">
+                    <main className="p-6">
+                        {children}
+                    </main>
+                </div>
             </SidebarInset>
         </SidebarProvider>
     )

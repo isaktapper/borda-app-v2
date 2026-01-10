@@ -3,22 +3,19 @@ import { createClient } from '@/lib/supabase/server'
 import { SlackConnectionCard } from '@/components/dashboard/settings/slack-connection-card'
 import { TeamsConnectionCard } from '@/components/dashboard/settings/teams-connection-card'
 import { Loader2 } from 'lucide-react'
+import { getCachedUser, getCachedOrgMember } from '@/lib/queries/user'
 
 async function IntegrationsContent() {
   const supabase = await createClient()
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser()
+  // Use cached user query (deduplicates with layout)
+  const { user } = await getCachedUser()
   if (!user) {
     return <div>Not authenticated</div>
   }
 
-  // Get user's organization and role
-  const { data: membership } = await supabase
-    .from('organization_members')
-    .select('organization_id, role')
-    .eq('user_id', user.id)
-    .single()
+  // Use cached org member query (deduplicates with layout)
+  const { data: membership } = await getCachedOrgMember(user.id)
 
   if (!membership) {
     return <div>No organization found</div>

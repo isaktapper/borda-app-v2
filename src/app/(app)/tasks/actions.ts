@@ -82,6 +82,29 @@ export async function getTasks(): Promise<GroupedTasks> {
     .select('*')
     .in('block_id', blockIds)
 
+  // Batch generate signed URLs for all unique client logos
+  const uniqueLogoUrls = [...new Set(
+    pages
+      .map(p => (p.space as any)?.client_logo_url)
+      .filter(Boolean)
+  )]
+
+  const logoUrlMap = new Map<string, string | null>()
+
+  if (uniqueLogoUrls.length > 0) {
+    const signedUrlResults = await Promise.all(
+      uniqueLogoUrls.map(logoUrl =>
+        supabase.storage
+          .from('client-logos')
+          .createSignedUrl(logoUrl, 60 * 60 * 24)
+      )
+    )
+
+    uniqueLogoUrls.forEach((logoUrl, index) => {
+      logoUrlMap.set(logoUrl, signedUrlResults[index].data?.signedUrl || null)
+    })
+  }
+
   // Extract all tasks from blocks
   const allTasks: Task[] = []
 
@@ -92,14 +115,10 @@ export async function getTasks(): Promise<GroupedTasks> {
     // Supabase returns space as an object (not array) for inner join
     const spaceData = page.space as any
 
-    // Generate signed URL for client logo if exists
-    let clientLogoUrl = null
-    if (spaceData?.client_logo_url) {
-      const { data } = await supabase.storage
-        .from('client-logos')
-        .createSignedUrl(spaceData.client_logo_url, 60 * 60 * 24)
-      clientLogoUrl = data?.signedUrl || null
-    }
+    // Get signed URL from pre-generated map
+    const clientLogoUrl = spaceData?.client_logo_url
+      ? logoUrlMap.get(spaceData.client_logo_url) || null
+      : null
 
     const response = taskResponses?.find(r => r.block_id === block.id)
     const taskStatuses = response?.value?.tasks || {}
@@ -233,6 +252,13 @@ export async function toggleTaskStatus(compositeId: string) {
     return acc
   }, ['', ''])
 
+  // Get the block to find the space_id
+  const { data: block } = await supabase
+    .from('blocks')
+    .select('page_id, pages!inner(space_id)')
+    .eq('id', blockId)
+    .single()
+
   // Get current task statuses from responses
   const { data: response } = await supabase
     .from('responses')
@@ -262,6 +288,15 @@ export async function toggleTaskStatus(compositeId: string) {
   if (error) {
     console.error('[toggleTaskStatus] Error:', error)
     return { error: error.message }
+  }
+
+  // Auto-update space status based on progress
+  if (block?.pages) {
+    const spaceId = (block.pages as any).space_id
+    if (spaceId) {
+      const { autoUpdateSpaceStatus } = await import('../spaces/auto-status-actions')
+      await autoUpdateSpaceStatus(spaceId)
+    }
   }
 
   return { success: true, status: newStatus }

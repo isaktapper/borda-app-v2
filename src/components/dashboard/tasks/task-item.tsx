@@ -1,26 +1,19 @@
 'use client'
 
-import { Task, toggleTaskStatus } from '@/app/(app)/tasks/actions'
+import { Task } from '@/app/(app)/tasks/actions'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { format } from 'date-fns'
 import { Calendar } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 
 interface TaskItemProps {
   task: Task
+  onToggle: (taskId: string) => void
 }
 
-export function TaskItem({ task }: TaskItemProps) {
-  const router = useRouter()
-  const [isChecking, setIsChecking] = useState(false)
-
-  const handleToggle = async (checked: boolean) => {
-    setIsChecking(true)
-    await toggleTaskStatus(task.id)
-    router.refresh()
-    setIsChecking(false)
+export function TaskItem({ task, onToggle }: TaskItemProps) {
+  const handleToggle = () => {
+    onToggle(task.id)
   }
 
   return (
@@ -29,7 +22,6 @@ export function TaskItem({ task }: TaskItemProps) {
       <Checkbox
         checked={task.status === 'completed'}
         onCheckedChange={handleToggle}
-        disabled={isChecking}
         className="mt-1"
       />
 

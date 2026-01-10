@@ -1,43 +1,62 @@
 import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
 import { SettingsLayout } from '@/components/dashboard/settings-layout'
 import { ProfileSection } from '@/components/dashboard/settings/profile-section'
 import { TeamSection } from '@/components/dashboard/settings/team-section'
 import { OrganizationSection } from '@/components/dashboard/settings/organization-section'
 import { TagsSection } from '@/components/dashboard/settings/tags-section'
+import { BillingSection } from '@/components/dashboard/settings/billing-section'
 import { Loader2 } from 'lucide-react'
+import { getCachedUser, getCachedProfile, getCachedOrgMember } from '@/lib/queries/user'
+import { getAvatarSignedUrl } from './profile/avatar-actions'
+import { getOrganizationSubscription, getTrialDaysRemaining } from '@/lib/stripe/subscription'
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ tab?: string }>
 }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Use cached user query (deduplicates with layout)
+  const { user } = await getCachedUser()
 
   if (!user) {
     return <div>Not authenticated</div>
   }
 
-  // Get user profile data for Profile section
-  const { data: userData } = await supabase
-    .from('users')
-    .select('id, email, full_name, avatar_url')
-    .eq('id', user.id)
-    .single()
+  // Use cached profile and org member query (deduplicates with layout)
+  const [{ data: userData }, { data: memberData }] = await Promise.all([
+    getCachedProfile(user.id),
+    getCachedOrgMember(user.id)
+  ])
 
   // Generate signed URL for avatar if exists
   let avatarUrl = null
   if (userData?.avatar_url) {
-    const { data } = await supabase.storage
-      .from('avatars')
-      .createSignedUrl(userData.avatar_url, 60 * 60)
-    avatarUrl = data?.signedUrl || null
+    avatarUrl = await getAvatarSignedUrl(userData.avatar_url)
   }
 
-  const userProfile = userData
-    ? { ...userData, avatar_url: avatarUrl }
-    : { id: user.id, email: user.email || '', full_name: null, avatar_url: null }
+  const userProfile = {
+    id: user.id,
+    email: user.email || '',
+    full_name: userData?.full_name || null,
+    avatar_url: avatarUrl
+  }
+
+  // Get billing data
+  let subscription = null
+  let trialDaysRemaining = 0
+  let organizationName = 'Organization'
+  
+  if (memberData?.organization_id) {
+    const orgData = memberData.organizations && !Array.isArray(memberData.organizations)
+      ? memberData.organizations as { name: string }
+      : null
+    organizationName = orgData?.name || 'Organization'
+    
+    subscription = await getOrganizationSubscription(memberData.organization_id)
+    trialDaysRemaining = await getTrialDaysRemaining(memberData.organization_id)
+  }
+
+  const canManageBilling = memberData?.role === 'owner'
 
   // Await searchParams in Next.js 16
   const params = await searchParams
@@ -85,6 +104,16 @@ export default async function SettingsPage({
               <TagsSection />
             </Suspense>
           ),
+          billing: memberData?.organization_id ? (
+            <BillingSection 
+              organizationId={memberData.organization_id}
+              organizationName={organizationName}
+              subscription={subscription}
+              trialDaysRemaining={trialDaysRemaining}
+              canManageBilling={canManageBilling}
+              userRole={memberData.role || 'member'}
+            />
+          ) : null,
         }}
       />
     </div>

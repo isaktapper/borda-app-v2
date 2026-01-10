@@ -14,22 +14,20 @@ import Link from 'next/link'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Task, toggleTaskStatus } from '@/app/(app)/tasks/actions'
-import { useRouter } from 'next/navigation'
+import { Task } from '@/app/(app)/tasks/actions'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface TasksTableProps {
   tasks: Task[]
+  onToggle: (taskId: string) => void
 }
 
 type SortField = 'title' | 'space_id' | 'due_date' | 'status'
 type SortOrder = 'asc' | 'desc' | null
 
-export function TasksTable({ tasks }: TasksTableProps) {
-  const router = useRouter()
+export function TasksTable({ tasks, onToggle }: TasksTableProps) {
   const [sortField, setSortField] = useState<SortField | null>('due_date')
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null)
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -68,13 +66,6 @@ export function TasksTable({ tasks }: TasksTableProps) {
       return 0
     })
   }, [tasks, sortField, sortOrder])
-
-  const handleToggleTask = async (taskId: string) => {
-    setTogglingTaskId(taskId)
-    await toggleTaskStatus(taskId)
-    router.refresh()
-    setTogglingTaskId(null)
-  }
 
   const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <Button
@@ -128,8 +119,7 @@ export function TasksTable({ tasks }: TasksTableProps) {
                 <TableCell>
                   <Checkbox
                     checked={task.status === 'completed'}
-                    onCheckedChange={() => handleToggleTask(task.id)}
-                    disabled={togglingTaskId === task.id}
+                    onCheckedChange={() => onToggle(task.id)}
                   />
                 </TableCell>
                 <TableCell>

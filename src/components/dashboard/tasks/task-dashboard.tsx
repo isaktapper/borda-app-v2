@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { GroupedTasks } from '@/app/(app)/tasks/actions'
+import { useState, useOptimistic, useTransition } from 'react'
+import { GroupedTasks, Task, toggleTaskStatus } from '@/app/(app)/tasks/actions'
 import { TaskColumn } from './task-column'
 import { TasksTable } from './tasks-table'
 import { Button } from '@/components/ui/button'
@@ -25,9 +25,42 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'open'>('open')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isPending, startTransition] = useTransition()
 
-  const totalTasks = groupedTasks.overdue.length + groupedTasks.upcoming.length + groupedTasks.noDueDate.length
-  const allTasks = [...groupedTasks.overdue, ...groupedTasks.upcoming, ...groupedTasks.noDueDate]
+  // Optimistic state for instant UI updates
+  const [optimisticTasks, updateOptimisticTasks] = useOptimistic(
+    groupedTasks,
+    (state, updatedTaskId: string): GroupedTasks => {
+      // Helper to toggle task status
+      const toggleTask = (task: Task): Task =>
+        task.id === updatedTaskId
+          ? {
+              ...task,
+              status: (task.status === 'completed' ? 'pending' : 'completed') as 'completed' | 'pending' | 'in_progress'
+            }
+          : task
+
+      return {
+        overdue: state.overdue.map(toggleTask),
+        upcoming: state.upcoming.map(toggleTask),
+        noDueDate: state.noDueDate.map(toggleTask),
+      }
+    }
+  )
+
+  // Handle task toggle with optimistic update
+  const handleTaskToggle = async (taskId: string) => {
+    // Update UI immediately
+    updateOptimisticTasks(taskId)
+
+    // Send to server in background
+    startTransition(async () => {
+      await toggleTaskStatus(taskId)
+    })
+  }
+
+  const totalTasks = optimisticTasks.overdue.length + optimisticTasks.upcoming.length + optimisticTasks.noDueDate.length
+  const allTasks = [...optimisticTasks.overdue, ...optimisticTasks.upcoming, ...optimisticTasks.noDueDate]
 
   return (
     <div className="space-y-6">
@@ -115,23 +148,26 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <TaskColumn
               title="Overdue"
-              count={groupedTasks.overdue.length}
-              tasks={groupedTasks.overdue}
+              count={optimisticTasks.overdue.length}
+              tasks={optimisticTasks.overdue}
               emptyMessage="No overdue tasks"
               emptySubtext="Good job, your customers are following the deadlines."
               variant="danger"
+              onToggle={handleTaskToggle}
             />
             <TaskColumn
               title="Upcoming Due Dates"
-              count={groupedTasks.upcoming.length}
-              tasks={groupedTasks.upcoming}
+              count={optimisticTasks.upcoming.length}
+              tasks={optimisticTasks.upcoming}
               variant="info"
+              onToggle={handleTaskToggle}
             />
             <TaskColumn
               title="Tasks Without Due Date"
-              count={groupedTasks.noDueDate.length}
-              tasks={groupedTasks.noDueDate}
+              count={optimisticTasks.noDueDate.length}
+              tasks={optimisticTasks.noDueDate}
               variant="warning"
+              onToggle={handleTaskToggle}
             />
           </div>
         </>
@@ -142,19 +178,19 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40">
               <div>
                 <p className="text-sm text-muted-foreground">Overdue</p>
-                <p className="text-2xl font-bold">{groupedTasks.overdue.length}</p>
+                <p className="text-2xl font-bold">{optimisticTasks.overdue.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40">
               <div>
                 <p className="text-sm text-muted-foreground">Upcoming Due Dates</p>
-                <p className="text-2xl font-bold">{groupedTasks.upcoming.length}</p>
+                <p className="text-2xl font-bold">{optimisticTasks.upcoming.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40">
               <div>
                 <p className="text-sm text-muted-foreground">Next Task Without Due Date</p>
-                <p className="text-2xl font-bold">{groupedTasks.noDueDate.length}</p>
+                <p className="text-2xl font-bold">{optimisticTasks.noDueDate.length}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/40">
@@ -166,7 +202,7 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
           </div>
 
           {/* Tasks Table */}
-          <TasksTable tasks={allTasks} />
+          <TasksTable tasks={allTasks} onToggle={handleTaskToggle} />
         </>
       )}
     </div>

@@ -90,9 +90,7 @@ export async function saveAsTemplate(
 export async function getTemplates() {
   const supabase = await createClient()
 
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Not authenticated')
-
+  // Note: User auth check is done in page.tsx with cached query
   const { data: templates, error } = await supabase
     .from('templates')
     .select('*')

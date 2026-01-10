@@ -48,11 +48,11 @@ export function EngagementBadge({ engagement, showPopover = true, spaceId, onRef
     },
     medium: {
       label: 'Medium',
-      className: 'bg-blue-100 text-blue-600',   // Primary blue
+      className: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-500',   // Yellow
     },
     low: {
       label: 'Low',
-      className: 'bg-warning/10 text-warning',  // Amber/Orange
+      className: 'bg-destructive/10 text-destructive',  // Red
     },
     none: {
       label: 'N/A',

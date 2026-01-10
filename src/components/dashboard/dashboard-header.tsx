@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { usePathname } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
+import { Clock } from "lucide-react"
 
 // Map route segments to display names
 const segmentNames: Record<string, string> = {
@@ -22,9 +24,18 @@ const segmentNames: Record<string, string> = {
     'team': 'Team',
     'organization': 'Organization',
     'tags': 'Tags',
+    'billing': 'Billing',
+    'activity': 'Activity',
+    'tasks': 'Tasks',
+    'integrations': 'Integrations',
 }
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+    trialDaysRemaining?: number
+    isTrialing?: boolean
+}
+
+export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: DashboardHeaderProps) {
     const pathname = usePathname()
 
     // Build breadcrumb segments from pathname
@@ -48,7 +59,7 @@ export function DashboardHeader() {
     })
 
     return (
-        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-background">
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4 bg-background z-10">
             <div className="flex items-center gap-2">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
@@ -74,14 +85,35 @@ export function DashboardHeader() {
                 </Breadcrumb>
             </div>
 
-            <Image
-                src="/borda_logo.png"
-                alt="Borda"
-                width={100}
-                height={30}
-                className="h-8 w-auto"
-                priority
-            />
+            <div className="flex items-center gap-4">
+                {/* Trial Countdown */}
+                {isTrialing && trialDaysRemaining > 0 && (
+                    <Link 
+                        href="/settings?tab=billing"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                    >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>
+                            {trialDaysRemaining === 1 
+                                ? '1 day left' 
+                                : `${trialDaysRemaining} days left`
+                            }
+                        </span>
+                        <span className="text-amber-600 dark:text-amber-400">
+                            · Upgrade
+                        </span>
+                    </Link>
+                )}
+
+                <Image
+                    src="/borda_logo.png"
+                    alt="Borda"
+                    width={100}
+                    height={30}
+                    className="h-8 w-auto"
+                    priority
+                />
+            </div>
         </header>
     )
 }

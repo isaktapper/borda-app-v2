@@ -4,6 +4,7 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { slugify } from '@/lib/sluggify'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { createCustomerWithTrial } from '@/lib/stripe/subscription'
 
 export async function createOrganizationWithOnboarding(formData: FormData) {
     const supabase = await createClient()
@@ -74,7 +75,7 @@ export async function createOrganizationWithOnboarding(formData: FormData) {
     }
 
     // Use RPC for atomic creation with all onboarding fields
-    const { error: rpcError } = await supabase.rpc('create_organization_rpc', {
+    const { data: orgData, error: rpcError } = await supabase.rpc('create_organization_rpc', {
         p_name: name,
         p_slug: slug,
         p_domain: domain || null,
@@ -88,6 +89,20 @@ export async function createOrganizationWithOnboarding(formData: FormData) {
 
     if (rpcError) {
         return { error: rpcError.message }
+    }
+
+    // Create Stripe customer with 14-day trial
+    if (orgData?.id) {
+        const { error: stripeError } = await createCustomerWithTrial({
+            organizationId: orgData.id,
+            organizationName: name,
+            email: user.email!,
+        })
+        
+        if (stripeError) {
+            console.error('Failed to create Stripe customer:', stripeError)
+            // Continue anyway - billing can be set up later
+        }
     }
 
     revalidatePath('/', 'layout')
@@ -134,7 +149,7 @@ export async function createOrganization(formData: FormData) {
     }
 
     // Use RPC for atomic creation and to bypass RLS for initial setup
-    const { error: rpcError } = await supabase.rpc('create_organization_rpc', {
+    const { data: orgData, error: rpcError } = await supabase.rpc('create_organization_rpc', {
         p_name: name,
         p_slug: slug,
         p_domain: domain || null
@@ -142,6 +157,20 @@ export async function createOrganization(formData: FormData) {
 
     if (rpcError) {
         return { error: rpcError.message }
+    }
+
+    // Create Stripe customer with 14-day trial
+    if (orgData?.id) {
+        const { error: stripeError } = await createCustomerWithTrial({
+            organizationId: orgData.id,
+            organizationName: name,
+            email: user.email!,
+        })
+        
+        if (stripeError) {
+            console.error('Failed to create Stripe customer:', stripeError)
+            // Continue anyway - billing can be set up later
+        }
     }
 
     revalidatePath('/', 'layout')

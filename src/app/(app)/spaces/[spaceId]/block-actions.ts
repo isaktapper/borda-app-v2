@@ -51,11 +51,32 @@ export async function createBlock(pageId: string, type: string, content: any = {
         return { error: error.message }
     }
 
+    // 3. Auto-update space status if task/form/file_upload block
+    if (['task', 'form', 'file_upload'].includes(type)) {
+        const { data: page } = await supabase
+            .from('pages')
+            .select('space_id')
+            .eq('id', pageId)
+            .single()
+
+        if (page?.space_id) {
+            const { autoUpdateSpaceStatus } = await import('../auto-status-actions')
+            await autoUpdateSpaceStatus(page.space_id)
+        }
+    }
+
     return { success: true, block }
 }
 
 export async function updateBlock(blockId: string, content: any) {
     const supabase = await createClient()
+
+    // Get block type to determine if we need to auto-update status
+    const { data: block } = await supabase
+        .from('blocks')
+        .select('type, page_id, pages!inner(space_id)')
+        .eq('id', blockId)
+        .single()
 
     const { error } = await supabase
         .from('blocks')
@@ -66,11 +87,27 @@ export async function updateBlock(blockId: string, content: any) {
         return { error: error.message }
     }
 
+    // Auto-update space status if task/form/file_upload block
+    if (block && ['task', 'form', 'file_upload'].includes(block.type)) {
+        const spaceId = (block.pages as any)?.space_id
+        if (spaceId) {
+            const { autoUpdateSpaceStatus } = await import('../auto-status-actions')
+            await autoUpdateSpaceStatus(spaceId)
+        }
+    }
+
     return { success: true }
 }
 
 export async function deleteBlock(blockId: string) {
     const supabase = await createClient()
+
+    // Get block type to determine if we need to auto-update status
+    const { data: block } = await supabase
+        .from('blocks')
+        .select('type, page_id, pages!inner(space_id)')
+        .eq('id', blockId)
+        .single()
 
     const { error } = await supabase
         .from('blocks')
@@ -79,6 +116,15 @@ export async function deleteBlock(blockId: string) {
 
     if (error) {
         return { error: error.message }
+    }
+
+    // Auto-update space status if task/form/file_upload block
+    if (block && ['task', 'form', 'file_upload'].includes(block.type)) {
+        const spaceId = (block.pages as any)?.space_id
+        if (spaceId) {
+            const { autoUpdateSpaceStatus } = await import('../auto-status-actions')
+            await autoUpdateSpaceStatus(spaceId)
+        }
     }
 
     return { success: true }
