@@ -34,12 +34,14 @@ import {
     ListChecks,
     Video,
     User,
-    Minus
+    Minus,
+    Target
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BlockItem } from './block-item'
 import { TextBlockEditor } from './text-block-editor'
 import { TaskBlockEditor } from './task-block-editor'
+import { ActionPlanBlockEditor } from './action-plan-block-editor'
 import { FileUploadBlockEditor } from './file-upload-block-editor'
 import { FileDownloadBlockEditor } from './file-download-block-editor'
 import { FormBlockEditor } from './form-block-editor'
@@ -72,6 +74,7 @@ interface BlockEditorProps {
 
 const BLOCK_TYPES = [
     { type: 'text', label: 'Text / Rubrik', icon: Type, description: 'Vanlig text, stycken eller rubriker.' },
+    { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative project plan with milestones and tasks.' },
     { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Task for the customer with checkbox and deadline.' },
     { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses from the customer.' },
     { type: 'file_upload', label: 'Filuppladdning', icon: Upload, description: 'Be kunden ladda upp dokument eller bilder.' },
@@ -97,6 +100,7 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
         const newId = `new-${Date.now()}`
         let initialContent: any = {}
         if (type === 'text') initialContent = { html: '<p></p>' }
+        if (type === 'action_plan') initialContent = { milestones: [], permissions: { customerCanEdit: true, customerCanComplete: true } }
         if (type === 'task') initialContent = { tasks: [] }
         if (type === 'file_upload') initialContent = { label: '', description: '', acceptedTypes: [], maxFiles: 1 }
         if (type === 'file_download') initialContent = { title: '', description: '', files: [] }
@@ -191,6 +195,13 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
                                                 onChange={(updates) => updateBlockContent(block.id, updates)}
                                             />
                                         )}
+                                        {block.type === 'action_plan' && (
+                                            <ActionPlanBlockEditor
+                                                content={block.content}
+                                                onChange={(newContent) => updateBlockContent(block.id, newContent)}
+                                                spaceId={spaceId || ''}
+                                            />
+                                        )}
                                         {block.type === 'task' && (
                                             <TaskBlockEditor
                                                 content={block.content}
@@ -235,7 +246,7 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
                                                 onChange={(newContent) => updateBlockContent(block.id, newContent)}
                                             />
                                         )}
-                                        {block.type !== 'text' && block.type !== 'task' && block.type !== 'file_upload' && block.type !== 'file_download' && block.type !== 'form' && block.type !== 'embed' && block.type !== 'contact' && block.type !== 'divider' && (
+                                        {block.type !== 'text' && block.type !== 'action_plan' && block.type !== 'task' && block.type !== 'file_upload' && block.type !== 'file_download' && block.type !== 'form' && block.type !== 'embed' && block.type !== 'contact' && block.type !== 'divider' && (
                                             <div className="py-4 border-2 border-dashed rounded-lg flex items-center justify-center text-muted-foreground bg-muted/5">
                                                 Placeholder for {block.type}-block
                                             </div>

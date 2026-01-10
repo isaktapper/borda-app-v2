@@ -15,6 +15,9 @@ import {
     type ActivityItem
 } from '@/lib/activity-utils'
 
+import { EngagementBadge } from '@/components/dashboard/engagement-badge'
+import type { EngagementScoreResult } from '@/lib/engagement-score'
+
 interface ProgressData {
     progressPercentage: number
     completedTasks: number
@@ -28,6 +31,7 @@ interface ProgressData {
 interface ActivitySidebarProps {
     spaceId: string
     progress: ProgressData | null
+    engagement: EngagementScoreResult | null
 }
 
 const ACTIVITY_FILTERS = [
@@ -39,7 +43,7 @@ const ACTIVITY_FILTERS = [
     { id: 'tasks', label: 'Tasks', action: 'task' },
 ]
 
-export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
+export function ActivitySidebar({ spaceId, progress, engagement }: ActivitySidebarProps) {
     const [activities, setActivities] = useState<ActivityItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
     // All filters are active by default - unchecking removes that type
@@ -60,7 +64,7 @@ export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
     // Calculate stats
     const stats = useMemo(() => {
         const uniqueUsers = new Set(activities.map(a => a.actor_email)).size
-        const totalVisits = activities.filter(a => 
+        const totalVisits = activities.filter(a =>
             a.action === 'portal.visit' || a.action === 'portal.first_visit'
         ).length
 
@@ -77,7 +81,7 @@ export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
     const filteredActivities = useMemo(() => {
         // If all filters are active, show everything
         if (activeFilters.length === ACTIVITY_FILTERS.length) return activities
-        
+
         // If no filters are active, show nothing
         if (activeFilters.length === 0) return []
 
@@ -132,8 +136,9 @@ export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
 
     return (
         <div className="w-72 border-r bg-background flex flex-col h-full overflow-hidden shrink-0">
-            <div className="p-4 border-b">
+            <div className="p-4 border-b flex items-center justify-between">
                 <h2 className="font-semibold text-sm text-muted-foreground">Activity</h2>
+                <EngagementBadge engagement={engagement} showPopover={true} />
             </div>
 
             <div className="flex-1 overflow-y-auto">
@@ -159,7 +164,7 @@ export function ActivitySidebar({ spaceId, progress }: ActivitySidebarProps) {
                     </div>
 
                     {/* Filters - Expandable */}
-                    <FilterSection 
+                    <FilterSection
                         activeFilters={activeFilters}
                         toggleFilter={toggleFilter}
                     />
@@ -217,7 +222,7 @@ function FilterSection({ activeFilters, toggleFilter }: FilterSectionProps) {
                 </div>
                 <ChevronDown className={`size-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
             </button>
-            
+
             {isExpanded && (
                 <div className="p-2.5 pt-0 space-y-2">
                     {ACTIVITY_FILTERS.map((filter) => (
@@ -252,7 +257,7 @@ function UserActivityCard({ email, activities }: UserActivityCardProps) {
     const displayName = getActorName(email)
     const initials = displayName.slice(0, 2).toUpperCase()
     const latestActivity = activities[0]
-    
+
     const INITIAL_SHOW = 5
     const visibleActivities = showAll ? activities : activities.slice(0, INITIAL_SHOW)
     const hasMore = activities.length > INITIAL_SHOW

@@ -276,15 +276,13 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                     <button
                                         onClick={() => handleAccessModeChange('public')}
                                         disabled={saving}
-                                        className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-colors text-left ${
-                                            settings?.accessMode === 'public'
+                                        className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-colors text-left ${settings?.accessMode === 'public'
                                                 ? 'border-primary bg-primary/5'
                                                 : 'border-border hover:border-muted-foreground/30'
-                                        }`}
+                                            }`}
                                     >
-                                        <div className={`size-4 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                                            settings?.accessMode === 'public' ? 'border-primary' : 'border-muted-foreground/30'
-                                        }`}>
+                                        <div className={`size-4 rounded-full border-2 mt-0.5 flex items-center justify-center ${settings?.accessMode === 'public' ? 'border-primary' : 'border-muted-foreground/30'
+                                            }`}>
                                             {settings?.accessMode === 'public' && (
                                                 <div className="size-2 rounded-full bg-primary" />
                                             )}
@@ -303,15 +301,13 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                     <button
                                         onClick={() => handleAccessModeChange('restricted')}
                                         disabled={saving}
-                                        className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-colors text-left ${
-                                            settings?.accessMode === 'restricted'
+                                        className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-colors text-left ${settings?.accessMode === 'restricted'
                                                 ? 'border-primary bg-primary/5'
                                                 : 'border-border hover:border-muted-foreground/30'
-                                        }`}
+                                            }`}
                                     >
-                                        <div className={`size-4 rounded-full border-2 mt-0.5 flex items-center justify-center ${
-                                            settings?.accessMode === 'restricted' ? 'border-primary' : 'border-muted-foreground/30'
-                                        }`}>
+                                        <div className={`size-4 rounded-full border-2 mt-0.5 flex items-center justify-center ${settings?.accessMode === 'restricted' ? 'border-primary' : 'border-muted-foreground/30'
+                                            }`}>
                                             {settings?.accessMode === 'restricted' && (
                                                 <div className="size-2 rounded-full bg-primary" />
                                             )}
@@ -338,7 +334,7 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                             Password protection
                                         </Label>
                                         {settings?.hasPassword && (
-                                            <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full">
+                                            <span className="text-xs bg-emerald-100 text-emerald-600 px-2.5 py-1 rounded-md font-medium">
                                                 Active
                                             </span>
                                         )}

@@ -1,25 +1,31 @@
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { hexToOKLCH, getLightBackground } from '@/lib/colors'
 
 interface TagBadgeProps {
   name: string
-  color: string
+  color: string  // Hex color
   onRemove?: () => void
   className?: string
 }
 
 export function TagBadge({ name, color, onRemove, className }: TagBadgeProps) {
+  // Convert hex to OKLCH for perceptually uniform colors
+  const oklchColor = hexToOKLCH(color)
+
+  // Generate light background (10% opacity) from the OKLCH color
+  const bgColor = getLightBackground(oklchColor, 0.15)
+
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-sm text-xs font-medium h-5 border transition-all group',
-        onRemove && 'cursor-pointer hover:shadow-sm',
+        'inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all group',
+        onRemove && 'cursor-pointer hover:opacity-80',
         className
       )}
       style={{
-        backgroundColor: `${color}15`, // Light fill (10-15% opacity)
-        borderColor: color,              // Darker border
-        color: color,                    // Text color
+        backgroundColor: bgColor,
+        color: oklchColor,
       }}
     >
       {name}

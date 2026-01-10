@@ -182,6 +182,59 @@ export async function deleteTaskBlock(blockId: string) {
     return { success: true }
 }
 
+// Action Plan Block Actions
+
+export async function createActionPlanBlock(pageId: string, spaceId: string, content: any, sortOrder: number) {
+    const supabase = await createClient()
+
+    // Create block (everything stored in JSONB content)
+    const { data: block, error: blockError } = await supabase
+        .from('blocks')
+        .insert({
+            page_id: pageId,
+            type: 'action_plan',
+            content,
+            sort_order: sortOrder
+        })
+        .select()
+        .single()
+
+    if (blockError) return { error: blockError.message }
+
+    return { success: true, block }
+}
+
+export async function updateActionPlanBlock(blockId: string, spaceId: string, content: any) {
+    const supabase = await createClient()
+
+    // Update block content
+    const { error: blockError } = await supabase
+        .from('blocks')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', blockId)
+
+    if (blockError) return { error: blockError.message }
+
+    return { success: true }
+}
+
+export async function deleteActionPlanBlock(blockId: string) {
+    const supabase = await createClient()
+
+    // Soft delete block
+    const { error } = await supabase
+        .from('blocks')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', blockId)
+
+    if (error) {
+        console.error(`Error deleting action_plan block ${blockId}:`, error)
+        return { error: error.message }
+    }
+
+    return { success: true }
+}
+
 export async function bulkUpdateBlocks(pageId: string, spaceId: string, blocks: any[]) {
     const supabase = await createClient()
 
@@ -192,6 +245,8 @@ export async function bulkUpdateBlocks(pageId: string, spaceId: string, blocks: 
         if (isNew) {
             if (block.type === 'task') {
                 await createTaskBlock(pageId, spaceId, block.content, block.sort_order)
+            } else if (block.type === 'action_plan') {
+                await createActionPlanBlock(pageId, spaceId, block.content, block.sort_order)
             } else {
                 await supabase.from('blocks').insert({
                     page_id: pageId,
@@ -205,6 +260,14 @@ export async function bulkUpdateBlocks(pageId: string, spaceId: string, blocks: 
                 // Update task block content via existing function
                 await updateTaskBlock(block.id, spaceId, block.content)
                 // FIX: Also update sort_order separately for task blocks
+                await supabase.from('blocks').update({
+                    sort_order: block.sort_order,
+                    updated_at: new Date().toISOString()
+                }).eq('id', block.id)
+            } else if (block.type === 'action_plan') {
+                // Update action_plan block content via existing function
+                await updateActionPlanBlock(block.id, spaceId, block.content)
+                // Also update sort_order separately
                 await supabase.from('blocks').update({
                     sort_order: block.sort_order,
                     updated_at: new Date().toISOString()

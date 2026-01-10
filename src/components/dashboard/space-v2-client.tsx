@@ -3,9 +3,8 @@
 import { useState, useEffect, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SpaceHeader } from '@/components/dashboard/space-header'
-import { EditorSidebar } from '@/components/dashboard/editor/editor-sidebar'
+import { UnifiedEditorSidebar } from '@/components/dashboard/editor/unified-editor-sidebar'
 import { WYSIWYGContent } from '@/components/dashboard/editor/wysiwyg-content'
-import { BlockEditDrawer } from '@/components/dashboard/editor/block-edit-drawer'
 import { EditorEmptyState } from '@/components/dashboard/editor/editor-empty-state'
 import { ActivitySidebar } from '@/components/dashboard/activity/activity-sidebar'
 import { SettingsContent } from '@/components/dashboard/settings/settings-content'
@@ -68,6 +67,7 @@ export function ProjectV2Client({
     const [isLoadingBlocks, setIsLoadingBlocks] = useState(false)
 
     // Editor state
+    const [sidebarView, setSidebarView] = useState<'pages' | 'blocks' | 'editor'>('pages')
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
     const [editingBlock, setEditingBlock] = useState<Block | null>(null)
     const [isDirty, setIsDirty] = useState(false)
@@ -77,6 +77,13 @@ export function ProjectV2Client({
     // Get current blocks for selected page
     const currentBlocks = selectedPageId ? (pageBlocks[selectedPageId] || []) : []
     const selectedPage = pages.find(p => p.id === selectedPageId)
+
+    // Initialize sidebar view based on initial state
+    useEffect(() => {
+        if (initialPageId) {
+            setSidebarView('blocks')
+        }
+    }, [initialPageId])
 
     // Load blocks when page is selected
     useEffect(() => {
@@ -112,18 +119,18 @@ export function ProjectV2Client({
         }
     }
 
+    // Handle sidebar view change
+    const handleSidebarViewChange = (view: 'pages' | 'blocks' | 'editor') => {
+        setSidebarView(view)
+        // Don't clear selection - keep context
+    }
+
     // Handle page selection
     const handlePageSelect = (pageId: string) => {
         setSelectedPageId(pageId)
         setSelectedBlockId(null)
         setEditingBlock(null)
-    }
-
-    // Handle going back to pages list
-    const handlePageBack = () => {
-        setSelectedPageId(null)
-        setSelectedBlockId(null)
-        setEditingBlock(null)
+        setSidebarView('blocks') // Auto-switch to blocks tab
     }
 
     // Handle block selection
@@ -132,6 +139,7 @@ export function ProjectV2Client({
         const block = currentBlocks.find(b => b.id === blockId)
         if (block) {
             setEditingBlock(block)
+            setSidebarView('editor') // Auto-switch to editor tab
         }
     }
 
@@ -293,11 +301,6 @@ export function ProjectV2Client({
         })
     }
 
-    // Close drawer
-    const handleCloseDrawer = () => {
-        setEditingBlock(null)
-    }
-
     return (
         <div className="flex flex-col h-full">
             {/* Unified Header */}
@@ -319,24 +322,27 @@ export function ProjectV2Client({
             <div className="flex-1 flex overflow-hidden min-h-0">
                 {activeTab === 'editor' && (
                     <>
-                        {/* Sidebar */}
-                        <EditorSidebar
+                        {/* Unified Sidebar */}
+                        <UnifiedEditorSidebar
                             spaceId={spaceId}
+                            activeView={sidebarView}
+                            onViewChange={handleSidebarViewChange}
                             pages={pages}
                             selectedPageId={selectedPageId}
+                            onPageSelect={handlePageSelect}
+                            onPageCreated={handlePageCreated}
+                            onPageDelete={handlePageDelete}
+                            onPagesReorder={handlePagesReorder}
                             blocks={currentBlocks}
                             isLoadingBlocks={isLoadingBlocks}
-                            onPageSelect={handlePageSelect}
-                            onPageBack={handlePageBack}
+                            selectedBlockId={selectedBlockId}
                             onBlockSelect={handleBlockSelect}
                             onBlockToggle={handleBlockToggle}
                             onBlockReorder={handleBlockReorder}
                             onBlockDelete={handleDeleteBlock}
                             onAddBlock={handleAddBlock}
-                            onPageCreated={handlePageCreated}
-                            onPageDelete={handlePageDelete}
-                            onPagesReorder={handlePagesReorder}
-                            onPageRename={handlePageRename}
+                            editingBlock={editingBlock}
+                            onBlockChange={handleBlockChange}
                         />
 
                         {/* Main Content */}
@@ -353,15 +359,6 @@ export function ProjectV2Client({
                                 <EditorEmptyState hasPages={pages.length > 0} />
                             )}
                         </div>
-
-                        {/* Edit Drawer */}
-                        <BlockEditDrawer
-                            block={editingBlock}
-                            spaceId={spaceId}
-                            isOpen={!!editingBlock}
-                            onClose={handleCloseDrawer}
-                            onChange={(updates) => editingBlock && handleBlockChange(editingBlock.id, updates)}
-                        />
                     </>
                 )}
 
@@ -371,6 +368,7 @@ export function ProjectV2Client({
                         <ActivitySidebar
                             spaceId={spaceId}
                             progress={progress}
+                            engagement={engagement}
                         />
 
                         {/* Main Content - Show pages preview */}

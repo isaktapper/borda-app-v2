@@ -153,7 +153,7 @@ export function PagesTabContent({ spaceId, initialPages }: PagesTabContentProps)
                             size="sm"
                             onClick={handleSaveAll}
                             disabled={isPending}
-                            className="gap-2 shadow-lg hover:shadow-primary/20 transition-all font-semibold"
+                            className="gap-2 shadow-md hover:shadow-lg transition-all font-semibold"
                         >
                             {isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                             Save changes

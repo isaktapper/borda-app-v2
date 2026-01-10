@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { triggerSlackNotification } from '@/lib/slack/activity-hook'
+import { triggerTeamsNotification } from '@/lib/teams/activity-hook'
 
 export interface ProgressStats {
   totalTasks: number
@@ -571,7 +572,16 @@ export async function logActivity(
       actorEmail,
       action,
       metadata
-    )
+    ).catch(console.error)
+
+    // Trigger Teams notification (non-blocking)
+    triggerTeamsNotification(
+      spaceId,
+      project.organization_id,
+      actorEmail,
+      action,
+      metadata
+    ).catch(console.error)
   }
 }
 

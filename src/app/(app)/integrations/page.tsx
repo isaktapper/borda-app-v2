@@ -1,6 +1,7 @@
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { SlackConnectionCard } from '@/components/dashboard/settings/slack-connection-card'
+import { TeamsConnectionCard } from '@/components/dashboard/settings/teams-connection-card'
 import { Loader2 } from 'lucide-react'
 
 async function IntegrationsContent() {
@@ -31,13 +32,27 @@ async function IntegrationsContent() {
     .select('*')
     .eq('organization_id', membership.organization_id)
     .is('deleted_at', null)
-    .single()
+    .maybeSingle()
+
+  // Get Teams integration if exists
+  const { data: teamsIntegration } = await supabase
+    .from('teams_integrations')
+    .select('*')
+    .eq('organization_id', membership.organization_id)
+    .is('deleted_at', null)
+    .maybeSingle()
 
   return (
     <div className="space-y-4">
       <SlackConnectionCard
         organizationId={membership.organization_id}
         integration={slackIntegration}
+        canManage={canManage}
+      />
+
+      <TeamsConnectionCard
+        organizationId={membership.organization_id}
+        integration={teamsIntegration}
         canManage={canManage}
       />
 

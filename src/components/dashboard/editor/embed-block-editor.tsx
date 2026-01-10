@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select'
 import { Video, Calendar, Globe, ExternalLink } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface EmbedBlockContent {
     url: string
@@ -67,7 +68,8 @@ export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
     const embedUrl = getEmbedUrl(content.url)
 
     return (
-        <div className="space-y-6">
+        <BlockEditorWrapper blockType="embed">
+            <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label>Content type</Label>
@@ -133,6 +135,7 @@ export function EmbedBlockEditor({ content, onChange }: EmbedBlockEditorProps) {
                     )}
                 </div>
             </div>
-        </div>
+            </div>
+        </BlockEditorWrapper>
     )
 }

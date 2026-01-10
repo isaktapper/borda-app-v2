@@ -35,7 +35,7 @@ export function TaskColumn({
       <div className="flex items-center gap-2">
         <h2 className="font-semibold">{title}</h2>
         <span className={cn(
-          'text-xs px-2 py-0.5 rounded-full',
+          'text-xs px-2.5 py-1 rounded-md font-medium',
           variant === 'danger' && 'bg-red-100 text-red-700',
           variant === 'info' && 'bg-blue-100 text-blue-700',
           variant === 'warning' && 'bg-orange-100 text-orange-700'

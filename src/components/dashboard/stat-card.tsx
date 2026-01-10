@@ -5,11 +5,11 @@ interface StatCardProps {
   title: string
   value: string | number
   description?: string
-  icon?: LucideIcon
   trend?: {
     value: number
     label: string
   }
+  icon?: LucideIcon
   variant?: 'default' | 'success' | 'warning' | 'danger'
   className?: string
   onClick?: () => void
@@ -19,60 +19,80 @@ export function StatCard({
   title,
   value,
   description,
-  icon: Icon,
   trend,
+  icon: Icon,
   variant = 'default',
   className,
   onClick
 }: StatCardProps) {
-  const iconColors = {
-    default: 'text-muted-foreground',
-    success: 'text-emerald-600 dark:text-emerald-400',
-    warning: 'text-yellow-600 dark:text-yellow-400',
-    danger: 'text-red-600 dark:text-red-400'
-  }
-
   const Component = onClick ? 'button' : 'div'
+
+  // Soft badge colors for trend indicators
+  const trendColors = {
+    positive: 'bg-emerald-100 text-emerald-600',
+    negative: 'bg-red-100 text-red-600',
+  }
 
   return (
     <Component
       onClick={onClick}
       className={cn(
-        'p-5 rounded-lg bg-muted/40 transition-colors text-left w-full',
-        onClick && 'hover:bg-muted/60 cursor-pointer',
-        !onClick && 'hover:bg-muted/50',
+        'group relative flex flex-col justify-between overflow-hidden rounded-lg border bg-card p-5 text-left transition-all',
+        onClick
+          ? 'hover:border-primary/50 hover:shadow-md cursor-pointer'
+          : 'shadow-sm',
         className
       )}
     >
-      <div className="space-y-2.5">
-        <p className="text-sm text-foreground/90 font-medium">{title}</p>
-
-        <div className="flex items-end justify-between gap-4">
-          <div className="space-y-1.5">
-            <h3 className="text-3xl font-bold tracking-tight">{value}</h3>
-            {trend && (
-              <div className="flex items-center gap-1.5">
-                <span className={cn(
-                  'text-xs font-semibold flex items-center gap-0.5',
-                  trend.value > 0 ? 'text-emerald-600' : 'text-red-600'
-                )}>
-                  {trend.value > 0 ? '↑' : '↓'} {Math.abs(trend.value)}%
-                </span>
-                <span className="text-xs text-muted-foreground/80">{trend.label}</span>
-              </div>
-            )}
-            {description && (
-              <p className="text-xs text-muted-foreground/80">{description}</p>
-            )}
-          </div>
-
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
           {Icon && (
-            <div className={cn('p-2.5 rounded-xl bg-primary/10', iconColors[variant])}>
-              <Icon className="size-5 flex-shrink-0" />
+            <div className={cn(
+              'rounded-md p-2',
+              variant === 'success' && 'bg-emerald-100 text-emerald-600',
+              variant === 'warning' && 'bg-amber-100 text-amber-600',
+              variant === 'danger' && 'bg-red-100 text-red-600',
+              variant === 'default' && 'bg-blue-100 text-blue-600'
+            )}>
+              <Icon className="size-4" />
             </div>
           )}
         </div>
+
+        <div className="space-y-0.5">
+          <h3 className="text-3xl font-bold tracking-tight text-foreground">{value}</h3>
+
+          <div className="flex items-center gap-2">
+            {trend && (
+              <span className={cn(
+                "inline-flex items-center gap-0.5 px-2.5 py-1 rounded-md text-xs font-medium",
+                trend.value > 0 ? trendColors.positive : trendColors.negative
+              )}>
+                <span>{trend.value > 0 ? '↑' : '↓'}</span>
+                <span>{Math.abs(trend.value)}%</span>
+              </span>
+            )}
+
+            {description && (
+              <p className={cn(
+                "text-xs text-muted-foreground",
+                variant === 'danger' && "text-red-600 font-medium dark:text-red-400"
+              )}>
+                {description}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Subtle indicator bar for actionable items */}
+      {onClick && (
+        <div className={cn(
+          "absolute bottom-0 left-0 h-1 w-full bg-primary/0 transition-all group-hover:bg-primary/50",
+          variant === 'danger' && "group-hover:bg-red-500/50"
+        )} />
+      )}
     </Component>
   )
 }

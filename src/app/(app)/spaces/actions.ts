@@ -118,11 +118,15 @@ export async function getSpaces(includeArchived: boolean = false) {
         .in('space_id', spaceIds)
         .order('created_at', { ascending: false })
 
-    // Fetch tasks data for overdue and next due date
-    const { data: tasksData } = await supabase
-        .from('tasks')
-        .select('space_id, due_date, status, pages!inner(space_id)')
-        .in('pages.space_id', spaceIds)
+    // Fetch task blocks and responses for overdue calculation
+    // Fetch overdue tasks logic (blocks/responses)
+    const { data: pages } = await supabase
+        .from('pages')
+        .select('id, space_id')
+        .in('space_id', spaceIds)
+        .is('deleted_at', null)
+
+    const pageIds = pages?.map(p => p.id) || []
 
     // Fetch portal visits data
     const { data: visitsData } = await supabase
@@ -137,6 +141,19 @@ export async function getSpaces(includeArchived: boolean = false) {
         .select('space_id, tag_id, tags(id, name, color)')
         .in('space_id', spaceIds)
 
+    const { data: taskBlocks } = await supabase
+        .from('blocks')
+        .select('id, page_id, content')
+        .in('page_id', pageIds)
+        .eq('type', 'task')
+
+    const taskBlockIds = taskBlocks?.map(b => b.id) || []
+
+    const { data: taskResponses } = await supabase
+        .from('responses')
+        .select('block_id, value')
+        .in('block_id', taskBlockIds)
+
     // Build lookup maps for computed fields
     const lastActivityMap = new Map<string, string>()
     activityData?.forEach(activity => {
@@ -145,25 +162,40 @@ export async function getSpaces(includeArchived: boolean = false) {
         }
     })
 
+    // Calculate overdue and next due date
     const overdueTasksMap = new Map<string, number>()
     const nextDueDateMap = new Map<string, string | null>()
     const today = new Date().toISOString().split('T')[0]
 
-    tasksData?.forEach(task => {
-        const spaceId = (task.pages as any).space_id
+    // Create a map of pageId -> spaceId for quick lookup
+    const pageToSpaceMap = new Map<string, string>()
+    pages?.forEach(p => pageToSpaceMap.set(p.id, p.space_id))
 
-        // Count overdue tasks
-        if (task.due_date && task.due_date < today && task.status !== 'completed') {
-            overdueTasksMap.set(spaceId, (overdueTasksMap.get(spaceId) || 0) + 1)
-        }
+    taskBlocks?.forEach(block => {
+        const spaceId = pageToSpaceMap.get(block.page_id)
+        if (!spaceId) return
 
-        // Find next due date
-        if (task.due_date && task.due_date >= today && task.status !== 'completed') {
-            const current = nextDueDateMap.get(spaceId)
-            if (!current || task.due_date < current) {
-                nextDueDateMap.set(spaceId, task.due_date)
+        const content = block.content as any
+        const tasks = content?.tasks || []
+        const response = taskResponses?.find(r => r.block_id === block.id)
+        const taskStatuses = response?.value?.tasks || {}
+
+        tasks.forEach((task: any) => {
+            const status = taskStatuses[task.id] || 'pending'
+
+            // Count overdue tasks
+            if (task.dueDate && task.dueDate < today && status !== 'completed') {
+                overdueTasksMap.set(spaceId, (overdueTasksMap.get(spaceId) || 0) + 1)
             }
-        }
+
+            // Find next due date
+            if (task.dueDate && task.dueDate >= today && status !== 'completed') {
+                const current = nextDueDateMap.get(spaceId)
+                if (!current || task.dueDate < current) {
+                    nextDueDateMap.set(spaceId, task.dueDate)
+                }
+            }
+        })
     })
 
     const lastVisitMap = new Map<string, string>()
@@ -293,4 +325,116 @@ export async function deleteSpaces(spaceIds: string[]) {
 
     revalidatePath('/spaces')
     return { success: true, count: spaceIds.length }
+}
+
+export async function duplicateSpace(spaceId: string) {
+    const supabase = await createClient()
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    // Use admin client for data operations to ensure no RLS blocking during copy
+    const adminClient = await createAdminClient()
+
+    // 1. Get original space
+    const { data: originalSpace, error: spaceError } = await adminClient
+        .from('spaces')
+        .select('*')
+        .eq('id', spaceId)
+        .single()
+
+    if (spaceError || !originalSpace) {
+        return { error: 'Original space not found' }
+    }
+
+    // 2. Create new space
+    const { data: newSpace, error: createError } = await adminClient
+        .from('spaces')
+        .insert({
+            organization_id: originalSpace.organization_id,
+            name: `${originalSpace.name} (Copy)`,
+            client_name: originalSpace.client_name,
+            client_logo_url: originalSpace.client_logo_url,
+            target_go_live_date: originalSpace.target_go_live_date,
+            status: 'draft',
+            created_by: user.id,
+            assigned_to: user.id
+        })
+        .select()
+        .single()
+
+    if (createError) {
+        return { error: `Failed to create space: ${createError.message}` }
+    }
+
+    // 3. Add owner membership
+    const { error: memberError } = await adminClient
+        .from('space_members')
+        .insert({
+            space_id: newSpace.id,
+            user_id: user.id,
+            role: 'owner',
+            joined_at: new Date().toISOString()
+        })
+
+    if (memberError) {
+        await adminClient.from('spaces').delete().eq('id', newSpace.id)
+        return { error: `Failed to add member: ${memberError.message}` }
+    }
+
+    // 4. Copy Pages
+    const { data: pages } = await adminClient
+        .from('pages')
+        .select('*')
+        .eq('space_id', spaceId)
+        .is('deleted_at', null)
+
+    if (pages && pages.length > 0) {
+        for (const page of pages) {
+            // Create new page
+            const { data: newPage, error: pageCreateError } = await adminClient
+                .from('pages')
+                .insert({
+                    space_id: newSpace.id,
+                    title: page.title,
+                    slug: page.slug, // Reusing slug; might be an issue if constraints exist
+                    order: page.order
+                })
+                .select()
+                .single()
+
+            if (pageCreateError) {
+                console.error('Failed to copy page:', pageCreateError)
+                continue
+            }
+
+            // 5. Copy Blocks for this page
+            const { data: blocks } = await adminClient
+                .from('blocks')
+                .select('*')
+                .eq('page_id', page.id)
+
+            if (blocks && blocks.length > 0) {
+                // Strip system fields 
+                // Note: We need to handle potential nulls if select * returns nullable fields
+                const blocksToInsert = blocks.map(b => {
+                    const { id, created_at, updated_at, page_id, ...rest } = b
+                    return {
+                        ...rest,
+                        page_id: newPage.id
+                    }
+                })
+
+                if (blocksToInsert.length > 0) {
+                    const { error: blocksError } = await adminClient.from('blocks').insert(blocksToInsert)
+                    if (blocksError) {
+                        console.error('Failed to copy blocks:', blocksError)
+                    }
+                }
+            }
+        }
+    }
+
+    revalidatePath('/spaces')
+    return { success: true, spaceId: newSpace.id }
 }

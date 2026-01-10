@@ -38,6 +38,18 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreHorizontal, Copy, Loader2 } from "lucide-react"
+import { duplicateSpace } from "@/app/(app)/spaces/actions"
+import { useRouter } from "next/navigation"
+
 import type { EngagementScoreResult } from "@/lib/engagement-score"
 import type { SpaceStatus } from "@/app/(app)/spaces/[spaceId]/status-utils"
 
@@ -104,10 +116,56 @@ const COLUMNS: ColumnDefinition[] = [
     { id: 'last_visit_at', label: 'Last Visit', defaultVisible: false },
     { id: 'visits_count', label: 'Visits', defaultVisible: false },
     { id: 'created_at', label: 'Created', defaultVisible: true },
+    { id: 'actions', label: '', defaultVisible: true },
 ]
 
 const DEFAULT_VISIBLE = COLUMNS.filter(col => col.defaultVisible).map(col => col.id)
 const DEFAULT_ORDER = COLUMNS.map(col => col.id)
+
+function ActionsMenu({ spaceId, spaceName }: { spaceId: string, spaceName: string }) {
+    const router = useRouter()
+    const [isLoading, setIsLoading] = useState(false)
+
+    const handleDuplicate = async () => {
+        setIsLoading(true)
+        try {
+            const result = await duplicateSpace(spaceId)
+            if (result.error) {
+                alert(`Error duplicating space: ${result.error}`)
+            } else {
+                router.refresh()
+            }
+        } catch (error) {
+            console.error(error)
+            alert("Failed to duplicate space")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted">
+                    <span className="sr-only">Open menu</span>
+                    {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <MoreHorizontal className="h-4 w-4" />
+                    )}
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDuplicate} disabled={isLoading}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Duplicate
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
 
 export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ spaces }, ref) => {
     const [sortField, setSortField] = useState<SortField | null>(null)
@@ -131,6 +189,9 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
         },
         setGoLiveDateRange: (range: DateRange | null) => {
             setGoLiveDateRange(range)
+        },
+        setStatusFilter: (statuses: string[]) => {
+            setSelectedStatuses(statuses)
         }
     }))
 
@@ -147,7 +208,7 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                 const updatedVisible = [...new Set([...prefs.visible_columns, ...defaultVisibleIds.filter(id => !prefs.visible_columns.includes(id))])]
 
                 // Add any new columns to the order that aren't already there
-                const updatedOrder = [...prefs.column_order, ...allColumnIds.filter(id => !prefs.column_order.includes(id))]
+                const updatedOrder = [...new Set([...prefs.column_order, ...allColumnIds.filter(id => !prefs.column_order.includes(id))])]
 
                 setVisibleColumns(updatedVisible)
                 setColumnOrder(updatedOrder)
@@ -371,8 +432,8 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
             case 'engagement_level':
                 const engagement: EngagementScoreResult | null =
                     space.engagement_score !== null &&
-                    space.engagement_level !== null &&
-                    space.engagement_calculated_at !== null
+                        space.engagement_level !== null &&
+                        space.engagement_calculated_at !== null
                         ? {
                             score: space.engagement_score,
                             level: space.engagement_level,
@@ -422,6 +483,12 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                 return <VisitsCountCell count={space.visits_count} />
             case 'created_at':
                 return <span className="text-xs text-muted-foreground">{format(new Date(space.created_at), 'MMM d, yyyy')}</span>
+            case 'actions':
+                return (
+                    <div className="flex justify-end pr-2" onClick={(e) => e.preventDefault()}>
+                        <ActionsMenu spaceId={space.id} spaceName={space.name} />
+                    </div>
+                )
             default:
                 return null
         }
@@ -495,44 +562,44 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
             <div className="w-full overflow-x-auto">
                 <div className="bg-card/80 backdrop-blur-xl rounded-xl shadow-lg shadow-black/5 border border-border/50">
                     <Table className="w-max min-w-full">
-                    <TableHeader>
-                        <TableRow className="border-b hover:bg-transparent">
-                            <TableHead className="h-10 w-12 px-3">
-                                <Checkbox
-                                    checked={paginatedSpaces.length > 0 && paginatedSpaces.every(p => selectedSpaceIds.includes(p.id))}
-                                    onCheckedChange={handleSelectAll}
-                                    aria-label="Select all"
-                                />
-                            </TableHead>
-                            {orderedVisibleColumns.map(columnId => (
-                                <TableHead key={columnId} className={`h-10 px-3 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
-                                    {renderHeader(columnId)}
-                                </TableHead>
-                            ))}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {paginatedSpaces.map((space) => (
-                            <TableRow key={space.id} className="hover:bg-muted/5 border-b last:border-0">
-                                <TableCell className="w-12 px-3">
+                        <TableHeader>
+                            <TableRow className="border-b hover:bg-transparent">
+                                <TableHead className="h-10 w-12 px-3">
                                     <Checkbox
-                                        checked={selectedSpaceIds.includes(space.id)}
-                                        onCheckedChange={(checked) => handleSelectSpace(space.id, checked as boolean)}
-                                        aria-label={`Select ${space.client_name}`}
-                                        onClick={(e) => e.stopPropagation()}
+                                        checked={paginatedSpaces.length > 0 && paginatedSpaces.every(p => selectedSpaceIds.includes(p.id))}
+                                        onCheckedChange={handleSelectAll}
+                                        aria-label="Select all"
                                     />
-                                </TableCell>
+                                </TableHead>
                                 {orderedVisibleColumns.map(columnId => (
-                                    <TableCell key={columnId} className={`p-0 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
-                                        <Link href={`/spaces/${space.id}`} className="block py-3 px-3">
-                                            {renderCell(space, columnId)}
-                                        </Link>
-                                    </TableCell>
+                                    <TableHead key={columnId} className={`h-10 px-3 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
+                                        {renderHeader(columnId)}
+                                    </TableHead>
                                 ))}
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedSpaces.map((space) => (
+                                <TableRow key={space.id} className="hover:bg-muted/5 border-b last:border-0">
+                                    <TableCell className="w-12 px-3">
+                                        <Checkbox
+                                            checked={selectedSpaceIds.includes(space.id)}
+                                            onCheckedChange={(checked) => handleSelectSpace(space.id, checked as boolean)}
+                                            aria-label={`Select ${space.client_name}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </TableCell>
+                                    {orderedVisibleColumns.map(columnId => (
+                                        <TableCell key={columnId} className={`p-0 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
+                                            <Link href={`/spaces/${space.id}`} className="block py-3 px-3">
+                                                {renderCell(space, columnId)}
+                                            </Link>
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
 

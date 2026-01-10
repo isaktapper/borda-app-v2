@@ -1,14 +1,8 @@
 'use client'
 
-import { Loader2, MoreHorizontal, Trash2, Sparkles, MousePointerClick, LayoutGrid } from 'lucide-react'
+import { Loader2, MousePointerClick, LayoutGrid } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { EditorBlockPreview } from './editor-block-preview'
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 interface Block {
     id: string
@@ -28,9 +22,7 @@ interface WYSIWYGContentProps {
 export function WYSIWYGContent({
     blocks,
     selectedBlockId,
-    isLoading,
-    onBlockSelect,
-    onBlockDelete
+    isLoading
 }: WYSIWYGContentProps) {
     // Sort and filter hidden blocks
     const visibleBlocks = blocks
@@ -64,7 +56,7 @@ export function WYSIWYGContent({
                             This page is empty
                         </h3>
                         <p className="text-muted-foreground text-sm leading-relaxed">
-                            Add your first content block from the sidebar to start building this page. 
+                            Add your first content block from the sidebar to start building this page.
                             Choose from text, tasks, forms, file uploads, and more.
                         </p>
                     </div>
@@ -83,70 +75,16 @@ export function WYSIWYGContent({
         <div className="max-w-4xl mx-auto py-8 px-6">
             <div className="space-y-4">
                 {visibleBlocks.map((block) => (
-                    <WYSIWYGBlock
+                    <div
                         key={block.id}
-                        block={block}
-                        isSelected={selectedBlockId === block.id}
-                        onSelect={() => onBlockSelect(block.id)}
-                        onDelete={() => onBlockDelete(block.id)}
-                    />
+                        className={cn(
+                            "rounded-xl transition-all",
+                            selectedBlockId === block.id && "ring-2 ring-primary/50 ring-offset-4 ring-offset-background"
+                        )}
+                    >
+                        <EditorBlockPreview block={block} />
+                    </div>
                 ))}
-            </div>
-        </div>
-    )
-}
-
-interface WYSIWYGBlockProps {
-    block: Block
-    isSelected: boolean
-    onSelect: () => void
-    onDelete: () => void
-}
-
-function WYSIWYGBlock({ block, isSelected, onSelect, onDelete }: WYSIWYGBlockProps) {
-    return (
-        <div
-            className={cn(
-                "group relative rounded-xl transition-all cursor-pointer",
-                isSelected
-                    ? "ring-2 ring-primary ring-offset-4 ring-offset-background"
-                    : "hover:ring-1 hover:ring-border hover:ring-offset-2 hover:ring-offset-background"
-            )}
-            onClick={onSelect}
-        >
-            {/* Action button - top right */}
-            <div className={cn(
-                "absolute -right-2 -top-2 z-10 opacity-0 transition-opacity",
-                "group-hover:opacity-100",
-                isSelected && "opacity-100"
-            )}>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <button 
-                            className="p-1.5 rounded-lg bg-background border shadow-sm hover:bg-muted text-muted-foreground transition-colors"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <MoreHorizontal className="size-4" />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                onDelete()
-                            }}
-                            className="text-destructive focus:text-destructive"
-                        >
-                            <Trash2 className="size-4 mr-2" />
-                            Delete block
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </div>
-
-            {/* Block Content - rendered as portal preview */}
-            <div className="pointer-events-none">
-                <EditorBlockPreview block={block} />
             </div>
         </div>
     )

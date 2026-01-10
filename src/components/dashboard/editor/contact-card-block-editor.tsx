@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Mail, Phone, User as UserIcon } from 'lucide-react'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface ContactCardBlockContent {
     name: string
@@ -31,8 +32,9 @@ export function ContactCardBlockEditor({ content, onChange }: ContactCardBlockEd
     }
 
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
+        <BlockEditorWrapper blockType="contact">
+            <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <Label htmlFor="name">Namn <span className="text-destructive">*</span></Label>
@@ -122,6 +124,7 @@ export function ContactCardBlockEditor({ content, onChange }: ContactCardBlockEd
                     </div>
                 </Card>
             </div>
-        </div>
+            </div>
+        </BlockEditorWrapper>
     )
 }

@@ -163,6 +163,20 @@ function buildSlackMessage(context: NotificationContext, channel: string): Slack
       const fileName = metadata?.fileName
       actionText = fileName ? `uploaded file "${fileName}"` : 'uploaded a file'
       break
+
+    case 'portal.first_visit':
+      icon = '👋'
+      actionText = 'opened the portal for the first time'
+      break
+
+    case 'space.status_changed':
+      icon = '🔄'
+      const newStatus = metadata?.newStatus || 'unknown'
+      const oldStatus = metadata?.oldStatus
+      actionText = oldStatus
+        ? `changed status from "${oldStatus}" to "${newStatus}"`
+        : `changed status to "${newStatus}"`
+      break
   }
 
   const messageText = `${icon} *${actorName}* ${actionText}`

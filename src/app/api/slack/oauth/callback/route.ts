@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         team_id: tokenData.team.id,
         team_name: tokenData.team.name,
         scope: tokenData.scope,
-        enabled_events: ['task.completed', 'form.answered', 'file.uploaded'],
+        enabled_events: ['task.completed', 'form.answered', 'file.uploaded', 'portal.first_visit', 'space.status_changed'],
         enabled: true,
         installed_by_user_id: userId
       }, {

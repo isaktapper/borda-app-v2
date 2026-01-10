@@ -1,0 +1,12 @@
+--color-blue-50: #e8f6ff;
+--color-blue-100: #d5edff;
+--color-blue-200: #b3dcff;
+--color-blue-300: #85c2ff;
+--color-blue-400: #5699ff;
+--color-blue-500: #2f70ff;
+--color-blue-600: #0c41ff;
+--color-blue-700: #0031eb;
+--color-blue-800: #0632cd;
+--color-blue-900: #10349f;
+--color-blue-950: #0a1c5c;
+

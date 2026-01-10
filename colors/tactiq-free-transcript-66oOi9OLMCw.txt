@@ -1,0 +1,193 @@
+# tactiq.io free youtube transcript
+# Why the 60-30-10 Rule is RUINING Your UI Designs
+# https://www.youtube.com/watch/66oOi9OLMCw
+
+00:00:00.160 Colors are hard. If you've ever designed
+00:00:02.159 a website, you've probably heard of the
+00:00:03.840 603010 rule. It's simple. It creates
+00:00:06.160 balanced interfaces and prevents many
+00:00:08.480 designers from rage quitting. But in
+00:00:10.480 product design, things change. Take
+00:00:12.559 versel. It's like 90% black, 8% white,
+00:00:15.440 and 2% red, which sometimes isn't even
+00:00:17.760 there. In this video, I'm going to walk
+00:00:19.279 you through the four layers of color
+00:00:21.039 theory for product design, so by the
+00:00:22.880 end, you can create rich, interactive
+00:00:24.800 designs without any guesswork. Layer
+00:00:27.599 number one is our neutral foundation.
+00:00:29.840 So, let's talk backgrounds first. Linear
+00:00:31.920 uses 99% white. Notion is 100%. Versella
+00:00:35.280 is 98%. There is some variance, but
+00:00:37.920 nothing to say you can't use pure white.
+00:00:40.480 Now, for a landing page, 3 to five
+00:00:42.239 neutrals works great. But for a product
+00:00:44.239 design, you'll generally want four
+00:00:46.079 layers of backgrounds, at least one
+00:00:47.520 stroke, often two, and then about three
+00:00:49.600 text variants. This ignores the chart,
+00:00:51.600 which we'll talk about in a bit, and
+00:00:53.199 that's not even counting any hover
+00:00:54.800 states or interactivity. So, how do we
+00:00:57.280 choose all these colors? Let's start
+00:00:58.879 with the frame of your web app. This is
+00:01:00.719 a slightly darker anchor. For example,
+00:01:02.879 Mercury adds 2% blue to their sidebar.
+00:01:05.600 Because it's a pretty large element, it
+00:01:07.280 only needs to be very slightly darker,
+00:01:09.439 especially on light mode. As we add
+00:01:11.200 content to the dashboard, it's important
+00:01:12.720 to know that light mode is very flexible
+00:01:15.040 because we can have a dark background
+00:01:16.640 with lighter cards like Verscell or a
+00:01:18.560 light background with darker cards like
+00:01:20.240 Notion or monochromatic layers like
+00:01:22.479 Superbase. Darker cards are often the
+00:01:24.799 same color as your sidebar. And lighter
+00:01:26.640 cards can be pure white, which is a good
+00:01:28.640 reason not to have pure white as your
+00:01:30.720 background. Now, if I have cards on this
+00:01:32.799 background, it looks very washed out.
+00:01:34.720 It's only slightly better if I add a
+00:01:36.400 subtle drop shadow. You might reach for
+00:01:38.000 a thin black border. Don't. Instead, use
+00:01:41.040 roughly 85% white to define the edge,
+00:01:43.600 but not overpower it. Another great rule
+00:01:45.920 is the more important a button is, the
+00:01:48.320 darker it is. That goes for ghost
+00:01:50.159 buttons all the way to black buttons
+00:01:51.920 with white text. and everything else
+00:01:53.600 within that range. Though most
+00:01:55.280 multi-purpose buttons sit around 90 to
+00:01:57.439 95% white. Finally, text. The darkest
+00:02:00.479 colors are reserved for important
+00:02:02.079 headings, but even those are still about
+00:02:04.000 11% white. The majority of your text
+00:02:06.159 should fall around 15 to 20% white and
+00:02:08.639 subtext around 30 to 40%. Now, layer 2
+00:02:11.680 is about adding a functional accent.
+00:02:14.000 Some products stay neutral like Versel,
+00:02:15.920 but if you think of linear, you think
+00:02:17.520 blue purple or superbase as bright
+00:02:19.599 green. Now, first, don't think of your
+00:02:21.280 color as a single color. Rather, think
+00:02:23.360 of it as a scale from the lightest
+00:02:25.120 version of it to the darkest. You'll
+00:02:27.040 really only use the 500 or 600 as your
+00:02:29.760 main color, but a hover would step up to
+00:02:31.599 a 700, and a link might be 400 or 500.
+00:02:34.720 To generate a palette like this, I used
+00:02:36.480 UI colors to get a ramp, which will also
+00:02:38.720 help when we switch to dark mode in a
+00:02:40.560 second. But if you want a deeper
+00:02:42.640 understanding of UI and colors that we
+00:02:45.040 can't get to in just one YouTube video,
+00:02:47.120 you should check out today's sponsor,
+00:02:48.560 Zero to Mastery, they have a fantastic
+00:02:51.120 UIUX design career path, which guides
+00:02:53.280 you through seven courses and 139 hours
+00:02:55.920 of instruction to deepen your
+00:02:57.360 understanding and land jobs. Also, with
+00:02:59.519 a Discord community of over half a
+00:03:01.519 million students, you'll be joining a
+00:03:03.040 thriving group of learners. These
+00:03:04.959 courses include in-depth video
+00:03:06.640 instruction, helping you build real
+00:03:08.239 world practical designs, and you'll even
+00:03:10.080 earn a certificate of completion once
+00:03:12.080 you finish a course to showcase on your
+00:03:13.920 resume or portfolio. They also currently
+00:03:16.159 have a free UIX cheat sheet that I will
+00:03:18.640 link to down below. But if you're
+00:03:20.560 interested, the link and promo code will
+00:03:22.959 be down below to get you 10% off. Now,
+00:03:25.360 when you turn down the lights for dark
+00:03:26.959 mode, the rules change. The first is
+00:03:29.280 that dark colors look more similar, so
+00:03:31.760 they require more distance to look as
+00:03:34.239 different as lighter colors. That's a
+00:03:36.000 bit of a mouthful, but if you just
+00:03:37.519 reflect your light palette, the
+00:03:39.360 background elements will lose all of
+00:03:40.959 their distinction. So, a good rule of
+00:03:42.799 thumb is double the distance. Most of
+00:03:44.959 our light colors have distances of about
+00:03:47.120 2% white between them. So, on dark mode,
+00:03:49.519 we'll want four to 6% between those
+00:03:51.599 colors. Stretching out our color palette
+00:03:53.280 with that rule results in actually a
+00:03:55.120 pretty reasonable design. Now for the
+00:03:56.799 main color, once again, we can break out
+00:03:58.640 the color ramp to choose a 300 or 400 as
+00:04:01.840 our primary brand color on dark mode
+00:04:03.760 with hover being a 400 or 500. You'll
+00:04:06.480 also need to dim the text and brighten
+00:04:08.480 any borders. And if you stare at this
+00:04:10.799 screen all day, you'll definitely start
+00:04:12.799 to notice the difference. Now, where
+00:04:14.640 light mode was more flexible, dark mode
+00:04:16.560 is not. Surfaces always get lighter as
+00:04:19.279 they elevate. So any raised cards need
+00:04:21.519 to have a lighter color or just a border
+00:04:23.680 like the search bar. And just like that,
+00:04:25.600 we've created an enterprisegrade light
+00:04:27.919 and dark mode. But now, let me show you
+00:04:29.919 how to handle charts, chips,
+00:04:31.520 notifications, and all the other wildly
+00:04:33.759 colored components. Our third layer is
+00:04:35.840 all about semantic communication. Colors
+00:04:38.400 convey meaning, and because of that, we
+00:04:40.400 have to break the system that we've
+00:04:42.000 built. Versel understands this. So, even
+00:04:44.240 with a brand color of black and white,
+00:04:46.320 you can tell which builds are
+00:04:47.680 successful, failed, or in progress. Even
+00:04:50.160 if your brand color is purple, it's
+00:04:51.919 pretty much a design sin to make
+00:04:53.520 destructive actions anything other than
+00:04:55.600 red. So, you'll always need some
+00:04:57.280 semantic colors. When it comes to
+00:04:58.880 charts, a neutral color chart is super
+00:05:01.040 lame. And if we just use our brand color
+00:05:03.199 ramp, things look a bit too similar. So,
+00:05:05.280 we need a full spectrum. But ever notice
+00:05:07.520 how bright green seems so much more neon
+00:05:10.160 than bright blue? There's a whole bunch
+00:05:12.000 of very interesting science behind that
+00:05:13.680 which I won't get into today. But we
+00:05:15.600 need some way to get the same tone of
+00:05:17.280 color across the entire spectrum. And
+00:05:19.759 the solution is the OKLCH palette, which
+00:05:22.880 depends on human perception of color.
+00:05:24.880 Meaning, we can get the same perceived
+00:05:26.479 brightness across different colors. To
+00:05:28.560 do this, I go to oklcch.com
+00:05:31.280 and set the lightness and chroma. Then
+00:05:33.680 you can pretty simply increment the hue
+00:05:35.680 by about 25 to 30 and grab that color
+00:05:38.080 for the chart. Last but not least, layer
+00:05:40.400 four, theming. If you want to convert
+00:05:42.560 any of your designs into a color themed
+00:05:44.720 version, it's actually a lot easier than
+00:05:46.320 you think. You could take all of your
+00:05:48.479 neutrals and guess, but this is where
+00:05:50.800 the okay LCH color system becomes super
+00:05:53.759 useful. For every neutral you have, plug
+00:05:55.840 in the hex value and drop the lightness
+00:05:57.680 by 003 and increase the chroma by 0.02.
+00:06:00.720 And then just adjust the hue to get any
+00:06:02.639 themed output. This means you can theme
+00:06:04.880 any design to red, green, blue. bang on
+00:06:08.000 the money every single time. And this
+00:06:10.240 trick also works super well, maybe even
+00:06:12.319 better for dark mode. And those four
+00:06:14.240 levels are everything you'll need to
+00:06:15.759 take your design game to the next level
+00:06:17.759 for more complex designs and
+00:06:19.840 applications. If you'd like to check out
+00:06:21.759 Zero to Mastery, it'll be the first link
+00:06:23.759 down below. And if you want to download
+00:06:25.440 the Figma file with all the colors and
+00:06:27.680 variables in it, it'll be down there,
+00:06:29.440 too. Thank you so much for watching, and
+00:06:31.199 I'll see you in the next one.

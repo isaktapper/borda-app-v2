@@ -15,6 +15,7 @@ import { Loader2, Save, Archive } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { SpaceTagsSection } from '@/components/dashboard/space-tags-section'
 
 interface GeneralSettingsSectionProps {
     spaceId: string
@@ -196,6 +197,16 @@ export function GeneralSettingsSection({
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+                </div>
+
+                {/* Tags */}
+                <div className="grid grid-cols-[300px_1fr] p-4 items-center">
+                    <Label className="text-sm font-medium">
+                        Tags
+                    </Label>
+                    <div className="flex justify-end w-96 ml-auto">
+                        <SpaceTagsSection spaceId={spaceId} />
                     </div>
                 </div>
 

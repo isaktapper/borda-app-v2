@@ -1,10 +1,11 @@
 'use client'
 
-import { X, Type, CheckSquare, Upload, Download, HelpCircle, Video, User, Minus, Pencil } from 'lucide-react'
+import { X, Type, CheckSquare, Upload, Download, HelpCircle, Video, User, Minus, Pencil, Target } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { TextBlockEditor } from '@/components/dashboard/editor/text-block-editor'
 import { TaskBlockEditor } from '@/components/dashboard/editor/task-block-editor'
+import { ActionPlanBlockEditor } from '@/components/dashboard/editor/action-plan-block-editor'
 import { FileUploadBlockEditor } from '@/components/dashboard/editor/file-upload-block-editor'
 import { FileDownloadBlockEditor } from '@/components/dashboard/editor/file-download-block-editor'
 import { FormBlockEditor } from '@/components/dashboard/editor/form-block-editor'
@@ -28,17 +29,23 @@ interface BlockEditDrawerProps {
 }
 
 const BLOCK_CONFIG: Record<string, { label: string; description: string; icon: any; color: string }> = {
-    text: { 
-        label: 'Text Block', 
+    text: {
+        label: 'Text Block',
         description: 'Rich text content with formatting',
-        icon: Type, 
-        color: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400' 
+        icon: Type,
+        color: 'from-blue-500/20 to-blue-500/5 text-blue-600 dark:text-blue-400'
     },
-    task: { 
-        label: 'To-do List', 
+    action_plan: {
+        label: 'Action Plan',
+        description: 'Collaborative milestones and tasks',
+        icon: Target,
+        color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-600 dark:text-emerald-400'
+    },
+    task: {
+        label: 'To-do List',
         description: 'Checkable tasks for your client',
-        icon: CheckSquare, 
-        color: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400' 
+        icon: CheckSquare,
+        color: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400'
     },
     form: { 
         label: 'Form', 
@@ -209,6 +216,14 @@ function BlockEditorContent({ block, spaceId, onChange }: BlockEditorContentProp
                     blockId={block.id}
                     content={block.content}
                     onChange={onChange}
+                />
+            )
+        case 'action_plan':
+            return (
+                <ActionPlanBlockEditor
+                    content={block.content}
+                    onChange={onChange}
+                    spaceId={spaceId}
                 />
             )
         case 'task':

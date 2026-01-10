@@ -103,7 +103,7 @@ export function ProjectHeader({
                                     {projectName}
                                 </span>
                                 {projectStatus && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+                                    <span className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 capitalize font-medium">
                                         {projectStatus}
                                     </span>
                                 )}

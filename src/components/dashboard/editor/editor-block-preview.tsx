@@ -3,8 +3,11 @@
 import { cn } from '@/lib/utils'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Mail, Phone, Calendar as CalendarIcon, FileUp, Check, Download, FileText, FileSpreadsheet, Image as ImageIcon, File } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Mail, Phone, Calendar as CalendarIcon, FileUp, Check, Download, FileText, FileSpreadsheet, Image as ImageIcon, File, Target } from 'lucide-react'
 import { format } from 'date-fns'
+import type { ActionPlanContent } from '@/types/action-plan'
 
 interface Block {
     id: string
@@ -21,6 +24,8 @@ export function EditorBlockPreview({ block }: { block: Block }) {
     switch (block.type) {
         case 'text':
             return <TextPreview content={block.content} />
+        case 'action_plan':
+            return <ActionPlanPreview content={block.content} />
         case 'task':
             return <TaskPreview content={block.content} />
         case 'file_upload':
@@ -111,6 +116,103 @@ function TaskPreview({ content }: { content: any }) {
                     </div>
                 </div>
             ))}
+        </div>
+    )
+}
+
+// Action Plan Block - Matches portal styling
+function ActionPlanPreview({ content }: { content: ActionPlanContent }) {
+    const milestones = content.milestones || []
+
+    if (milestones.length === 0) {
+        return (
+            <div className="border rounded-lg p-5 bg-muted/10">
+                <p className="text-sm text-muted-foreground text-center">No milestones added yet</p>
+            </div>
+        )
+    }
+
+    return (
+        <div className="space-y-4">
+            {milestones.map((milestone) => {
+                const tasks = milestone.tasks || []
+                const totalTasks = tasks.length
+
+                return (
+                    <div key={milestone.id} className="border rounded-lg bg-white/90 dark:bg-card backdrop-blur-sm overflow-hidden">
+                        <div className="p-4 border-b bg-muted/30">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-semibold text-base text-foreground">
+                                        {milestone.title || 'Untitled milestone'}
+                                    </h4>
+                                    {milestone.description && (
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {milestone.description}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {milestone.dueDate && (
+                                        <Badge variant="outline" className="text-xs">
+                                            <CalendarIcon className="size-3 mr-1" />
+                                            {format(new Date(milestone.dueDate), 'd MMM')}
+                                        </Badge>
+                                    )}
+                                    <Badge variant="secondary" className="text-xs">
+                                        {totalTasks}
+                                    </Badge>
+                                </div>
+                            </div>
+                            {totalTasks > 0 && (
+                                <Progress value={0} className="h-1.5 mt-3" />
+                            )}
+                        </div>
+
+                        <div className="p-4 space-y-2">
+                            {tasks.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-2">
+                                    No tasks in this milestone
+                                </p>
+                            ) : (
+                                tasks.map((task) => (
+                                    <div
+                                        key={task.id}
+                                        className="flex items-start gap-3 p-2.5 rounded-lg border bg-card"
+                                    >
+                                        <div className="pt-0.5">
+                                            <div className="size-4 rounded border-2 border-muted bg-white dark:bg-background" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-foreground">
+                                                {task.title || 'Untitled task'}
+                                            </div>
+                                            {task.description && (
+                                                <div className="text-sm text-muted-foreground mt-1">
+                                                    {task.description}
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                {task.assignee && (
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {task.assignee.name}
+                                                    </Badge>
+                                                )}
+                                                {task.dueDate && (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        <CalendarIcon className="size-3 mr-1" />
+                                                        {format(new Date(task.dueDate), 'd MMM')}
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )
+            })}
         </div>
     )
 }

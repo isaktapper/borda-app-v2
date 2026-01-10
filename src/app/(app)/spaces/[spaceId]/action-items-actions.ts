@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { ActionPlanContent } from '@/types/action-plan'
+import { extractAllTasks } from '@/lib/action-plan-utils'
 
 export interface TaskItem {
   id: string
@@ -13,6 +15,8 @@ export interface TaskItem {
   status: 'pending' | 'in_progress' | 'completed'
   completedAt?: string
   completedBy?: { email: string; name?: string }
+  milestone_title?: string
+  assignee_name?: string
   isDone: boolean
 }
 
@@ -126,7 +130,7 @@ export async function getProjectActionItems(spaceId: string): Promise<ActionItem
   const blockIds = blocks.map(b => b.id)
 
   // ===== TASKS =====
-  const taskBlocks = blocks.filter(b => b.type === 'task')
+  const taskBlocks = blocks.filter(b => b.type === 'task' || b.type === 'action_plan')
   const taskBlockIds = taskBlocks.map(b => b.id)
 
   // Get task responses (stored in responses table now)
@@ -139,29 +143,57 @@ export async function getProjectActionItems(spaceId: string): Promise<ActionItem
 
   taskBlocks.forEach(block => {
     const page = pages.find(p => p.id === block.page_id)
-    const content = block.content as any
-    const blockTasks = content?.tasks || []
     const response = taskResponses?.find(r => r.block_id === block.id)
     const taskStatuses = response?.value?.tasks || {}
 
-    // Create a TaskItem for each task in the block
-    blockTasks.forEach((task: any) => {
-      const status = taskStatuses[task.id] || 'pending'
+    if (block.type === 'task') {
+      // Old task block format
+      const content = block.content as any
+      const blockTasks = content?.tasks || []
 
-      tasks.push({
-        id: `${block.id}-${task.id}`,
-        blockId: block.id,
-        pageId: page?.id || '',
-        pageTitle: page?.title || 'Untitled',
-        title: task.title || 'Untitled',
-        description: task.description || undefined,
-        dueDate: task.dueDate || undefined,
-        status: status as 'pending' | 'in_progress' | 'completed',
-        completedAt: undefined,
-        completedBy: undefined,
-        isDone: status === 'completed'
+      // Create a TaskItem for each task in the block
+      blockTasks.forEach((task: any) => {
+        const status = taskStatuses[task.id] || 'pending'
+
+        tasks.push({
+          id: `${block.id}-${task.id}`,
+          blockId: block.id,
+          pageId: page?.id || '',
+          pageTitle: page?.title || 'Untitled',
+          title: task.title || 'Untitled',
+          description: task.description || undefined,
+          dueDate: task.dueDate || undefined,
+          status: status as 'pending' | 'in_progress' | 'completed',
+          completedAt: undefined,
+          completedBy: undefined,
+          isDone: status === 'completed'
+        })
       })
-    })
+    } else if (block.type === 'action_plan') {
+      // Action plan block format
+      const content = block.content as ActionPlanContent
+      const extractedTasks = extractAllTasks(content, block.id)
+
+      extractedTasks.forEach(({ compositeId, milestoneTitle, task }) => {
+        const status = taskStatuses[compositeId] || 'pending'
+
+        tasks.push({
+          id: `${block.id}-${compositeId}`,
+          blockId: block.id,
+          pageId: page?.id || '',
+          pageTitle: page?.title || 'Untitled',
+          title: task.title || 'Untitled',
+          description: task.description || undefined,
+          dueDate: task.dueDate || undefined,
+          status: status as 'pending' | 'in_progress' | 'completed',
+          completedAt: undefined,
+          completedBy: undefined,
+          milestone_title: milestoneTitle,
+          assignee_name: task.assignee?.name || undefined,
+          isDone: status === 'completed'
+        })
+      })
+    }
   })
 
   // ===== FORM FIELDS =====

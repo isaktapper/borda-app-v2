@@ -17,7 +17,9 @@ export async function triggerSlackNotification(
     'task.completed',
     'form.submitted',
     'form.answered', // Legacy support
-    'file.uploaded'
+    'file.uploaded',
+    'portal.first_visit', // NEW
+    'space.status_changed' // NEW
   ]
 
   if (!notifiableEvents.includes(action)) {

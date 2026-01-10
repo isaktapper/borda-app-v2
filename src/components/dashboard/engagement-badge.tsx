@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import type { EngagementScoreResult } from '@/lib/engagement-score'
 import { formatDistanceToNow } from 'date-fns'
 import { useState } from 'react'
@@ -30,7 +30,7 @@ export function EngagementBadge({ engagement, showPopover = true, spaceId, onRef
 
   if (!engagement) {
     return (
-      <Badge variant="secondary" className="text-xs h-5 !rounded-sm">
+      <Badge variant="secondary" className="text-xs">
         N/A
       </Badge>
     )
@@ -40,36 +40,34 @@ export function EngagementBadge({ engagement, showPopover = true, spaceId, onRef
   const factors = engagement.factors as any
   const formFields = factors.formFields || factors.questions || { answered: 0, total: 0, score: 0 }
 
+  // Semantic color mapping using CSS variables
   const config = {
     high: {
       label: 'High',
-      variant: 'success' as const,
-      icon: TrendingUp,
+      className: 'bg-success/10 text-success',  // Green
     },
     medium: {
       label: 'Medium',
-      variant: 'warning' as const,
-      icon: Minus,
+      className: 'bg-blue-100 text-blue-600',   // Primary blue
     },
     low: {
       label: 'Low',
-      variant: 'destructive' as const,
-      icon: TrendingDown,
+      className: 'bg-warning/10 text-warning',  // Amber/Orange
     },
     none: {
       label: 'N/A',
-      variant: 'secondary' as const,
-      icon: null,
+      className: 'bg-secondary text-secondary-foreground',  // Grey
     },
   }
 
-  const { label, variant, icon: Icon } = config[engagement.level]
+  const { label, className } = config[engagement.level]
 
   const badge = (
-    <Badge variant={variant} className="gap-1 text-xs h-5 !rounded-sm">
-      {Icon && <Icon className="h-3 w-3" />}
+    <span
+      className={`inline-flex items-center justify-center rounded-md px-2.5 py-1 text-xs font-medium w-fit whitespace-nowrap ${className}`}
+    >
       {label}
-    </Badge>
+    </span>
   )
 
   if (!showPopover) {

@@ -65,13 +65,13 @@ export function SpaceStatusSelect({
     }
   }
 
-  // Get badge variant classes (matching Badge component exactly)
+  // Get badge variant classes (matching soft badge design)
   const getVariantClass = (status: SpaceStatus) => {
     const variantClasses = {
-      draft: 'border-border bg-muted text-muted-foreground hover:bg-muted/90',
-      active: 'border-primary bg-primary/10 text-primary hover:bg-primary/15',
-      completed: 'border-success bg-success/10 text-success hover:bg-success/15',
-      archived: 'border-border bg-background text-muted-foreground hover:bg-accent',
+      draft: 'bg-gray-100 text-gray-600',
+      active: 'bg-blue-100 text-blue-600',
+      completed: 'bg-emerald-100 text-emerald-600',
+      archived: 'bg-gray-200 text-gray-700',
     }
     return variantClasses[status]
   }
@@ -83,7 +83,7 @@ export function SpaceStatusSelect({
         onValueChange={handleStatusChange}
         disabled={isUpdating}
       >
-        <SelectTrigger className={`w-auto h-5 px-2 py-0.5 capitalize text-xs font-medium rounded-sm transition-colors ${getVariantClass(currentStatus)}`}>
+        <SelectTrigger className={`w-auto px-2.5 py-1 capitalize text-xs font-medium rounded-md transition-colors ${getVariantClass(currentStatus)}`}>
           <SelectValue>
             {currentStatus}
           </SelectValue>

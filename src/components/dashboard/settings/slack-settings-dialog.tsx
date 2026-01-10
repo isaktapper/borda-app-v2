@@ -13,7 +13,9 @@ import { Loader2, Trash2, Save } from 'lucide-react'
 const EVENT_OPTIONS = [
   { id: 'task.completed', label: 'Task completions', description: 'When customers complete tasks' },
   { id: 'form.submitted', label: 'Form submissions', description: 'When customers submit forms' },
-  { id: 'file.uploaded', label: 'File uploads', description: 'When customers upload files' }
+  { id: 'file.uploaded', label: 'File uploads', description: 'When customers upload files' },
+  { id: 'portal.first_visit', label: 'Portal first visits', description: 'When customers open the portal for the first time' },
+  { id: 'space.status_changed', label: 'Status changes', description: 'When space status is updated' }
 ]
 
 interface SlackSettingsDialogProps {

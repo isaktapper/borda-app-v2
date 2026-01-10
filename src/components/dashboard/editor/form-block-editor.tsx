@@ -14,6 +14,7 @@ import {
 import { Plus, X, List, AlignLeft, Type, Calendar, CheckSquare, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardContent } from '@/components/ui/card'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface FormField {
     id: string
@@ -91,8 +92,8 @@ export function FormBlockEditor({ content, onChange }: FormBlockEditorProps) {
     }
 
     return (
-        <Card className="w-full border shadow-sm bg-card">
-            <CardContent className="p-5 space-y-3">
+        <BlockEditorWrapper blockType="form">
+            <div className="space-y-3">
                 {questions.map((question) => {
                     const showOptions = question.type === 'select' || question.type === 'multiselect'
                     const Icon = FIELD_TYPES.find(t => t.id === question.type)?.icon || Type
@@ -203,7 +204,7 @@ export function FormBlockEditor({ content, onChange }: FormBlockEditorProps) {
                     <Plus className="size-4 mr-2" />
                     Add question
                 </Button>
-            </CardContent>
-        </Card>
+            </div>
+        </BlockEditorWrapper>
     )
 }

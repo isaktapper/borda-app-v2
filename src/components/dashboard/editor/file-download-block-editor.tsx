@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeStoragePath, sanitizeFileExtension, isValidStoragePath } from '@/lib/storage-security'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface DownloadFile {
     id: string
@@ -177,8 +178,9 @@ export function FileDownloadBlockEditor({ blockId, spaceId, content, onChange }:
     }
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-4">
+        <BlockEditorWrapper blockType="file_download">
+            <div className="space-y-6">
+                <div className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="title" className="text-xs uppercase tracking-widest text-muted-foreground">
                         Rubrik (valfri)
@@ -337,6 +339,7 @@ export function FileDownloadBlockEditor({ blockId, spaceId, content, onChange }:
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </BlockEditorWrapper>
     )
 }

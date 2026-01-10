@@ -1,22 +1,19 @@
+/**
+ * Tag colors with both hex (for compatibility) and OKLCH (for modern usage)
+ * OKLCH values provide better perceptual uniformity and consistency
+ */
 export const TAG_COLORS = [
-  { name: 'Gray', value: '#9ca3af' },
-  { name: 'Red', value: '#fca5a5' },
-  { name: 'Orange', value: '#fdba74' },
-  { name: 'Amber', value: '#fcd34d' },
-  { name: 'Yellow', value: '#fde047' },
-  { name: 'Lime', value: '#bef264' },
-  { name: 'Green', value: '#86efac' },
-  { name: 'Emerald', value: '#6ee7b7' },
-  { name: 'Teal', value: '#5eead4' },
-  { name: 'Cyan', value: '#67e8f9' },
-  { name: 'Sky', value: '#7dd3fc' },
-  { name: 'Blue', value: '#93c5fd' },
-  { name: 'Indigo', value: '#a5b4fc' },
-  { name: 'Violet', value: '#c4b5fd' },
-  { name: 'Purple', value: '#d8b4fe' },
-  { name: 'Fuchsia', value: '#f0abfc' },
-  { name: 'Pink', value: '#f9a8d4' },
-  { name: 'Rose', value: '#fda4af' },
+  { name: 'Gray', value: '#6B7280', oklch: 'oklch(0.52 0.02 240)' },      // Neutral grey
+  { name: 'Blue', value: '#2563EB', oklch: 'oklch(0.52 0.24 265)' },      // Primary blue
+  { name: 'Green', value: '#059669', oklch: 'oklch(0.58 0.16 165)' },     // Success green
+  { name: 'Yellow', value: '#D97706', oklch: 'oklch(0.68 0.18 70)' },     // Warning amber
+  { name: 'Red', value: '#DC2626', oklch: 'oklch(0.58 0.24 25)' },        // Destructive red
+  { name: 'Purple', value: '#7C3AED', oklch: 'oklch(0.52 0.26 290)' },    // Violet purple
+  { name: 'Pink', value: '#DB2777', oklch: 'oklch(0.58 0.26 345)' },      // Hot pink
+  { name: 'Indigo', value: '#4F46E5', oklch: 'oklch(0.50 0.24 275)' },    // Indigo blue
+  { name: 'Teal', value: '#0D9488', oklch: 'oklch(0.58 0.14 190)' },      // Teal cyan
+  { name: 'Orange', value: '#EA580C', oklch: 'oklch(0.64 0.22 50)' },     // Bright orange
 ] as const
 
 export type TagColor = typeof TAG_COLORS[number]['value']
+export type TagColorOKLCH = typeof TAG_COLORS[number]['oklch']

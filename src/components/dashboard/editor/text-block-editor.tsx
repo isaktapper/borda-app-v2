@@ -1,6 +1,7 @@
 'use client'
 
 import { RichTextEditor } from './rich-text-editor'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface TextBlockContent {
     html?: string
@@ -48,12 +49,12 @@ export function TextBlockEditor({ blockId, content, onChange }: TextBlockEditorP
     const html = migrateOldFormat(content)
 
     return (
-        <div className="w-full">
+        <BlockEditorWrapper blockType="text">
             <RichTextEditor
                 content={html}
                 onChange={(newHtml) => onChange({ html: newHtml })}
                 placeholder="Write something... Use the toolbar above for formatting"
             />
-        </div>
+        </BlockEditorWrapper>
     )
 }

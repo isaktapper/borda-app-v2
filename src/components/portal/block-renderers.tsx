@@ -13,13 +13,24 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Mail, Phone, Calendar as CalendarIcon, FileUp, ListChecks, Check, Loader2, Download, Trash2, FileText, FileSpreadsheet, Image as ImageIcon, File } from 'lucide-react'
+import { Mail, Phone, Calendar as CalendarIcon, FileUp, ListChecks, Check, Loader2, Download, Trash2, FileText, FileSpreadsheet, Image as ImageIcon, File, Target } from 'lucide-react'
 import { format } from 'date-fns'
 import { usePortal } from './portal-context'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Progress } from '@/components/ui/progress'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { uploadFile as saveFileToDb, logFileDownload } from '@/app/space/actions'
+import type { ActionPlanContent, Milestone } from '@/types/action-plan'
+import {
+    getTaskCompositeId,
+    calculateMilestoneProgress,
+    calculateOverallProgress,
+    formatDate,
+    isPastDue,
+    getInitials,
+} from '@/lib/action-plan-utils'
 
 interface Block {
     id: string
@@ -31,6 +42,8 @@ export function PortalBlockRenderer({ block }: { block: Block }) {
     switch (block.type) {
         case 'text':
             return <TextRenderer content={block.content} />
+        case 'action_plan':
+            return <ActionPlanRenderer blockId={block.id} content={block.content} />
         case 'task':
             return <TaskRenderer blockId={block.id} content={block.content} />
         case 'file_upload':
@@ -149,6 +162,201 @@ function TaskRenderer({ blockId, content }: { blockId: string; content: any }) {
                             )}
                         </div>
                     </div>
+                )
+            })}
+        </div>
+    )
+}
+
+function ActionPlanRenderer({ blockId, content }: { blockId: string; content: ActionPlanContent }) {
+    const { state, toggleTask } = usePortal()
+    const milestones = content.milestones || []
+    const permissions = content.permissions || {
+        customerCanEdit: true,
+        customerCanComplete: true,
+    }
+
+    if (milestones.length === 0) {
+        return (
+            <div className="border rounded-lg p-5 mb-4 bg-muted/10">
+                <p className="text-sm text-muted-foreground text-center">No milestones yet</p>
+            </div>
+        )
+    }
+
+    // Extract task statuses for this block only (remove blockId prefix)
+    const blockTaskStatuses = Object.keys(state.tasks)
+        .filter(key => key.startsWith(blockId + '-'))
+        .reduce((acc, key) => {
+            const taskId = key.replace(blockId + '-', '')
+            acc[taskId] = state.tasks[key]
+            return acc
+        }, {} as Record<string, 'pending' | 'completed'>)
+
+    const overallProgress = calculateOverallProgress(content, blockTaskStatuses)
+
+    return (
+        <div className="space-y-6 mb-4">
+            {/* Overall progress card */}
+            {overallProgress.total > 0 && (
+                <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Target className="size-5 text-primary" />
+                                <CardTitle className="text-base">Overall Progress</CardTitle>
+                            </div>
+                            <Badge variant="default" className="shrink-0">
+                                {overallProgress.completed}/{overallProgress.total}
+                            </Badge>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pb-4">
+                        <Progress value={overallProgress.percentage} className="h-2" />
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {overallProgress.percentage}% complete
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Milestone sections */}
+            {milestones.map((milestone: Milestone) => {
+                const progress = calculateMilestoneProgress(milestone, blockTaskStatuses)
+                const tasks = milestone.tasks || []
+
+                return (
+                    <Card key={milestone.id} className="bg-white/90 backdrop-blur-sm">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1 min-w-0">
+                                    <CardTitle className="text-lg">{milestone.title}</CardTitle>
+                                    {milestone.description && (
+                                        <CardDescription className="mt-1">
+                                            {milestone.description}
+                                        </CardDescription>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    {milestone.dueDate && (
+                                        <Badge
+                                            variant={
+                                                isPastDue(milestone.dueDate) ? 'destructive' : 'outline'
+                                            }
+                                            className="text-xs"
+                                        >
+                                            <CalendarIcon className="size-3 mr-1" />
+                                            {formatDate(milestone.dueDate)}
+                                        </Badge>
+                                    )}
+                                    <Badge variant="secondary" className="text-xs">
+                                        {progress.completed}/{progress.total}
+                                    </Badge>
+                                </div>
+                            </div>
+                            {progress.total > 0 && (
+                                <Progress value={progress.percentage} className="h-2 mt-3" />
+                            )}
+                        </CardHeader>
+
+                        <CardContent className="space-y-2">
+                            {tasks.length === 0 ? (
+                                <p className="text-sm text-muted-foreground text-center py-4">
+                                    No tasks in this milestone
+                                </p>
+                            ) : (
+                                tasks.map((task) => {
+                                    const taskCompositeId = getTaskCompositeId(milestone.id, task.id)
+                                    // Full composite ID including blockId for portal context
+                                    const fullCompositeId = `${blockId}-${taskCompositeId}`
+                                    const status = state.tasks[fullCompositeId] || 'pending'
+                                    const isCompleted = status === 'completed'
+                                    const canComplete = permissions.customerCanComplete
+
+                                    return (
+                                        <div
+                                            key={task.id}
+                                            className={cn(
+                                                'flex items-start gap-3 p-3 rounded-lg border transition-colors',
+                                                isCompleted ? 'bg-muted/20' : 'bg-card',
+                                                canComplete && 'cursor-pointer hover:bg-muted/30'
+                                            )}
+                                            onClick={() =>
+                                                canComplete && toggleTask(fullCompositeId, task.title)
+                                            }
+                                        >
+                                            <div className="pt-0.5">
+                                                <div
+                                                    className={cn(
+                                                        'size-4 rounded border-2 flex items-center justify-center transition-colors',
+                                                        isCompleted
+                                                            ? 'bg-primary border-primary'
+                                                            : 'bg-white border-muted',
+                                                        !canComplete && 'opacity-50'
+                                                    )}
+                                                >
+                                                    {isCompleted && (
+                                                        <Check className="size-3 text-white stroke-[3px]" />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <div
+                                                    className={cn(
+                                                        'text-sm font-medium',
+                                                        isCompleted
+                                                            ? 'text-muted-foreground line-through'
+                                                            : 'text-foreground'
+                                                    )}
+                                                >
+                                                    {task.title}
+                                                </div>
+
+                                                {task.description && (
+                                                    <div className="text-sm text-muted-foreground mt-1">
+                                                        {task.description}
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                    {task.assignee && (
+                                                        <Badge variant="secondary" className="text-xs">
+                                                            <Avatar className="size-4 mr-1">
+                                                                {task.assignee.avatarUrl && (
+                                                                    <AvatarImage
+                                                                        src={task.assignee.avatarUrl}
+                                                                        alt={task.assignee.name}
+                                                                    />
+                                                                )}
+                                                                <AvatarFallback className="text-[8px]">
+                                                                    {getInitials(task.assignee.name)}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                            {task.assignee.name}
+                                                        </Badge>
+                                                    )}
+                                                    {task.dueDate && !isCompleted && (
+                                                        <Badge
+                                                            variant={
+                                                                isPastDue(task.dueDate)
+                                                                    ? 'destructive'
+                                                                    : 'outline'
+                                                            }
+                                                            className="text-xs"
+                                                        >
+                                                            <CalendarIcon className="size-3 mr-1" />
+                                                            {formatDate(task.dueDate)}
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })
+                            )}
+                        </CardContent>
+                    </Card>
                 )
             })}
         </div>

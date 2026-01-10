@@ -2,6 +2,7 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import bcrypt from 'bcryptjs'
+import { logActivity } from '@/app/(app)/spaces/progress-actions'
 
 export interface ApprovedEmail {
     id: string
@@ -180,6 +181,21 @@ export async function updateSpaceStatus(
 ): Promise<{ success: true } | { success: false; error: string }> {
     const supabase = await createClient()
 
+    // Get current user for activity log
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+        return { success: false, error: 'Not authenticated' }
+    }
+
+    // Get current status before updating
+    const { data: space } = await supabase
+        .from('spaces')
+        .select('status')
+        .eq('id', spaceId)
+        .single()
+
+    const oldStatus = space?.status
+
     const { error } = await supabase
         .from('spaces')
         .update({ status })
@@ -188,6 +204,21 @@ export async function updateSpaceStatus(
     if (error) {
         console.error('[updateSpaceStatus] Error:', error)
         return { success: false, error: 'Could not update project status' }
+    }
+
+    // Log activity for status change
+    if (user.email) {
+        await logActivity(
+            spaceId,
+            user.email,
+            'space.status_changed',
+            'space',
+            spaceId,
+            {
+                oldStatus,
+                newStatus: status
+            }
+        )
     }
 
     return { success: true }

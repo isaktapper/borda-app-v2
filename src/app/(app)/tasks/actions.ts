@@ -1,6 +1,8 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import type { ActionPlanContent } from '@/types/action-plan'
+import { extractAllTasks } from '@/lib/action-plan-utils'
 
 export type Task = {
   id: string
@@ -11,6 +13,8 @@ export type Task = {
   status: 'pending' | 'in_progress' | 'completed'
   due_date: string | null
   assignee_id: string | null
+  assignee_name: string | null
+  milestone_title?: string | null
   completed_at: string | null
   completed_by: string | null
   created_at: string
@@ -58,12 +62,13 @@ export async function getTasks(): Promise<GroupedTasks> {
 
   const pageIds = pages.map(p => p.id)
 
-  // Get all task blocks for these pages
+  // Get all task and action_plan blocks for these pages
   const { data: blocks } = await supabase
     .from('blocks')
     .select('id, type, content, page_id')
     .in('page_id', pageIds)
-    .eq('type', 'task')
+    .in('type', ['task', 'action_plan'])
+    .is('deleted_at', null)
 
   if (!blocks || blocks.length === 0) {
     return { overdue: [], upcoming: [], noDueDate: [] }
@@ -81,11 +86,6 @@ export async function getTasks(): Promise<GroupedTasks> {
   const allTasks: Task[] = []
 
   for (const block of blocks) {
-    const content = block.content as any
-    const blockTasks = content?.tasks || []
-    const response = taskResponses?.find(r => r.block_id === block.id)
-    const taskStatuses = response?.value?.tasks || {}
-
     const page = pages.find(p => p.id === block.page_id)
     if (!page) continue
 
@@ -101,33 +101,77 @@ export async function getTasks(): Promise<GroupedTasks> {
       clientLogoUrl = data?.signedUrl || null
     }
 
-    blockTasks.forEach((task: any) => {
-      const status = taskStatuses[task.id] || 'pending'
+    const response = taskResponses?.find(r => r.block_id === block.id)
+    const taskStatuses = response?.value?.tasks || {}
 
-      // Skip completed tasks
-      if (status === 'completed') return
+    if (block.type === 'task') {
+      // Old task block format
+      const content = block.content as any
+      const blockTasks = content?.tasks || []
 
-      allTasks.push({
-        id: `${block.id}-${task.id}`,
-        block_id: block.id,
-        space_id: page.space_id,
-        title: task.title || 'Untitled',
-        description: task.description || null,
-        status: status as 'pending' | 'in_progress' | 'completed',
-        due_date: task.dueDate || null,
-        assignee_id: null,
-        completed_at: null,
-        completed_by: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        space: {
-          id: spaceData?.id,
-          name: spaceData?.name,
-          client_name: spaceData?.client_name,
-          client_logo_url: clientLogoUrl
-        }
+      blockTasks.forEach((task: any) => {
+        const status = taskStatuses[task.id] || 'pending'
+
+        // Skip completed tasks
+        if (status === 'completed') return
+
+        allTasks.push({
+          id: `${block.id}-${task.id}`,
+          block_id: block.id,
+          space_id: page.space_id,
+          title: task.title || 'Untitled',
+          description: task.description || null,
+          status: status as 'pending' | 'in_progress' | 'completed',
+          due_date: task.dueDate || null,
+          assignee_id: null,
+          assignee_name: null,
+          completed_at: null,
+          completed_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          space: {
+            id: spaceData?.id,
+            name: spaceData?.name,
+            client_name: spaceData?.client_name,
+            client_logo_url: clientLogoUrl
+          }
+        })
       })
-    })
+    } else if (block.type === 'action_plan') {
+      // Action plan block format
+      const content = block.content as ActionPlanContent
+      const extractedTasks = extractAllTasks(content, block.id)
+
+      extractedTasks.forEach(({ compositeId, milestoneTitle, task }) => {
+        const status = taskStatuses[compositeId] || 'pending'
+
+        // Skip completed tasks
+        if (status === 'completed') return
+
+        allTasks.push({
+          id: `${block.id}-${compositeId}`,
+          block_id: block.id,
+          space_id: page.space_id,
+          title: task.title || 'Untitled',
+          description: task.description || null,
+          status: status as 'pending' | 'in_progress' | 'completed',
+          due_date: task.dueDate || null,
+          assignee_id: task.assignee?.staffId || null,
+          assignee_name: task.assignee?.name || null,
+          milestone_title: milestoneTitle,
+          completed_at: null,
+          completed_by: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          space: {
+            id: spaceData?.id,
+            name: spaceData?.name,
+            client_name: spaceData?.client_name,
+            client_logo_url: clientLogoUrl
+          }
+        })
+      })
+    }
   }
 
   const today = new Date()

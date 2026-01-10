@@ -33,7 +33,8 @@ import {
     Trash2,
     Loader2,
     Blocks,
-    Sparkles
+    Sparkles,
+    Target
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -69,6 +70,7 @@ interface BlocksListViewProps {
 
 const BLOCK_TYPES = [
     { type: 'text', label: 'Text', icon: Type, description: 'Rich text content' },
+    { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative milestones and tasks' },
     { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Checkable tasks' },
     { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses' },
     { type: 'file_upload', label: 'File Upload', icon: Upload, description: 'Customer uploads' },
@@ -80,6 +82,7 @@ const BLOCK_TYPES = [
 
 const BLOCK_ICONS: Record<string, any> = {
     text: Type,
+    action_plan: Target,
     task: CheckSquare,
     form: HelpCircle,
     file_upload: Upload,

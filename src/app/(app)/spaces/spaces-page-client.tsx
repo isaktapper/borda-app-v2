@@ -1,10 +1,10 @@
 'use client'
 
 import { useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { CreateSpaceModal } from "@/components/dashboard/create-space-modal"
 import { SpacesTable } from "@/components/dashboard/spaces-table"
-import { StatCard } from '@/components/dashboard/stat-card'
-import { FolderKanban, TrendingDown, Activity, Rocket } from 'lucide-react'
+import { FolderKanban } from 'lucide-react'
 import { format } from 'date-fns'
 import { sv } from 'date-fns/locale'
 
@@ -16,6 +16,7 @@ interface SpacesPageClientProps {
         avgEngagement: number
         goLiveThisMonth: number
     }
+    userName?: string
 }
 
 function getEngagementLabel(score: number): string {
@@ -24,16 +25,30 @@ function getEngagementLabel(score: number): string {
     return 'Low'
 }
 
-export function SpacesPageClient({ spaces, stats }: SpacesPageClientProps) {
+export function SpacesPageClient({ spaces, stats, userName = 'User' }: SpacesPageClientProps) {
+    const router = useRouter()
     const tableRef = useRef<{
         setEngagementFilter: (levels: string[]) => void
         setGoLiveDateRange: (range: { from: Date; to: Date } | null) => void
+        setStatusFilter: (statuses: string[]) => void
     }>(null)
 
     // Compute on client to avoid hydration mismatch
     const currentMonth = typeof window !== 'undefined'
         ? format(new Date(), 'MMMM', { locale: sv })
         : ''
+
+    const greeting = (() => {
+        const hour = new Date().getHours()
+        if (hour < 12) return 'Good Morning'
+        if (hour < 18) return 'Good Afternoon'
+        return 'Good Evening'
+    })()
+
+    const firstName = userName.split(' ')[0]
+
+    // Calculate total overdue tasks across all spaces
+    const totalOverdueTasks = spaces.reduce((acc, space) => acc + (space.overdue_tasks_count || 0), 0)
 
     const handleLowEngagementClick = () => {
         // Toggle low engagement filter
@@ -49,51 +64,73 @@ export function SpacesPageClient({ spaces, stats }: SpacesPageClientProps) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between border-b pb-3">
-                <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Spaces</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">Manage your implementations.</p>
-                </div>
+                <h1 className="text-2xl tracking-tight text-foreground/90">
+                    {greeting}, <span className="font-semibold text-foreground">{firstName}</span> 👋
+                </h1>
                 <CreateSpaceModal />
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatCard
-                    title="Active Spaces"
-                    value={stats.activeSpaces}
-                    description="Ongoing implementations"
-                    icon={FolderKanban}
-                    variant="default"
-                />
+            {/* Stats Strip */}
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x bg-card/50 rounded-xl overflow-hidden">
+                <div
+                    onClick={() => tableRef.current?.setStatusFilter(['active'])}
+                    className="p-4 group cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-4"
+                >
+                    <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-muted-foreground">Active Spaces</span>
+                        <h3 className="text-2xl font-bold tracking-tight">{stats.activeSpaces}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                            Active
+                        </span>
+                    </div>
+                </div>
 
-                <StatCard
-                    title="Low Engagement"
-                    value={stats.lowEngagement}
-                    description="Needs attention"
-                    icon={TrendingDown}
-                    variant={stats.lowEngagement > 0 ? 'danger' : 'default'}
+                <div
                     onClick={handleLowEngagementClick}
-                />
+                    className="p-4 group cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-4"
+                >
+                    <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-muted-foreground">Low Engagement</span>
+                        <h3 className="text-2xl font-bold tracking-tight">{stats.lowEngagement}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {stats.lowEngagement > 0 ? (
+                            <span className="text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                                Needs Attention
+                            </span>
+                        ) : (
+                            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                All Good
+                            </span>
+                        )}
+                    </div>
+                </div>
 
-                <StatCard
-                    title="Average Engagement"
-                    value={`${stats.avgEngagement}%`}
-                    description={getEngagementLabel(stats.avgEngagement)}
-                    icon={Activity}
-                    variant="default"
-                />
-
-                <StatCard
-                    title="Go-live This Month"
-                    value={stats.goLiveThisMonth}
-                    description={currentMonth}
-                    icon={Rocket}
-                    variant="default"
-                    onClick={handleGoLiveThisMonthClick}
-                />
+                <div
+                    onClick={() => router.push('/tasks')}
+                    className="p-4 group cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-4"
+                >
+                    <div className="flex flex-col gap-1">
+                        <span className="text-sm font-medium text-muted-foreground">Overdue Tasks</span>
+                        <h3 className="text-2xl font-bold tracking-tight">{totalOverdueTasks}</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {totalOverdueTasks > 0 ? (
+                            <span className="text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                                Overdue
+                            </span>
+                        ) : (
+                            <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full">
+                                On Track
+                            </span>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Spaces Table */}

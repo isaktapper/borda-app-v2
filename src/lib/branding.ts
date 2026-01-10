@@ -4,17 +4,28 @@
 
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
+import { hexToOKLCH as convertHexToOKLCH } from '@/lib/colors'
 
-const DEFAULT_BRAND_COLOR = '#000000' // Lime-300 (matches our primary)
+const DEFAULT_BRAND_COLOR = '#000000' // Black default
 
 interface Branding {
-    color: string
+    color: string           // Hex format for compatibility
+    colorOKLCH: string      // OKLCH format for modern usage
     logoUrl: string | null
     gradientCSS: string
 }
 
 /**
+ * Converts hex color to OKLCH format
+ * Example: #3b82f6 → "oklch(0.59 0.22 240)"
+ */
+export function hexToOKLCH(hex: string): string {
+    return convertHexToOKLCH(hex)
+}
+
+/**
  * Converts hex color to HSL format for CSS variables
+ * @deprecated Use hexToOKLCH instead for better color consistency
  * Example: #6366f1 → "239 84% 67%"
  */
 export function hexToHSL(hex: string): string {
@@ -137,6 +148,9 @@ export async function getBranding(
     // Resolve color with fallback
     const color = project.brand_color ?? organization.brand_color ?? DEFAULT_BRAND_COLOR
 
+    // Convert to OKLCH for modern usage
+    const colorOKLCH = convertHexToOKLCH(color)
+
     // Resolve logo with fallback
     const logoPath = project.logo_path ?? organization.logo_path ?? null
     const logoUrl = logoPath ? await getSignedLogoUrl(logoPath) : null
@@ -146,7 +160,8 @@ export async function getBranding(
     const gradientCSS = getGradientCSS(gradientValue)
 
     return {
-        color,
+        color,          // Hex for backward compatibility
+        colorOKLCH,     // OKLCH for modern usage
         logoUrl,
         gradientCSS
     }
@@ -154,20 +169,21 @@ export async function getBranding(
 
 /**
  * Preset brand colors for easy selection
+ * Includes both hex (for compatibility) and OKLCH (for modern usage)
  */
 export const PRESET_BRAND_COLORS = [
-    { name: 'Blue', value: '#3b82f6' },
-    { name: 'Indigo', value: '#6366f1' },
-    { name: 'Violet', value: '#8b5cf6' },
-    { name: 'Purple', value: '#a855f7' },
-    { name: 'Pink', value: '#ec4899' },
-    { name: 'Red', value: '#ef4444' },
-    { name: 'Orange', value: '#f97316' },
-    { name: 'Amber', value: '#f59e0b' },
-    { name: 'Teal', value: '#14b8a6' },
-    { name: 'Green', value: '#22c55e' },
-    { name: 'Emerald', value: '#10b981' },
-    { name: 'Slate', value: '#64748b' },
+    { name: 'Blue', value: '#3b82f6', oklch: 'oklch(0.59 0.22 240)' },
+    { name: 'Indigo', value: '#6366f1', oklch: 'oklch(0.54 0.24 275)' },
+    { name: 'Violet', value: '#8b5cf6', oklch: 'oklch(0.58 0.26 295)' },
+    { name: 'Purple', value: '#a855f7', oklch: 'oklch(0.60 0.28 305)' },
+    { name: 'Pink', value: '#ec4899', oklch: 'oklch(0.62 0.28 350)' },
+    { name: 'Red', value: '#ef4444', oklch: 'oklch(0.62 0.26 25)' },
+    { name: 'Orange', value: '#f97316', oklch: 'oklch(0.68 0.24 45)' },
+    { name: 'Amber', value: '#f59e0b', oklch: 'oklch(0.72 0.20 70)' },
+    { name: 'Teal', value: '#14b8a6', oklch: 'oklch(0.68 0.18 180)' },
+    { name: 'Green', value: '#22c55e', oklch: 'oklch(0.72 0.22 145)' },
+    { name: 'Emerald', value: '#10b981', oklch: 'oklch(0.68 0.20 160)' },
+    { name: 'Slate', value: '#64748b', oklch: 'oklch(0.52 0.04 240)' },
 ]
 
 /**

@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Geist, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const geist = Geist({
+  variable: "--font-geist",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
 });
 
 const jetBrainsMono = JetBrains_Mono({
@@ -48,7 +47,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${uxum.variable} ${jetBrainsMono.variable} font-sans antialiased`}
+        className={`${geist.variable} ${uxum.variable} ${jetBrainsMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         {children}

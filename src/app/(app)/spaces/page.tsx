@@ -23,10 +23,17 @@ export default async function SpacesPage() {
         redirect('/onboarding')
     }
 
-    const [spaces, stats] = await Promise.all([
+    const [spaces, stats, profile] = await Promise.all([
         getSpaces(),
-        getSpaceStats(membership.organization_id)
+        getSpaceStats(membership.organization_id),
+        supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .single()
     ])
 
-    return <SpacesPageClient spaces={spaces} stats={stats} />
+    const userName = profile.data?.full_name || user.email?.split('@')[0] || 'User'
+
+    return <SpacesPageClient spaces={spaces} stats={stats} userName={userName} />
 }

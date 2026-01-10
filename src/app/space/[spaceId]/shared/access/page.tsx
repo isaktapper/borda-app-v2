@@ -267,7 +267,7 @@ function AccessContent() {
                 <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-14 rounded-2xl text-base font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-98 transition-all gap-3"
+                    className="w-full h-14 rounded-2xl text-base font-black shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-98 transition-all gap-3"
                 >
                     {loading ? (
                         <Loader2 className="size-5 animate-spin" />

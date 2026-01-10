@@ -20,6 +20,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface Task {
     id: string
@@ -61,8 +62,9 @@ export function TaskBlockEditor({ content, onChange }: TaskBlockEditorProps) {
     }
 
     return (
-        <Card className="w-full border shadow-sm bg-card overflow-hidden">
-            <CardContent className="p-5 space-y-3">
+        <BlockEditorWrapper blockType="task">
+            <Card className="w-full border shadow-sm bg-card overflow-hidden">
+                <CardContent className="p-5 space-y-3">
                 {tasks.map((task, index) => (
                     <div key={task.id} className="flex items-start gap-3 p-3 rounded-lg border bg-muted/30 group">
                         <div className="pt-1">
@@ -146,7 +148,8 @@ export function TaskBlockEditor({ content, onChange }: TaskBlockEditorProps) {
                     <Plus className="size-4 mr-2" />
                     Add task
                 </Button>
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+        </BlockEditorWrapper>
     )
 }

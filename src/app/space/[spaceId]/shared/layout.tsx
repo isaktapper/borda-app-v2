@@ -37,6 +37,12 @@ export default async function PortalLayout({
     // Convert brand color to HSL for CSS variables
     const primaryHSL = hexToHSL(branding.color)
 
+    // Parse hex to RGB for oklch conversion (more accurate color space)
+    const hex = branding.color.replace('#', '')
+    const r = parseInt(hex.substring(0, 2), 16)
+    const g = parseInt(hex.substring(2, 4), 16)
+    const b = parseInt(hex.substring(4, 6), 16)
+
     // Get visitor email from portal session cookie for visit logging
     const cookieStore = await cookies()
     const portalCookie = cookieStore.get(`portal_session_${spaceId}`)
@@ -58,12 +64,29 @@ export default async function PortalLayout({
             {/* Log portal visit (client-side, once per session) */}
             <VisitLogger spaceId={spaceId} visitorEmail={visitorEmail} />
 
-            {/* Apply brand color as CSS variables */}
+            {/* Apply brand color as CSS variables - overrides global defaults */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                     :root {
-                        --primary: hsl(${primaryHSL});
-                        --ring: hsl(${primaryHSL});
+                        /* Primary brand color for buttons, links, checkboxes, etc */
+                        --primary: hsl(${primaryHSL}) !important;
+                        --primary-foreground: hsl(0 0% 100%) !important;
+                        --ring: hsl(${primaryHSL}) !important;
+
+                        /* Tremor charts use brand color */
+                        --tremor-brand: rgb(${r}, ${g}, ${b}) !important;
+
+                        /* Sidebar uses brand color */
+                        --sidebar-primary: hsl(${primaryHSL}) !important;
+                        --sidebar-ring: hsl(${primaryHSL}) !important;
+
+                        /* Chart colors derived from brand */
+                        --chart-1: hsl(${primaryHSL}) !important;
+                    }
+
+                    /* Ensure background gradient does NOT affect brand elements */
+                    body {
+                        background: transparent !important;
                     }
                 `
             }} />

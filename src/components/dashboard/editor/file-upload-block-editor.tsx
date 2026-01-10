@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card } from '@/components/ui/card'
 import { Upload, FileIcon, ImageIcon, FileTextIcon, TableIcon, ArchiveIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BlockEditorWrapper } from './block-editor-wrapper'
 
 interface FileUploadBlockContent {
     label: string
@@ -67,8 +68,9 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
     }
 
     return (
-        <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2">
+        <BlockEditorWrapper blockType="file_upload">
+            <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                     <Label htmlFor="label">Rubrik / Vad ska laddas upp? <span className="text-destructive">*</span></Label>
                     <Input
@@ -152,6 +154,7 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
                     </div>
                 </div>
             </div>
-        </div>
+            </div>
+        </BlockEditorWrapper>
     )
 }

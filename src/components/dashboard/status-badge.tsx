@@ -12,7 +12,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     draft: 'secondary' as const,
     active: 'default' as const,
     completed: 'success' as const,
-    archived: 'outline' as const,
+    archived: 'secondary' as const,
   }
 
   const variant = variantMap[status] || 'outline'
@@ -20,7 +20,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
     <Badge
       variant={variant}
-      className={`capitalize text-xs h-5 !rounded-sm ${className || ''}`}
+      className={`capitalize ${className || ''}`}
     >
       {status}
     </Badge>
