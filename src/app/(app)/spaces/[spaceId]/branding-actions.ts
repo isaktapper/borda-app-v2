@@ -75,7 +75,6 @@ export async function uploadProjectLogo(spaceId: string, organizationId: string,
         revalidatePath(`/space/${spaceId}/shared`)
         return { success: true, logoPath }
     } catch (error: any) {
-        logEntry('caught error', { error: error.message })
         console.error('Upload project logo failed:', error)
         return { error: error.message || 'Upload failed' }
     }
