@@ -93,46 +93,6 @@ export function BillingSection({
     }
   }
 
-  // TEMPORARY: Test payment with $1 price
-  async function handleTestPayment() {
-    if (!canManageBilling) {
-      toast.error('Only the organization owner can manage billing')
-      return
-    }
-    
-    setLoading('test')
-    setError(null)
-    
-    try {
-      const response = await fetch('/api/stripe/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan: 'growth',
-          interval: 'year',
-          organizationId,
-          testPriceId: 'price_1So9yBGa0mrbt3N8NNgRd1nR', // $1 test price
-        }),
-      })
-
-      const data = await response.json()
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout session')
-      }
-      
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error('No checkout URL received')
-      }
-    } catch (err: any) {
-      console.error('Test checkout error:', err)
-      setError(err.message)
-      toast.error(err.message || 'Failed to start test checkout')
-      setLoading(null)
-    }
-  }
 
   async function handleManageBilling() {
     if (!canManageBilling) {
@@ -422,25 +382,6 @@ export function BillingSection({
         </div>
       )}
 
-      {/* TEMPORARY: Test Payment Button - REMOVE BEFORE PRODUCTION */}
-      {canManageBilling && (
-        <div className="pt-6 border-t border-dashed border-red-300">
-          <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-2">
-              ⚠️ TEST MODE - Remove before production
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={handleTestPayment}
-              disabled={loading === 'test'}
-              className="border-red-300 text-red-600 hover:bg-red-100"
-            >
-              {loading === 'test' && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-              Test Payment ($1)
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

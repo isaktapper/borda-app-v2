@@ -13,11 +13,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse request body
-    const { plan, interval, organizationId, testPriceId } = await request.json() as {
+    const { plan, interval, organizationId } = await request.json() as {
       plan: PlanType
       interval: BillingInterval
       organizationId: string
-      testPriceId?: string // Optional: for test payments
     }
 
     if (!plan || !interval || !organizationId) {
@@ -88,8 +87,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get price ID (use test price if provided, otherwise normal price)
-    const priceId = testPriceId || getPriceId(plan, interval)
+    // Get price ID
+    const priceId = getPriceId(plan, interval)
 
     // Create checkout session - no trial, pay immediately
     const session = await stripe.checkout.sessions.create({

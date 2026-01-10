@@ -25,8 +25,6 @@ export const stripe = new Proxy({} as Stripe, {
 })
 
 // Plan configuration
-// NOTE: Growth yearly price needs to be created in Stripe Dashboard at $492
-// Then update the price ID below
 export const PLANS = {
   growth: {
     name: 'Growth',
@@ -38,8 +36,7 @@ export const PLANS = {
         amount: 4900, // $49
       },
       year: {
-        // TODO: Replace with new $492 price ID from Stripe
-        id: 'price_1SoAzaGa0mrbt3N8NpuXVX7c', // Currently $1 test price!
+        id: 'price_1SoAzaGa0mrbt3N8NpuXVX7c',
         amount: 49200, // $492 ($41/month)
       },
     },
