@@ -25,10 +25,12 @@ export const stripe = new Proxy({} as Stripe, {
 })
 
 // Plan configuration
+// NOTE: Growth yearly price needs to be created in Stripe Dashboard at $492
+// Then update the price ID below
 export const PLANS = {
   growth: {
     name: 'Growth',
-    description: 'För växande team',
+    description: 'For growing teams',
     productId: 'prod_TlhLu6cGvFI9xv',
     prices: {
       month: {
@@ -36,12 +38,13 @@ export const PLANS = {
         amount: 4900, // $49
       },
       year: {
-        id: 'price_1So9yBGa0mrbt3N8NNgRd1nR',
+        // TODO: Replace with new $492 price ID from Stripe
+        id: 'price_1So9yBGa0mrbt3N8NNgRd1nR', // Currently $1 test price!
         amount: 49200, // $492 ($41/month)
       },
     },
     features: [
-      'Upp till 15 aktiva spaces',
+      'Up to 15 active spaces',
       '5 team members',
       'Slack integration',
       'Custom branding',
@@ -50,7 +53,7 @@ export const PLANS = {
   },
   scale: {
     name: 'Scale',
-    description: 'För större organisationer',
+    description: 'For larger organizations',
     productId: 'prod_TlhNmAKw2nccpH',
     prices: {
       month: {
@@ -63,8 +66,8 @@ export const PLANS = {
       },
     },
     features: [
-      'Obegränsat antal spaces',
-      'Obegränsat antal team members',
+      'Unlimited spaces',
+      'Unlimited team members',
       'Slack + Teams integration',
       'Advanced branding',
       'Priority support',

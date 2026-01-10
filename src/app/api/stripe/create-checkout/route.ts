@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
-import { stripe, getPriceId, PlanType, BillingInterval, TRIAL_DAYS } from '@/lib/stripe'
+import { stripe, getPriceId, PlanType, BillingInterval } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     // Get price ID
     const priceId = getPriceId(plan, interval)
 
-    // Create checkout session
+    // Create checkout session - no trial, pay immediately
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -100,10 +100,6 @@ export async function POST(request: NextRequest) {
           quantity: 1,
         },
       ],
-      // Add trial if currently on trial
-      subscription_data: subscription?.status === 'trialing' ? {
-        trial_period_days: TRIAL_DAYS,
-      } : undefined,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing&success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tab=billing&canceled=true`,
       metadata: {
