@@ -4,6 +4,7 @@ import { SidebarHeader } from './sidebar-header'
 import { PagesTabContent } from './pages-tab-content'
 import { BlocksTabContent } from './blocks-tab-content'
 import { EditorTabContent } from './editor-tab-content'
+import type { WelcomePopupContent } from './welcome-popup-editor'
 
 interface Page {
     id: string
@@ -47,6 +48,10 @@ interface UnifiedEditorSidebarProps {
     // Editor tab
     editingBlock: Block | null
     onBlockChange: (blockId: string, updates: any) => void
+
+    // Welcome popup
+    welcomePopup?: WelcomePopupContent | null
+    onWelcomePopupSave?: (content: WelcomePopupContent) => Promise<void>
 }
 
 export function UnifiedEditorSidebar({
@@ -68,7 +73,9 @@ export function UnifiedEditorSidebar({
     onBlockDelete,
     onAddBlock,
     editingBlock,
-    onBlockChange
+    onBlockChange,
+    welcomePopup,
+    onWelcomePopupSave
 }: UnifiedEditorSidebarProps) {
     // Get page title and block type for breadcrumb
     const selectedPage = pages.find(p => p.id === selectedPageId)
@@ -95,11 +102,14 @@ export function UnifiedEditorSidebar({
                         onPageCreated={onPageCreated}
                         onPageDelete={onPageDelete}
                         onPagesReorder={onPagesReorder}
+                        welcomePopup={welcomePopup}
+                        onWelcomePopupSave={onWelcomePopupSave}
                     />
                 )}
                 {activeView === 'blocks' && (
                     <BlocksTabContent
                         spaceId={spaceId}
+                        pageTitle={pageTitle || 'Untitled Page'}
                         blocks={blocks}
                         isLoadingBlocks={isLoadingBlocks}
                         selectedBlockId={selectedBlockId}
@@ -108,6 +118,7 @@ export function UnifiedEditorSidebar({
                         onBlockReorder={onBlockReorder}
                         onBlockDelete={onBlockDelete}
                         onAddBlock={onAddBlock}
+                        onBack={() => onViewChange('pages')}
                     />
                 )}
                 {activeView === 'editor' && (
@@ -115,6 +126,7 @@ export function UnifiedEditorSidebar({
                         editingBlock={editingBlock}
                         spaceId={spaceId}
                         onBlockChange={onBlockChange}
+                        onBack={() => onViewChange('blocks')}
                     />
                 )}
             </div>

@@ -2,7 +2,8 @@ import { PortalNavigation } from '@/components/portal/portal-navigation'
 import { PortalProgressIndicator } from '@/components/portal/portal-progress-indicator'
 import { getPortalSpace, getPortalPages, validatePortalAccess } from '../../actions'
 import { getPortalBranding } from '../../branding-actions'
-import { getSpaceProgress } from '@/app/(app)/spaces/progress-actions'
+import { getWelcomePopupForPortal } from '../../welcome-popup-actions'
+import { getSpaceProgress, getProgressPerPage } from '@/app/(app)/spaces/progress-actions'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { CheckCircle2 } from 'lucide-react'
@@ -10,6 +11,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { hexToHSL } from '@/lib/branding'
 import { VisitLogger } from '@/components/portal/visit-logger'
 import { SessionTracker } from '@/components/portal/session-tracker'
+import { WelcomePopupWrapper } from '@/components/portal/welcome-popup-wrapper'
 import { cookies } from 'next/headers'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BordaBrandingServer } from '@/components/portal/borda-branding'
@@ -22,12 +24,14 @@ export default async function PortalLayout({
     params: Promise<{ spaceId: string }>
 }) {
     const { spaceId } = await params
-    const [project, pages, branding, accessCheck, progress] = await Promise.all([
+    const [project, pages, branding, accessCheck, progress, pageProgress, welcomePopup] = await Promise.all([
         getPortalSpace(spaceId),
         getPortalPages(spaceId),
         getPortalBranding(spaceId),
         validatePortalAccess(spaceId),
-        getSpaceProgress(spaceId, true) // Use admin client for portal access
+        getSpaceProgress(spaceId, true), // Use admin client for portal access
+        getProgressPerPage(spaceId, true), // Use admin client for portal access
+        getWelcomePopupForPortal(spaceId)
     ])
 
     if (!project) {
@@ -68,6 +72,15 @@ export default async function PortalLayout({
             
             {/* Track session duration */}
             <SessionTracker spaceId={spaceId} visitorEmail={visitorEmail} />
+
+            {/* Welcome popup - shown once per stakeholder on first visit */}
+            {welcomePopup.shouldShow && welcomePopup.content && (
+                <WelcomePopupWrapper
+                    spaceId={spaceId}
+                    content={welcomePopup.content}
+                    pages={pages.map(p => ({ id: p.id, slug: p.slug }))}
+                />
+            )}
 
             {/* Apply brand color as CSS variables - overrides global defaults */}
             <style dangerouslySetInnerHTML={{
@@ -135,6 +148,8 @@ export default async function PortalLayout({
                                         percentage={progress.progressPercentage}
                                         completedItems={progress.completedTasks + progress.answeredForms + progress.uploadedFiles}
                                         totalItems={progress.totalTasks + progress.totalForms + progress.totalFiles}
+                                        spaceId={spaceId}
+                                        pageProgress={pageProgress}
                                     />
                                 )}
                                 <a

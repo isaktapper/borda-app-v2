@@ -24,6 +24,149 @@ export interface ActivityItem {
   created_at: string
 }
 
+export interface PageProgressStats {
+  pageId: string
+  pageTitle: string
+  pageSlug: string
+  totalItems: number
+  completedItems: number
+  progressPercentage: number
+}
+
+export async function getProgressPerPage(spaceId: string, useAdminClient: boolean = false): Promise<PageProgressStats[]> {
+  const supabase = useAdminClient ? await createAdminClient() : await createClient()
+
+  // Get all pages for this space
+  const { data: pages } = await supabase
+    .from('pages')
+    .select('id, title, slug, sort_order')
+    .eq('space_id', spaceId)
+    .is('deleted_at', null)
+    .order('sort_order', { ascending: true })
+
+  if (!pages || pages.length === 0) {
+    return []
+  }
+
+  const pageIds = pages.map(p => p.id)
+
+  // Get all blocks for these pages
+  const { data: blocks } = await supabase
+    .from('blocks')
+    .select('id, type, content, page_id')
+    .in('page_id', pageIds)
+    .is('deleted_at', null)
+
+  if (!blocks) return []
+
+  // Get responses for task and form blocks
+  const taskBlocks = blocks.filter(b => b.type === 'task')
+  const formBlocks = blocks.filter(b => b.type === 'form')
+  const fileBlocks = blocks.filter(b => b.type === 'file_upload')
+  const actionPlanBlocks = blocks.filter(b => b.type === 'action_plan')
+
+  const taskBlockIds = taskBlocks.map(b => b.id)
+  const formBlockIds = formBlocks.map(b => b.id)
+  const fileBlockIds = fileBlocks.map(b => b.id)
+  const actionPlanBlockIds = actionPlanBlocks.map(b => b.id)
+
+  const [taskResponses, formResponses, files, actionPlanResponses] = await Promise.all([
+    taskBlockIds.length > 0 
+      ? supabase.from('responses').select('*').in('block_id', taskBlockIds).then(r => r.data) 
+      : Promise.resolve([]),
+    formBlockIds.length > 0 
+      ? supabase.from('responses').select('*').in('block_id', formBlockIds).then(r => r.data) 
+      : Promise.resolve([]),
+    fileBlockIds.length > 0 
+      ? supabase.from('files').select('block_id').in('block_id', fileBlockIds).is('deleted_at', null).then(r => r.data)
+      : Promise.resolve([]),
+    actionPlanBlockIds.length > 0
+      ? supabase.from('responses').select('*').in('block_id', actionPlanBlockIds).then(r => r.data)
+      : Promise.resolve([])
+  ])
+
+  const blocksWithFiles = new Set(files?.map(f => f.block_id) || [])
+
+  // Calculate progress per page
+  return pages.map(page => {
+    const pageBlocks = blocks.filter(b => b.page_id === page.id)
+    let totalItems = 0
+    let completedItems = 0
+
+    // Count task block items
+    pageBlocks.filter(b => b.type === 'task').forEach(block => {
+      const content = block.content as any
+      const blockTasks = content?.tasks || []
+      const response = taskResponses?.find(r => r.block_id === block.id)
+      const taskStatuses = response?.value?.tasks || {}
+
+      blockTasks.forEach((task: any) => {
+        totalItems++
+        if (taskStatuses[task.id] === 'completed') {
+          completedItems++
+        }
+      })
+    })
+
+    // Count action plan items
+    pageBlocks.filter(b => b.type === 'action_plan').forEach(block => {
+      const content = block.content as any
+      const milestones = content?.milestones || []
+      const response = actionPlanResponses?.find(r => r.block_id === block.id)
+      const taskStatuses = response?.value?.tasks || {}
+
+      milestones.forEach((milestone: any) => {
+        const tasks = milestone.tasks || []
+        tasks.forEach((task: any) => {
+          totalItems++
+          // Task status key format (without blockId prefix): {milestoneId}-{taskId}
+          const taskKey = `${milestone.id}-${task.id}`
+          if (taskStatuses[taskKey] === 'completed') {
+            completedItems++
+          }
+        })
+      })
+    })
+
+    // Count form items
+    pageBlocks.filter(b => b.type === 'form').forEach(block => {
+      const content = block.content as any
+      const questions = content?.questions || []
+      const response = formResponses?.find(r => r.block_id === block.id)
+      const answers = response?.value?.questions || {}
+
+      questions.forEach((q: any) => {
+        totalItems++
+        const answer = answers[q.id]
+        if (answer) {
+          if (answer.text?.trim() || answer.selected?.length || answer.date) {
+            completedItems++
+          }
+        }
+      })
+    })
+
+    // Count file upload blocks
+    pageBlocks.filter(b => b.type === 'file_upload').forEach(block => {
+      totalItems++
+      if (blocksWithFiles.has(block.id)) {
+        completedItems++
+      }
+    })
+
+    const progressPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 100
+
+    return {
+      pageId: page.id,
+      pageTitle: page.title,
+      pageSlug: page.slug,
+      totalItems,
+      completedItems,
+      progressPercentage
+    }
+  })
+}
+
 export async function getSpaceProgress(spaceId: string, useAdminClient: boolean = false): Promise<ProgressStats | null> {
   const supabase = useAdminClient ? await createAdminClient() : await createClient()
 
@@ -58,32 +201,55 @@ export async function getSpaceProgress(spaceId: string, useAdminClient: boolean 
 
   const blockIds = blocks.map(b => b.id)
 
-  // ===== COUNT TASKS =====
+  // ===== COUNT TASKS (from both legacy task blocks and action_plan blocks) =====
   const taskBlocks = blocks.filter(b => b.type === 'task')
+  const actionPlanBlocks = blocks.filter(b => b.type === 'action_plan')
   const taskBlockIds = taskBlocks.map(b => b.id)
+  const actionPlanBlockIds = actionPlanBlocks.map(b => b.id)
 
-  // Get task responses (stored in responses table)
-  const { data: taskResponses } = await supabase
-    .from('responses')
-    .select('*')
-    .in('block_id', taskBlockIds)
+  // Get responses for both block types
+  const allTaskBlockIds = [...taskBlockIds, ...actionPlanBlockIds]
+  const { data: taskResponses } = allTaskBlockIds.length > 0 
+    ? await supabase.from('responses').select('*').in('block_id', allTaskBlockIds)
+    : { data: [] }
 
   let totalTasks = 0
   let completedTasks = 0
 
+  // Count legacy task block tasks
   taskBlocks.forEach(block => {
     const content = block.content as any
     const blockTasks = content?.tasks || []
     const response = taskResponses?.find(r => r.block_id === block.id)
     const taskStatuses = response?.value?.tasks || {}
 
-    // Count each task in the block
     blockTasks.forEach((task: any) => {
       totalTasks++
       const status = taskStatuses[task.id] || 'pending'
       if (status === 'completed') {
         completedTasks++
       }
+    })
+  })
+
+  // Count action_plan block tasks
+  actionPlanBlocks.forEach(block => {
+    const content = block.content as any
+    const milestones = content?.milestones || []
+    const response = taskResponses?.find(r => r.block_id === block.id)
+    const taskStatuses = response?.value?.tasks || {}
+
+    milestones.forEach((milestone: any) => {
+      const tasks = milestone.tasks || []
+      tasks.forEach((task: any) => {
+        totalTasks++
+        // Task status key format (without blockId prefix): {milestoneId}-{taskId}
+        const taskKey = `${milestone.id}-${task.id}`
+        const status = taskStatuses[taskKey] || 'pending'
+        if (status === 'completed') {
+          completedTasks++
+        }
+      })
     })
   })
 
@@ -195,12 +361,12 @@ export async function getUpcomingTasks(spaceId: string, limit: number = 5, useAd
 
   const pageIds = pages.map(p => p.id)
 
-  // Get all task blocks for these pages
+  // Get all task blocks AND action_plan blocks for these pages
   const { data: blocks } = await supabase
     .from('blocks')
     .select('id, type, content, page_id')
     .in('page_id', pageIds)
-    .eq('type', 'task')
+    .in('type', ['task', 'action_plan'])
 
   if (!blocks || blocks.length === 0) return []
 
@@ -215,7 +381,8 @@ export async function getUpcomingTasks(spaceId: string, limit: number = 5, useAd
   // Extract all tasks with due dates
   const upcomingTasks: any[] = []
 
-  blocks.forEach(block => {
+  // Process legacy task blocks
+  blocks.filter(b => b.type === 'task').forEach(block => {
     const content = block.content as any
     const blockTasks = content?.tasks || []
     const response = taskResponses?.find(r => r.block_id === block.id)
@@ -232,6 +399,33 @@ export async function getUpcomingTasks(spaceId: string, limit: number = 5, useAd
           status
         })
       }
+    })
+  })
+
+  // Process action_plan blocks
+  blocks.filter(b => b.type === 'action_plan').forEach(block => {
+    const content = block.content as any
+    const milestones = content?.milestones || []
+    const response = taskResponses?.find(r => r.block_id === block.id)
+    const taskStatuses = response?.value?.tasks || {}
+
+    milestones.forEach((milestone: any) => {
+      const tasks = milestone.tasks || []
+      tasks.forEach((task: any) => {
+        // Task status key format (without blockId prefix): {milestoneId}-{taskId}
+        const taskKey = `${milestone.id}-${task.id}`
+        const status = taskStatuses[taskKey] || 'pending'
+        if (status === 'pending' && task.dueDate) {
+          upcomingTasks.push({
+            id: `${block.id}-${taskKey}`,
+            blockId: block.id,
+            milestoneId: milestone.id,
+            title: task.title,
+            dueDate: task.dueDate,
+            status
+          })
+        }
+      })
     })
   })
 
@@ -256,12 +450,12 @@ export async function getOverdueTasks(spaceId: string) {
 
   const pageIds = pages.map(p => p.id)
 
-  // Get all task blocks for these pages
+  // Get all task blocks AND action_plan blocks for these pages
   const { data: blocks } = await supabase
     .from('blocks')
     .select('id, type, content, page_id')
     .in('page_id', pageIds)
-    .eq('type', 'task')
+    .in('type', ['task', 'action_plan'])
 
   if (!blocks || blocks.length === 0) return []
 
@@ -276,7 +470,8 @@ export async function getOverdueTasks(spaceId: string) {
   // Extract all overdue tasks
   const overdueTasks: any[] = []
 
-  blocks.forEach(block => {
+  // Process legacy task blocks
+  blocks.filter(b => b.type === 'task').forEach(block => {
     const content = block.content as any
     const blockTasks = content?.tasks || []
     const response = taskResponses?.find(r => r.block_id === block.id)
@@ -293,6 +488,33 @@ export async function getOverdueTasks(spaceId: string) {
           status
         })
       }
+    })
+  })
+
+  // Process action_plan blocks
+  blocks.filter(b => b.type === 'action_plan').forEach(block => {
+    const content = block.content as any
+    const milestones = content?.milestones || []
+    const response = taskResponses?.find(r => r.block_id === block.id)
+    const taskStatuses = response?.value?.tasks || {}
+
+    milestones.forEach((milestone: any) => {
+      const tasks = milestone.tasks || []
+      tasks.forEach((task: any) => {
+        // Task status key format (without blockId prefix): {milestoneId}-{taskId}
+        const taskKey = `${milestone.id}-${task.id}`
+        const status = taskStatuses[taskKey] || 'pending'
+        if (status === 'pending' && task.dueDate && task.dueDate < today) {
+          overdueTasks.push({
+            id: `${block.id}-${taskKey}`,
+            blockId: block.id,
+            milestoneId: milestone.id,
+            title: task.title,
+            dueDate: task.dueDate,
+            status
+          })
+        }
+      })
     })
   })
 
@@ -406,21 +628,21 @@ export async function getDashboardStats(organizationId: string) {
     blocksByPage.get(block.page_id)!.push(block.id)
   })
 
-  // Get task blocks and responses
+  // Get task blocks AND action_plan blocks with responses
   const taskBlocks = blocks?.filter(b => b.type === 'task') || []
-  const taskBlockIds = taskBlocks.map(b => b.id)
+  const actionPlanBlocks = blocks?.filter(b => b.type === 'action_plan') || []
+  const allTaskBlockIds = [...taskBlocks.map(b => b.id), ...actionPlanBlocks.map(b => b.id)]
 
-  const { data: taskResponses } = await supabase
-    .from('responses')
-    .select('*')
-    .in('block_id', taskBlockIds)
+  const { data: taskResponses } = allTaskBlockIds.length > 0
+    ? await supabase.from('responses').select('*').in('block_id', allTaskBlockIds)
+    : { data: [] }
 
   const today = new Date().toISOString().split('T')[0]
   let totalOverdueTasks = 0
   const projectOverdueTasks = new Map<string, number>()
   const projectTaskCounts = new Map<string, number>()
 
-  // Count all tasks and overdue tasks per project
+  // Count all tasks and overdue tasks per project - legacy task blocks
   taskBlocks.forEach(block => {
     const content = block.content as any
     const blockTasks = content?.tasks || []
@@ -442,6 +664,36 @@ export async function getDashboardStats(organizationId: string) {
           totalOverdueTasks++
           projectOverdueTasks.set(spaceId, (projectOverdueTasks.get(spaceId) || 0) + 1)
         }
+      })
+    }
+  })
+
+  // Count tasks from action_plan blocks
+  actionPlanBlocks.forEach(block => {
+    const content = block.content as any
+    const milestones = content?.milestones || []
+    const response = taskResponses?.find(r => r.block_id === block.id)
+    const taskStatuses = response?.value?.tasks || {}
+
+    // Find project for this block
+    const page = pages?.find(p => p.id === block.page_id)
+    const spaceId = page?.space_id
+
+    if (spaceId) {
+      milestones.forEach((milestone: any) => {
+        const tasks = milestone.tasks || []
+        tasks.forEach((task: any) => {
+          // Increment total task count for this project
+          projectTaskCounts.set(spaceId, (projectTaskCounts.get(spaceId) || 0) + 1)
+
+          // Check if task is overdue - task key format (without blockId): {milestoneId}-{taskId}
+          const taskKey = `${milestone.id}-${task.id}`
+          const status = taskStatuses[taskKey] || 'pending'
+          if (status === 'pending' && task.dueDate && task.dueDate < today) {
+            totalOverdueTasks++
+            projectOverdueTasks.set(spaceId, (projectOverdueTasks.get(spaceId) || 0) + 1)
+          }
+        })
       })
     }
   })

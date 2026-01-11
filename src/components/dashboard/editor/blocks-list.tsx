@@ -22,31 +22,34 @@ import {
     ArrowLeft,
     GripVertical,
     Type,
-    CheckSquare,
     Upload,
     Download,
     HelpCircle,
     Video,
     User,
-    Minus,
     Plus,
     Trash2,
     Loader2,
     Blocks,
     Sparkles,
-    Target
+    Target,
+    Image as ImageIcon,
+    List,
+    LayoutGrid,
+    MessageSquare,
+    FolderKanban
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-    DropdownMenuSeparator,
-    DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu'
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog'
 
 interface Block {
     id: string
@@ -68,31 +71,52 @@ interface BlocksListViewProps {
     onPageRename?: (newTitle: string) => void
 }
 
-const BLOCK_TYPES = [
-    { type: 'text', label: 'Text', icon: Type, description: 'Rich text content' },
-    { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative milestones and tasks' },
-    { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Checkable tasks' },
-    { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses' },
-    { type: 'file_upload', label: 'File Upload', icon: Upload, description: 'Stakeholder uploads' },
-    { type: 'file_download', label: 'File Download', icon: Download, description: 'Share files' },
-    { type: 'embed', label: 'Video / Embed', icon: Video, description: 'YouTube, Loom' },
-    { type: 'contact', label: 'Contact Card', icon: User, description: 'Contact info' },
-    { type: 'divider', label: 'Divider', icon: Minus, description: 'Visual separator' },
+type BlockCategory = 'content' | 'projects' | 'collaboration'
+
+interface BlockType {
+    type: string
+    label: string
+    icon: any
+    category: BlockCategory
+}
+
+const BLOCK_CATEGORIES: { id: BlockCategory; label: string }[] = [
+    { id: 'content', label: 'Content' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'collaboration', label: 'Collaboration' },
+]
+
+const BLOCK_TYPES: BlockType[] = [
+    // Content
+    { type: 'text', label: 'Text', icon: Type, category: 'content' },
+    { type: 'media', label: 'Media', icon: ImageIcon, category: 'content' },
+    { type: 'accordion', label: 'Accordion', icon: List, category: 'content' },
+    { type: 'embed', label: 'Embed', icon: Video, category: 'content' },
+    // Projects
+    { type: 'action_plan', label: 'Action Plan', icon: Target, category: 'projects' },
+    // Collaboration
+    { type: 'form', label: 'Form', icon: HelpCircle, category: 'collaboration' },
+    { type: 'file_upload', label: 'File Upload', icon: Upload, category: 'collaboration' },
+    { type: 'file_download', label: 'Files', icon: Download, category: 'collaboration' },
+    { type: 'contact', label: 'Contact', icon: User, category: 'collaboration' },
 ]
 
 const BLOCK_ICONS: Record<string, any> = {
     text: Type,
     action_plan: Target,
-    task: CheckSquare,
+    media: ImageIcon,
+    accordion: List,
     form: HelpCircle,
     file_upload: Upload,
     file_download: Download,
     embed: Video,
     contact: User,
-    divider: Minus,
+    // Deprecated types kept for backward compatibility rendering
+    task: Target,
+    divider: Type,
 }
 
-const QUICK_ADD_TYPES = ['text', 'task', 'form', 'file_upload']
+const QUICK_ADD_TYPES = ['text', 'action_plan', 'form', 'file_upload']
 
 export function BlocksListView({
     pageTitle,
@@ -108,7 +132,22 @@ export function BlocksListView({
 }: BlocksListViewProps) {
     const [isEditingTitle, setIsEditingTitle] = useState(false)
     const [editedTitle, setEditedTitle] = useState(pageTitle)
+    const [isAddBlockOpen, setIsAddBlockOpen] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState<BlockCategory | 'all'>('all')
     const sortedBlocks = [...blocks].sort((a, b) => a.sort_order - b.sort_order)
+
+    const handleAddBlock = (type: string) => {
+        onAddBlock(type)
+        setIsAddBlockOpen(false)
+        setSelectedCategory('all')
+    }
+
+    const filteredBlockTypes = selectedCategory === 'all' 
+        ? BLOCK_TYPES 
+        : BLOCK_TYPES.filter(b => b.category === selectedCategory)
+
+    const getBlocksByCategory = (category: BlockCategory) => 
+        BLOCK_TYPES.filter(b => b.category === category)
 
     const handleTitleSubmit = () => {
         const trimmedTitle = editedTitle.trim()
@@ -297,35 +336,126 @@ export function BlocksListView({
 
             {/* Add Block Button */}
             <div className="p-3 border-t">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                <Dialog open={isAddBlockOpen} onOpenChange={setIsAddBlockOpen}>
+                    <DialogTrigger asChild>
                         <Button variant="outline" className="w-full gap-2">
                             <Plus className="size-4" />
                             Add block
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center" className="w-64">
-                        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                            Choose a block type
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {BLOCK_TYPES.map((type) => (
-                            <DropdownMenuItem
-                                key={type.type}
-                                onClick={() => onAddBlock(type.type)}
-                                className="gap-3 py-2.5"
-                            >
-                                <div className="p-1.5 rounded bg-muted">
-                                    <type.icon className="size-4 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1">
-                                    <div className="font-medium text-sm">{type.label}</div>
-                                    <div className="text-xs text-muted-foreground">{type.description}</div>
-                                </div>
-                            </DropdownMenuItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl p-0 gap-0">
+                        <DialogHeader className="p-6 pb-4">
+                            <DialogTitle className="text-xl font-bold text-center">Add a Block</DialogTitle>
+                            <DialogDescription className="text-center">
+                                Select a block below to add to your page.
+                            </DialogDescription>
+                        </DialogHeader>
+                        
+                        <div className="flex border-t">
+                            {/* Left sidebar - Category filter */}
+                            <div className="w-44 border-r p-3 space-y-1 bg-muted/20">
+                                <button
+                                    onClick={() => setSelectedCategory('all')}
+                                    className={cn(
+                                        "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                        selectedCategory === 'all' 
+                                            ? "bg-primary/10 text-primary" 
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <LayoutGrid className="size-4" />
+                                    All
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('content')}
+                                    className={cn(
+                                        "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                        selectedCategory === 'content' 
+                                            ? "bg-primary/10 text-primary" 
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <MessageSquare className="size-4" />
+                                    Content
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('projects')}
+                                    className={cn(
+                                        "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                        selectedCategory === 'projects' 
+                                            ? "bg-primary/10 text-primary" 
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <FolderKanban className="size-4" />
+                                    Projects
+                                </button>
+                                <button
+                                    onClick={() => setSelectedCategory('collaboration')}
+                                    className={cn(
+                                        "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                        selectedCategory === 'collaboration' 
+                                            ? "bg-primary/10 text-primary" 
+                                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    )}
+                                >
+                                    <User className="size-4" />
+                                    Collaboration
+                                </button>
+                            </div>
+
+                            {/* Right side - Block grid */}
+                            <div className="flex-1 p-4 max-h-[400px] overflow-y-auto">
+                                {selectedCategory === 'all' ? (
+                                    <div className="space-y-5">
+                                        {BLOCK_CATEGORIES.map(cat => {
+                                            const categoryBlocks = getBlocksByCategory(cat.id)
+                                            if (categoryBlocks.length === 0) return null
+                                            return (
+                                                <div key={cat.id}>
+                                                    <h4 className="text-sm font-semibold text-foreground mb-2">{cat.label}</h4>
+                                                    <div className="grid grid-cols-4 gap-2">
+                                                        {categoryBlocks.map((type) => (
+                                                            <button
+                                                                key={type.type}
+                                                                onClick={() => handleAddBlock(type.type)}
+                                                                className="group flex flex-col items-center text-center rounded-lg p-2 transition-all hover:bg-primary/5"
+                                                            >
+                                                                <div className="w-full aspect-[4/3] rounded-lg bg-muted/50 flex items-center justify-center transition-colors group-hover:bg-primary/10">
+                                                                    <type.icon className="size-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                                                                </div>
+                                                                <span className="text-xs font-medium mt-1.5 text-foreground/70 group-hover:text-primary transition-colors">
+                                                                    {type.label}
+                                                                </span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {filteredBlockTypes.map((type) => (
+                                            <button
+                                                key={type.type}
+                                                onClick={() => handleAddBlock(type.type)}
+                                                className="group flex flex-col items-center text-center rounded-lg p-2 transition-all hover:bg-primary/5"
+                                            >
+                                                <div className="w-full aspect-[4/3] rounded-lg bg-muted/50 flex items-center justify-center transition-colors group-hover:bg-primary/10">
+                                                    <type.icon className="size-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                                                </div>
+                                                <span className="text-xs font-medium mt-1.5 text-foreground/70 group-hover:text-primary transition-colors">
+                                                    {type.label}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
         </>
     )

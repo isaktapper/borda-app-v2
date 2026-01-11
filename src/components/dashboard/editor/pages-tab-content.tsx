@@ -18,10 +18,23 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { GripVertical, Trash2, FileText, Plus, ChevronRight, Sparkles } from 'lucide-react'
+import { Trash2, FileText, Plus, Sparkles, MoreVertical, Info, ChevronRight } from 'lucide-react'
+import { WelcomePopupEditor, WelcomePopupContent } from './welcome-popup-editor'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { CreatePageModal } from '@/components/dashboard/create-page-modal'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -47,6 +60,8 @@ interface PagesTabContentProps {
     onPageCreated: (page: Page) => void
     onPageDelete: (pageId: string) => void
     onPagesReorder: (pages: Page[]) => void
+    welcomePopup?: WelcomePopupContent | null
+    onWelcomePopupSave?: (content: WelcomePopupContent) => Promise<void>
 }
 
 export function PagesTabContent({
@@ -55,18 +70,42 @@ export function PagesTabContent({
     onPageSelect,
     onPageCreated,
     onPageDelete,
-    onPagesReorder
+    onPagesReorder,
+    welcomePopup,
+    onWelcomePopupSave
 }: PagesTabContentProps) {
     const [deleteId, setDeleteId] = useState<string | null>(null)
+    const [showWelcomeEditor, setShowWelcomeEditor] = useState(false)
 
-    const sortedPages = [...pages].sort((a, b) => a.sort_order - b.sort_order)
-
+    // All hooks must be called before any conditional returns
     const sensors = useSensors(
-        useSensor(PointerSensor),
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px movement required before drag starts
+            },
+        }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     )
+
+    const sortedPages = [...pages].sort((a, b) => a.sort_order - b.sort_order)
+
+    // If showing welcome popup editor, render it instead
+    if (showWelcomeEditor && onWelcomePopupSave) {
+        return (
+            <WelcomePopupEditor
+                spaceId={spaceId}
+                content={welcomePopup || null}
+                pages={pages.map(p => ({ id: p.id, title: p.title }))}
+                onSave={async (content) => {
+                    await onWelcomePopupSave(content)
+                    setShowWelcomeEditor(false)
+                }}
+                onBack={() => setShowWelcomeEditor(false)}
+            />
+        )
+    }
 
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event
@@ -91,23 +130,58 @@ export function PagesTabContent({
 
     return (
         <>
-            {/* Header - more compact */}
-            <div className="p-3 border-b bg-muted/20">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm">Pages</h3>
-                        {sortedPages.length > 0 && (
-                            <span className="text-xs bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">
-                                {sortedPages.length}
-                            </span>
-                        )}
-                    </div>
-                    <CreatePageModal spaceId={spaceId} onPageCreated={onPageCreated} />
+            {/* Header */}
+            <div className="p-4 border-b">
+                <div className="flex items-center justify-center relative">
+                    <h3 className="font-semibold text-base">Pages overview</h3>
+                    <CreatePageModal 
+                        spaceId={spaceId} 
+                        onPageCreated={onPageCreated}
+                        trigger={
+                            <Button size="icon" className="size-8 rounded-lg absolute right-0">
+                                <Plus className="size-4" />
+                            </Button>
+                        }
+                    />
                 </div>
             </div>
 
-            {/* Pages List - compact spacing */}
-            <div className="flex-1 overflow-y-auto p-2">
+            {/* Welcome Pop-Up Section */}
+            <div className="px-4 pt-4">
+                <button
+                    onClick={() => setShowWelcomeEditor(true)}
+                    className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-base">👋</span>
+                        <span className="text-sm font-medium text-foreground">Welcome Pop-Up</span>
+                        <Tooltip>
+                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <span className="text-muted-foreground hover:text-foreground transition-colors">
+                                    <Info className="size-4" />
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[200px]">
+                                <p className="text-xs">Show a welcome message when stakeholders first visit your space.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            welcomePopup?.enabled 
+                                ? "bg-emerald-100 text-emerald-700" 
+                                : "bg-muted text-muted-foreground"
+                        )}>
+                            {welcomePopup?.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                        <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                </button>
+            </div>
+
+            {/* Pages List */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
                 {sortedPages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                         {/* Decorative illustration */}
@@ -148,12 +222,11 @@ export function PagesTabContent({
                             items={sortedPages.map((p) => p.id)}
                             strategy={verticalListSortingStrategy}
                         >
-                            <div className="space-y-1">
-                                {sortedPages.map((page, index) => (
+                            <div className="space-y-3">
+                                {sortedPages.map((page) => (
                                     <SortablePageItem
                                         key={page.id}
                                         page={page}
-                                        pageNumber={index + 1}
                                         onSelect={() => onPageSelect(page.id)}
                                         onDelete={() => setDeleteId(page.id)}
                                     />
@@ -190,12 +263,13 @@ export function PagesTabContent({
 
 interface SortablePageItemProps {
     page: Page
-    pageNumber: number
     onSelect: () => void
     onDelete: () => void
 }
 
-function SortablePageItem({ page, pageNumber, onSelect, onDelete }: SortablePageItemProps) {
+function SortablePageItem({ page, onSelect, onDelete }: SortablePageItemProps) {
+    const [isEnabled, setIsEnabled] = useState(true)
+    
     const {
         attributes,
         listeners,
@@ -214,44 +288,53 @@ function SortablePageItem({ page, pageNumber, onSelect, onDelete }: SortablePage
         <div
             ref={setNodeRef}
             style={style}
-            className={cn(
-                "group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors cursor-pointer",
-                "hover:bg-muted",
-                isDragging && "opacity-50 z-50 bg-muted ring-1 ring-primary"
-            )}
+            {...attributes}
+            {...listeners}
             onClick={onSelect}
+            className={cn(
+                "group flex items-center gap-3 rounded-xl px-4 py-3 transition-all cursor-pointer",
+                "bg-white border border-border shadow-sm",
+                "hover:shadow-md hover:border-border/80",
+                isDragging && "opacity-50 z-50 ring-2 ring-primary shadow-lg cursor-grabbing"
+            )}
         >
-            <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
-                <span className="text-xs font-medium text-muted-foreground group-hover:opacity-0 transition-opacity">
-                    {pageNumber}
-                </span>
-                <button
-                    {...attributes}
-                    {...listeners}
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing rounded hover:bg-muted-foreground/10 text-muted-foreground transition-all opacity-0 group-hover:opacity-100"
-                >
-                    <GripVertical className="size-3.5" />
-                </button>
-            </div>
-
-            <FileText className="size-4 text-muted-foreground shrink-0" />
-
+            {/* Title */}
             <span className="flex-1 text-sm font-medium truncate">
                 {page.title}
             </span>
 
-            <button
-                onClick={(e) => {
-                    e.stopPropagation()
-                    onDelete()
-                }}
-                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all opacity-0 group-hover:opacity-100"
-            >
-                <Trash2 className="size-3.5" />
-            </button>
+            {/* Kebab Menu */}
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <MoreVertical className="size-4" />
+                    </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuItem 
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete()
+                        }}
+                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                    >
+                        <Trash2 className="size-4 mr-2" />
+                        Delete
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
-            <ChevronRight className="size-4 text-muted-foreground shrink-0" />
+            {/* Toggle */}
+            <Switch
+                checked={isEnabled}
+                onCheckedChange={(checked) => {
+                    setIsEnabled(checked)
+                }}
+                onClick={(e) => e.stopPropagation()}
+            />
         </div>
     )
 }
