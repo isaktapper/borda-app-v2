@@ -594,3 +594,25 @@ export async function logPortalVisitActivity(spaceId: string, visitorEmail: stri
     firstVisit
   })
 }
+
+// Get total session duration for a space (sum of all users' session durations)
+export async function getTotalSessionDuration(spaceId: string): Promise<number> {
+  const supabase = await createClient()
+  
+  const { data, error } = await supabase
+    .from('portal_visits')
+    .select('session_duration_seconds')
+    .eq('space_id', spaceId)
+  
+  if (error) {
+    console.error('Error fetching session durations:', error)
+    return 0
+  }
+  
+  // Sum all session durations
+  const totalSeconds = data?.reduce((sum, visit) => {
+    return sum + (visit.session_duration_seconds || 0)
+  }, 0) || 0
+  
+  return totalSeconds
+}

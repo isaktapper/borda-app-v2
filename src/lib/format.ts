@@ -53,3 +53,23 @@ export function daysUntil(date: string | Date | null): number | null {
 
     return diffDays
 }
+
+/**
+ * Format seconds into a human-readable duration (e.g., "2h 15m", "45m", "30s")
+ */
+export function formatSessionDuration(seconds: number): string {
+    if (seconds < 60) {
+        return `${seconds}s`
+    }
+    
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    
+    if (hours > 0 && minutes > 0) {
+        return `${hours}h ${minutes}m`
+    } else if (hours > 0) {
+        return `${hours}h`
+    } else {
+        return `${minutes}m`
+    }
+}

@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Loader2, Filter, ChevronDown } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import { getSpaceActivity } from '@/app/(app)/spaces/progress-actions'
+import { getSpaceActivity, getTotalSessionDuration } from '@/app/(app)/spaces/progress-actions'
+import { formatSessionDuration } from '@/lib/format'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
@@ -46,19 +47,24 @@ const ACTIVITY_FILTERS = [
 export function ActivitySidebar({ spaceId, progress, engagement }: ActivitySidebarProps) {
     const [activities, setActivities] = useState<ActivityItem[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [totalSessionSeconds, setTotalSessionSeconds] = useState<number>(0)
     // All filters are active by default - unchecking removes that type
     const [activeFilters, setActiveFilters] = useState<string[]>(
         ACTIVITY_FILTERS.map(f => f.id)
     )
 
     useEffect(() => {
-        const fetchActivities = async () => {
+        const fetchData = async () => {
             setIsLoading(true)
-            const data = await getSpaceActivity(spaceId, 100)
-            setActivities(data)
+            const [activityData, sessionDuration] = await Promise.all([
+                getSpaceActivity(spaceId, 100),
+                getTotalSessionDuration(spaceId)
+            ])
+            setActivities(activityData)
+            setTotalSessionSeconds(sessionDuration)
             setIsLoading(false)
         }
-        fetchActivities()
+        fetchData()
     }, [spaceId])
 
     // Calculate stats
@@ -71,10 +77,9 @@ export function ActivitySidebar({ spaceId, progress, engagement }: ActivitySideb
         return {
             uniqueUsers,
             totalVisits,
-            totalUploads: progress?.uploadedFiles || 0,
-            totalFormAnswers: progress?.answeredForms || 0
+            totalTime: formatSessionDuration(totalSessionSeconds)
         }
-    }, [activities, progress])
+    }, [activities, totalSessionSeconds])
 
     // Filter activities - show only activities that match ACTIVE filters
     // All filters checked = show all, unchecking a filter hides those activities
@@ -146,20 +151,16 @@ export function ActivitySidebar({ spaceId, progress, engagement }: ActivitySideb
                     {/* Stats - Single row */}
                     <div className="flex gap-3 text-center">
                         <div className="flex-1">
-                            <div className="text-lg font-bold">{stats.totalVisits}</div>
-                            <div className="text-[10px] text-muted-foreground">Visits</div>
-                        </div>
-                        <div className="flex-1">
                             <div className="text-lg font-bold">{stats.uniqueUsers}</div>
                             <div className="text-[10px] text-muted-foreground">Users</div>
                         </div>
                         <div className="flex-1">
-                            <div className="text-lg font-bold">{stats.totalUploads}</div>
-                            <div className="text-[10px] text-muted-foreground">Uploads</div>
+                            <div className="text-lg font-bold">{stats.totalVisits}</div>
+                            <div className="text-[10px] text-muted-foreground">Visits</div>
                         </div>
                         <div className="flex-1">
-                            <div className="text-lg font-bold">{stats.totalFormAnswers}</div>
-                            <div className="text-[10px] text-muted-foreground">Forms</div>
+                            <div className="text-lg font-bold">{stats.totalTime}</div>
+                            <div className="text-[10px] text-muted-foreground">Total Time</div>
                         </div>
                     </div>
 
