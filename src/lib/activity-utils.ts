@@ -25,12 +25,19 @@ export interface ActivityItem {
 
 /**
  * Get the display name for an activity actor
- * Handles anonymous users gracefully
+ * Handles anonymous users gracefully with unique numbering
  */
 export function getActorName(actorEmail: string): string {
     if (actorEmail === 'anonymous' || actorEmail === 'unknown') {
-        return 'Anonymous Customer'
+        return 'Anonymous Stakeholder'
     }
+    
+    // Handle unique anonymous IDs (e.g., "anonymous-a1b2c3d4")
+    if (actorEmail.startsWith('anonymous-')) {
+        const shortId = actorEmail.replace('anonymous-', '').toUpperCase().slice(0, 4)
+        return `Stakeholder #${shortId}`
+    }
+    
     // Return the part before @ for email addresses
     return actorEmail.split('@')[0]
 }

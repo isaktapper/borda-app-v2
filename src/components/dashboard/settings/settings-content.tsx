@@ -7,7 +7,6 @@ import { SettingsSidebar } from './settings-sidebar'
 import { GeneralSettingsSection } from './general-settings-section'
 import { BrandingSettingsSection } from './branding-settings-section'
 import { TemplateSettingsSection } from './template-settings-section'
-import { TeamTabContent } from '@/components/dashboard/team-tab-content'
 
 interface SettingsContentProps {
     spaceId: string
@@ -36,7 +35,7 @@ interface OrgData {
 }
 
 export function SettingsContent({ spaceId, organizationId, projectName, currentAssignee, canRemoveBranding = false }: SettingsContentProps) {
-    const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'team' | 'templates'>('general')
+    const [activeSection, setActiveSection] = useState<'general' | 'branding' | 'templates'>('general')
     const [projectData, setProjectData] = useState<ProjectData | null>(null)
     const [orgData, setOrgData] = useState<OrgData | null>(null)
     const [isLoading, setIsLoading] = useState(true)
@@ -139,22 +138,6 @@ export function SettingsContent({ spaceId, organizationId, projectName, currentA
                         </>
                     )}
 
-                    {activeSection === 'team' && (
-                        <>
-                            <div>
-                                <h2 className="text-2xl font-bold mb-2">Team</h2>
-                                <p className="text-sm text-muted-foreground">
-                                    Manage project team members and customer access
-                                </p>
-                            </div>
-                            <TeamTabContent
-                                spaceId={spaceId}
-                                organizationId={organizationId}
-                                currentAssignee={currentAssignee}
-                            />
-                        </>
-                    )}
-
                     {activeSection === 'templates' && (
                         <>
                             <div>
@@ -174,4 +157,3 @@ export function SettingsContent({ spaceId, organizationId, projectName, currentA
         </div>
     )
 }
-

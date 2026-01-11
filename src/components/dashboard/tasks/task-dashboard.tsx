@@ -151,7 +151,7 @@ export function TaskDashboard({ groupedTasks }: TaskDashboardProps) {
               count={optimisticTasks.overdue.length}
               tasks={optimisticTasks.overdue}
               emptyMessage="No overdue tasks"
-              emptySubtext="Good job, your customers are following the deadlines."
+              emptySubtext="Good job, your stakeholders are on track with deadlines."
               variant="danger"
               onToggle={handleTaskToggle}
             />

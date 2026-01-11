@@ -35,7 +35,7 @@ export function TeamsConnectionCard({
               <div>
                 <CardTitle className="text-lg">Microsoft Teams</CardTitle>
                 <CardDescription className="mt-0.5">
-                  Get real-time notifications in Teams when customers complete tasks, submit forms, or upload files
+                  Get real-time notifications in Teams when stakeholders complete tasks, submit forms, or upload files
                 </CardDescription>
               </div>
             </div>

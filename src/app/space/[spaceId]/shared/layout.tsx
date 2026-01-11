@@ -9,6 +9,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { Toaster } from '@/components/ui/sonner'
 import { hexToHSL } from '@/lib/branding'
 import { VisitLogger } from '@/components/portal/visit-logger'
+import { SessionTracker } from '@/components/portal/session-tracker'
 import { cookies } from 'next/headers'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BordaBrandingServer } from '@/components/portal/borda-branding'
@@ -64,6 +65,9 @@ export default async function PortalLayout({
         <>
             {/* Log portal visit (client-side, once per session) */}
             <VisitLogger spaceId={spaceId} visitorEmail={visitorEmail} />
+            
+            {/* Track session duration */}
+            <SessionTracker spaceId={spaceId} visitorEmail={visitorEmail} />
 
             {/* Apply brand color as CSS variables - overrides global defaults */}
             <style dangerouslySetInnerHTML={{

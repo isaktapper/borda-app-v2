@@ -223,7 +223,7 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                     <div className="space-y-2">
                                         <h3 className="font-semibold text-lg">Space is in draft mode</h3>
                                         <p className="text-sm text-muted-foreground max-w-xs">
-                                            Activate the project to share it with customers.
+                                            Activate the project to share it with stakeholders.
                                         </p>
                                     </div>
                                     <Button
@@ -318,7 +318,7 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                                 <span className="font-medium">Only approved emails</span>
                                             </div>
                                             <p className="text-sm text-muted-foreground mt-0.5">
-                                                Only customers you&apos;ve added can access
+                                                Only stakeholders you&apos;ve added can access
                                             </p>
                                         </div>
                                     </button>
@@ -409,7 +409,7 @@ export function ShareModal({ open, onOpenChange, spaceId, onStatusChange }: Shar
                                     <form onSubmit={handleAddEmail} className="flex gap-2">
                                         <Input
                                             type="email"
-                                            placeholder="customer@company.com"
+                                            placeholder="stakeholder@company.com"
                                             value={newEmail}
                                             onChange={(e) => setNewEmail(e.target.value)}
                                             className="flex-1"

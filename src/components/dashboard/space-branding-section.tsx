@@ -266,15 +266,15 @@ export function SpaceBrandingSection({
           )}
         </div>
 
-        {/* Customer Logo */}
+        {/* Stakeholder Logo */}
         <div className="space-y-2 pb-4 border-b">
-          <Label className="text-xs font-semibold">Customer Logo</Label>
+          <Label className="text-xs font-semibold">Stakeholder Logo</Label>
           <p className="text-xs text-muted-foreground mb-2">
-            Upload your customer's logo to display in the portal
+            Upload your stakeholder's logo to display in the portal
           </p>
           {clientLogoPreview ? (
             <div className="relative w-full h-20 rounded border bg-muted/50 flex items-center justify-center p-2">
-              <img src={clientLogoPreview} alt="Customer logo" className="max-w-full max-h-full object-contain" />
+              <img src={clientLogoPreview} alt="Stakeholder logo" className="max-w-full max-h-full object-contain" />
               <button
                 onClick={handleRemoveClientLogo}
                 className="absolute -top-2 -right-2 size-6 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:bg-destructive/90"
@@ -284,7 +284,7 @@ export function SpaceBrandingSection({
             </div>
           ) : (
             <div className="w-full h-20 rounded border-2 border-dashed bg-muted/20 flex items-center justify-center">
-              <p className="text-xs text-muted-foreground">No customer logo uploaded</p>
+              <p className="text-xs text-muted-foreground">No stakeholder logo uploaded</p>
             </div>
           )}
           <input
@@ -302,7 +302,7 @@ export function SpaceBrandingSection({
             className="w-full"
           >
             <Upload className="size-3 mr-2" />
-            {uploadingClientLogo ? 'Uploading...' : clientLogoUrl ? 'Replace' : 'Upload Customer Logo'}
+            {uploadingClientLogo ? 'Uploading...' : clientLogoUrl ? 'Replace' : 'Upload Stakeholder Logo'}
           </Button>
         </div>
 

@@ -40,7 +40,7 @@ export function TaskItem({ task, onToggle }: TaskItemProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-0.5">
-              {task.space?.client_name || 'Unknown Customer'}
+              {task.space?.client_name || 'Unknown Stakeholder'}
             </p>
             <h4 className="font-medium text-sm mb-0.5">{task.title}</h4>
             {task.description && (

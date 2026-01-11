@@ -68,7 +68,7 @@ export async function inviteCustomer(spaceId: string, email: string) {
         // 5. Get project info for email (refresh to get updated status if changed)
 
         // 5. Send Email
-        const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared/access?token=${token}`
+        const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/access?token=${token}`
 
         await sendEmail({
             to: email,
@@ -157,7 +157,7 @@ export async function resendInvite(memberId: string, spaceId: string) {
             .single()
 
         // 4. Send email
-        const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared/access?token=${token}`
+        const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/access?token=${token}`
 
         await sendEmail({
             to: member.invited_email,

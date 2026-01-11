@@ -70,7 +70,7 @@ const BLOCK_TYPES = [
     { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative milestones and tasks' },
     { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Checkable tasks' },
     { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses' },
-    { type: 'file_upload', label: 'File Upload', icon: Upload, description: 'Customer uploads' },
+    { type: 'file_upload', label: 'File Upload', icon: Upload, description: 'Stakeholder uploads' },
     { type: 'file_download', label: 'File Download', icon: Download, description: 'Share files' },
     { type: 'embed', label: 'Video / Embed', icon: Video, description: 'YouTube, Loom' },
     { type: 'contact', label: 'Contact Card', icon: User, description: 'Contact info' },

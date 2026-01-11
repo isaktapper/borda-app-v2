@@ -101,7 +101,7 @@ export interface SpacesTableRef {
 // Define all available columns
 const COLUMNS: ColumnDefinition[] = [
     { id: 'id', label: 'ID', defaultVisible: false },
-    { id: 'client_name', label: 'Customer', defaultVisible: true },
+    { id: 'client_name', label: 'Stakeholder', defaultVisible: true },
     { id: 'name', label: 'Space Name', defaultVisible: true },
     { id: 'status', label: 'Status', defaultVisible: true },
     { id: 'tags', label: 'Tags', defaultVisible: true },

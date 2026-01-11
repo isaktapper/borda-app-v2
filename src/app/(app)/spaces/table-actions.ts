@@ -132,3 +132,72 @@ export async function logPortalVisit(spaceId: string, visitorEmail: string) {
 
     return { success: true, duplicate: false, firstVisit: isFirstVisit }
 }
+
+/**
+ * Log session duration for a portal visit
+ * Called when stakeholder leaves the portal or navigates away
+ */
+export async function logSessionDuration(
+    spaceId: string, 
+    visitorEmail: string, 
+    durationSeconds: number
+) {
+    const supabase = await createAdminClient()
+
+    // Log to activity_log with session duration in metadata
+    const { error } = await supabase
+        .from('activity_log')
+        .insert({
+            space_id: spaceId,
+            actor_email: visitorEmail,
+            action: 'portal.session_end',
+            resource_type: 'portal',
+            resource_id: spaceId,
+            metadata: { 
+                durationSeconds,
+                durationFormatted: formatDuration(durationSeconds)
+            }
+        })
+
+    if (error) {
+        console.error('[logSessionDuration] Error:', error)
+        return { error: error.message }
+    }
+
+    // Also update the most recent portal_visit with the duration
+    // Find the most recent visit for this user in this space
+    const { data: recentVisit } = await supabase
+        .from('portal_visits')
+        .select('id')
+        .eq('space_id', spaceId)
+        .eq('visitor_email', visitorEmail)
+        .order('visited_at', { ascending: false })
+        .limit(1)
+        .single()
+
+    if (recentVisit) {
+        await supabase
+            .from('portal_visits')
+            .update({ session_duration_seconds: durationSeconds })
+            .eq('id', recentVisit.id)
+    }
+
+    return { success: true }
+}
+
+/**
+ * Format seconds into a human-readable duration
+ */
+function formatDuration(seconds: number): string {
+    if (seconds < 60) {
+        return `${seconds}s`
+    }
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    if (minutes < 60) {
+        return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
+    }
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
+    return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`
+}

@@ -261,10 +261,10 @@ export function ActionPlanBlockEditor({
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="customer-can-edit" className="text-sm font-medium">
-                  Customers can edit
+                  Stakeholders can edit
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Allow customers to edit task details
+                  Allow stakeholders to edit task details
                 </p>
               </div>
               <Switch
@@ -279,10 +279,10 @@ export function ActionPlanBlockEditor({
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="customer-can-complete" className="text-sm font-medium">
-                  Customers can complete tasks
+                  Stakeholders can complete tasks
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Allow customers to mark tasks as complete
+                  Allow stakeholders to mark tasks as complete
                 </p>
               </div>
               <Switch
@@ -720,7 +720,7 @@ function AssigneePicker({ assignee, onSelect, spaceId }: AssigneePickerProps) {
             </Button>
 
             <div className="text-xs text-muted-foreground px-2 py-1 mt-2">
-              Note: Staff and customer selection will be implemented with space members fetch
+              Note: Staff and stakeholder selection will be implemented with space members fetch
             </div>
           </div>
         </PopoverContent>

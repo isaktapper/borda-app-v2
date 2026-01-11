@@ -174,7 +174,7 @@ export function OrganizationBrandingForm({
           <div className="flex-1">
             <Label className="text-sm font-medium">Logo</Label>
             <p className="text-xs text-muted-foreground mt-1">
-              Logo shown in customer portals
+              Logo shown in stakeholder portals
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -238,7 +238,7 @@ export function OrganizationBrandingForm({
           <div className="flex-shrink-0 w-40">
             <Label className="text-sm font-medium">Portal Bakgrund</Label>
             <p className="text-xs text-muted-foreground mt-1">
-              Bakgrundsfärg för customer portals
+              Bakgrundsfärg för stakeholder portals
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 max-w-md flex-1">

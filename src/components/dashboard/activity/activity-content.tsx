@@ -112,7 +112,7 @@ function ActivityFeed({ activities, isLoading }: { activities: ActivityItem[]; i
                     <AlertCircle className="size-12 text-muted-foreground/20 mx-auto mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No activity yet</h3>
                     <p className="text-sm text-muted-foreground">
-                        Customer activity will be shown here when they interact with the portal.
+                        Stakeholder activity will be shown here when they interact with the portal.
                     </p>
                 </div>
             </Card>
@@ -125,7 +125,7 @@ function ActivityFeed({ activities, isLoading }: { activities: ActivityItem[]; i
                 <div>
                     <h3 className="text-lg font-semibold">Activity Log</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                        Latest customer activity in the portal
+                        Latest stakeholder activity in the portal
                     </p>
                 </div>
                 <div className="text-sm text-muted-foreground">

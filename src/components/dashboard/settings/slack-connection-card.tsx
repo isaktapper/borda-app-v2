@@ -41,7 +41,7 @@ export function SlackConnectionCard({
               <div>
                 <CardTitle className="text-lg">Slack</CardTitle>
                 <CardDescription className="mt-0.5">
-                  Get real-time notifications in Slack when customers complete tasks, submit forms, or upload files
+                  Get real-time notifications in Slack when stakeholders complete tasks, submit forms, or upload files
                 </CardDescription>
               </div>
             </div>

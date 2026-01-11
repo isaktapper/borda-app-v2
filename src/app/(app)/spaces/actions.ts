@@ -39,7 +39,7 @@ export async function createSpace(formData: FormData) {
     const projectName = projectNameInput || clientName
 
     if (!clientName) {
-        return { error: 'Customer name is required' }
+        return { error: 'Stakeholder name is required' }
     }
 
     // Insert project (defaults to 'draft' status in database)

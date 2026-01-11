@@ -11,10 +11,10 @@ import { SlackChannelPicker } from './slack-channel-picker'
 import { Loader2, Trash2, Save } from 'lucide-react'
 
 const EVENT_OPTIONS = [
-  { id: 'task.completed', label: 'Task completions', description: 'When customers complete tasks' },
-  { id: 'form.submitted', label: 'Form submissions', description: 'When customers submit forms' },
-  { id: 'file.uploaded', label: 'File uploads', description: 'When customers upload files' },
-  { id: 'portal.first_visit', label: 'Portal first visits', description: 'When customers open the portal for the first time' },
+  { id: 'task.completed', label: 'Task completions', description: 'When stakeholders complete tasks' },
+  { id: 'form.submitted', label: 'Form submissions', description: 'When stakeholders submit forms' },
+  { id: 'file.uploaded', label: 'File uploads', description: 'When stakeholders upload files' },
+  { id: 'portal.first_visit', label: 'Portal first visits', description: 'When stakeholders open the portal for the first time' },
   { id: 'space.status_changed', label: 'Status changes', description: 'When space status is updated' }
 ]
 
@@ -106,7 +106,7 @@ export function SlackSettingsDialog({ integration, onClose }: SlackSettingsDialo
 
           {/* Event Selection */}
           <div className="space-y-3">
-            <Label>Notify when customers:</Label>
+            <Label>Notify when stakeholders:</Label>
             {EVENT_OPTIONS.map(event => (
               <div key={event.id} className="flex items-start gap-3">
                 <Checkbox

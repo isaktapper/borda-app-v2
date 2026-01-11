@@ -125,17 +125,17 @@ export function GeneralSettingsSection({
         <div className="space-y-6">
             {/* Settings Table */}
             <div className="divide-y rounded-lg border">
-                {/* Customer Name */}
+                {/* Stakeholder Name */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
                     <Label htmlFor="client-name" className="text-sm font-medium">
-                        Customer Name
+                        Stakeholder Name
                     </Label>
                     <div className="flex justify-end">
                         <Input
                             id="client-name"
                             value={clientName}
                             onChange={(e) => setClientName(e.target.value)}
-                            placeholder="Enter customer name"
+                            placeholder="Enter stakeholder name"
                             className="w-96"
                         />
                     </div>
@@ -160,7 +160,7 @@ export function GeneralSettingsSection({
                 {/* Ansvarig */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
                     <Label htmlFor="assignee" className="text-sm font-medium">
-                        Ansvarig
+                        Assignee
                     </Label>
                     <div className="flex justify-end">
                         <Select value={assignee || 'none'} onValueChange={(val) => setAssignee(val === 'none' ? null : val)}>

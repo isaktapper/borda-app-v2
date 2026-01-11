@@ -15,6 +15,30 @@ import {
     type PortalAccessSettings
 } from '@/app/space/access-actions'
 
+/**
+ * Generate or retrieve a unique anonymous visitor ID
+ * Stored in localStorage to persist across page refreshes
+ */
+function getOrCreateAnonymousId(spaceId: string): string {
+    const storageKey = `borda_anonymous_id_${spaceId}`
+    
+    // Check if we already have an ID for this space
+    if (typeof window !== 'undefined') {
+        const existingId = localStorage.getItem(storageKey)
+        if (existingId) {
+            return existingId
+        }
+        
+        // Generate new unique ID (8 hex characters)
+        const newId = `anonymous-${crypto.randomUUID().slice(0, 8)}`
+        localStorage.setItem(storageKey, newId)
+        return newId
+    }
+    
+    // Fallback for SSR (shouldn't happen in practice)
+    return `anonymous-${Math.random().toString(16).slice(2, 10)}`
+}
+
 function AccessContent() {
     const params = useParams()
     const searchParams = useSearchParams()
@@ -83,10 +107,15 @@ function AccessContent() {
         setLoading(true)
         setError(null)
 
+        // Use email if provided, otherwise generate/retrieve anonymous ID
+        const visitorEmail = settings?.requireEmailForAnalytics && email
+            ? email
+            : getOrCreateAnonymousId(spaceId)
+
         const result = await grantPublicAccess(
             spaceId,
             settings?.hasPassword ? password : undefined,
-            settings?.requireEmailForAnalytics ? email : undefined
+            visitorEmail
         )
 
         if (result.success) {

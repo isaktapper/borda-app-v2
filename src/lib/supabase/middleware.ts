@@ -74,9 +74,8 @@ export const updateSession = async (request: NextRequest) => {
         const segments = path.split('/')
         const spaceId = segments[2]
         const isSharedRoute = segments[3] === 'shared'
-        const isAccessPage = segments[4] === 'access'
 
-        if (spaceId && isSharedRoute && !isAccessPage) {
+        if (spaceId && isSharedRoute) {
             // Check for custom portal session cookie
             const sessionCookie = request.cookies.get(`portal_session_${spaceId}`)
 
@@ -84,7 +83,7 @@ export const updateSession = async (request: NextRequest) => {
             if (!sessionCookie) {
                 // If the user is logged in as internal staff, we might want to let them through,
                 // but for now let's follow the strict customer flow.
-                url.pathname = `/space/${spaceId}/shared/access`
+                url.pathname = `/space/${spaceId}/access`
                 return NextResponse.redirect(url)
             }
         }

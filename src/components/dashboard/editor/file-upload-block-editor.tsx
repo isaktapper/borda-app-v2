@@ -149,7 +149,7 @@ export function FileUploadBlockEditor({ content, onChange }: FileUploadBlockEdit
                         <h4 className="font-bold text-foreground/80">{content.label || 'Vad ska laddas upp?'}</h4>
                         {content.description && <p className="text-sm text-muted-foreground">{content.description}</p>}
                         <p className="text-[10px] text-muted-foreground/60 italic pt-2">
-                            The customer uploads their files here in the portal.
+                            The stakeholder uploads their files here in the portal.
                         </p>
                     </div>
                 </div>

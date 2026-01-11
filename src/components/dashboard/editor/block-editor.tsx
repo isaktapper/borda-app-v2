@@ -75,12 +75,12 @@ interface BlockEditorProps {
 const BLOCK_TYPES = [
     { type: 'text', label: 'Text / Rubrik', icon: Type, description: 'Vanlig text, stycken eller rubriker.' },
     { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative project plan with milestones and tasks.' },
-    { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Task for the customer with checkbox and deadline.' },
-    { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses from the customer.' },
+    { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Task for the stakeholder with checkbox and deadline.' },
+    { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses from the stakeholder.' },
     { type: 'file_upload', label: 'Filuppladdning', icon: Upload, description: 'Be kunden ladda upp dokument eller bilder.' },
-    { type: 'file_download', label: 'Files to download', icon: Download, description: 'Files for the customer to download.' },
+    { type: 'file_download', label: 'Files to download', icon: Download, description: 'Files for the stakeholder to download.' },
     { type: 'embed', label: 'Video / Embed', icon: Video, description: 'Embed Loom, YouTube or Calendly.' },
-    { type: 'contact', label: 'Contact card', icon: User, description: 'Show contact info for the customer.' },
+    { type: 'contact', label: 'Contact card', icon: User, description: 'Show contact info for the stakeholder.' },
     { type: 'divider', label: 'Avskiljare', icon: Minus, description: 'Linje eller mellanrum.' },
     { type: 'meeting', label: 'Book meeting', icon: Calendar, description: 'Embed link for scheduling.', disabled: true },
 ]

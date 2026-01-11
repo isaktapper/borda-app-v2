@@ -220,7 +220,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                             </div>
                         )}
                         <div className="grid gap-2">
-                            <Label htmlFor="clientName">Customer Name</Label>
+                            <Label htmlFor="clientName">Stakeholder Name</Label>
                             <Input
                                 id="clientName"
                                 name="clientName"
@@ -263,7 +263,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                             </Popover>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="clientLogo">Customer Logo (Optional)</Label>
+                            <Label htmlFor="clientLogo">Stakeholder Logo (Optional)</Label>
                             {!logoPreview ? (
                                 <div>
                                     <input

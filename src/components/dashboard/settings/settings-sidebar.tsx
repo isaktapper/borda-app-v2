@@ -1,11 +1,11 @@
 'use client'
 
 import { cn } from '@/lib/utils'
-import { Settings, Palette, Users, LayoutTemplate } from 'lucide-react'
+import { Settings, Palette, LayoutTemplate } from 'lucide-react'
 
 interface SettingsSidebarProps {
-    activeSection: 'general' | 'branding' | 'team' | 'templates'
-    onSectionChange: (section: 'general' | 'branding' | 'team' | 'templates') => void
+    activeSection: 'general' | 'branding' | 'templates'
+    onSectionChange: (section: 'general' | 'branding' | 'templates') => void
 }
 
 const sections = [
@@ -18,11 +18,6 @@ const sections = [
         id: 'branding' as const,
         label: 'Branding',
         icon: Palette
-    },
-    {
-        id: 'team' as const,
-        label: 'Team',
-        icon: Users
     },
     {
         id: 'templates' as const,

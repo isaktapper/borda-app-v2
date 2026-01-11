@@ -95,7 +95,7 @@ export function TemplateSettingsSection({ spaceId, spaceName }: TemplateSettings
                     <h4 className="font-medium mb-1">Save as Template</h4>
                     <p className="text-sm text-muted-foreground">
                         Create a reusable template from this space. All pages and blocks will be included.
-                        Tasks, files, and customer data will not be copied.
+                        Tasks, files, and stakeholder data will not be copied.
                     </p>
                 </div>
             </div>

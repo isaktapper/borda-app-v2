@@ -83,7 +83,7 @@ export function ResponsesTabContent({ spaceId }: ResponsesTabContentProps) {
           <div>
             <h2 className="text-2xl font-bold">Responses</h2>
             <p className="text-muted-foreground mt-1">
-              View all customer responses and uploaded files
+              View all stakeholder responses and uploaded files
             </p>
           </div>
         </div>

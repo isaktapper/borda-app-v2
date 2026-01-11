@@ -185,7 +185,7 @@ export function BrandingSection({
           <div>
             <h3 className="font-semibold mb-1">Branding</h3>
             <p className="text-sm text-muted-foreground">
-              Logo and color shown in the customer portal
+              Logo and color shown in the stakeholder portal
             </p>
           </div>
           {hasChanges && (
@@ -259,7 +259,7 @@ export function BrandingSection({
             <div className="space-y-0.5">
               <Label className="text-sm font-medium">Remove Borda branding</Label>
               <p className="text-xs text-muted-foreground">
-                Hide "Powered by Borda" from customer portals
+                Hide "Powered by Borda" from stakeholder portals
               </p>
             </div>
             {canRemoveBranding ? (

@@ -251,10 +251,10 @@ export function BrandingSettingsSection({
                     </div>
                 </div>
 
-                {/* Customer Logo */}
+                {/* Stakeholder Logo */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
                     <Label className="text-sm font-medium">
-                        Customer Logo
+                        Stakeholder Logo
                     </Label>
                     <div className="flex justify-end">
                         <div className="flex items-center gap-4">
@@ -262,7 +262,7 @@ export function BrandingSettingsSection({
                                 <div className="relative w-24 h-24 rounded border bg-muted/50 flex items-center justify-center p-2">
                                     <img
                                         src={clientLogoPreview}
-                                        alt="Customer logo"
+                                        alt="Stakeholder logo"
                                         className="max-w-full max-h-full object-contain"
                                     />
                                     <button

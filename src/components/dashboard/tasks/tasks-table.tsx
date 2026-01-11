@@ -98,7 +98,7 @@ export function TasksTable({ tasks, onToggle }: TasksTableProps) {
             <TableHead>
               <SortButton field="space_id">Space</SortButton>
             </TableHead>
-            <TableHead>Customer</TableHead>
+            <TableHead>Stakeholder</TableHead>
             <TableHead>Last Visit</TableHead>
             <TableHead>
               <SortButton field="due_date">Due Date</SortButton>

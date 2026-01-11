@@ -111,7 +111,7 @@ export async function requestPortalAccess(spaceId: string, email: string) {
     }
 
     // 3. TODO: Send Email (using Resend or similar email service)
-    const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared/access?token=${token}`
+    const accessLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/access?token=${token}`
 
     return { success: true, message: "We've sent a new access link to your email!" }
 }
@@ -192,7 +192,8 @@ export async function grantPublicAccess(
         }
     }
 
-    // Create session with email or anonymous
+    // Create session with email (could be real email or anonymous-xxxx ID)
+    // The email parameter is now always provided by the client
     const sessionEmail = email?.trim().toLowerCase() || 'anonymous'
     await createPortalSession(spaceId, sessionEmail)
 

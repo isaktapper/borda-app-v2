@@ -136,9 +136,15 @@ function buildSlackMessage(context: NotificationContext, channel: string): Slack
   const projectUrl = `${process.env.NEXT_PUBLIC_APP_URL}/spaces/${spaceId}`
 
   // Get display name from email (part before @) or use email
-  const actorName = actorEmail === 'anonymous' 
-    ? 'Anonymous' 
-    : actorEmail.includes('@') ? actorEmail.split('@')[0] : actorEmail
+  let actorName: string
+  if (actorEmail === 'anonymous' || actorEmail === 'unknown') {
+    actorName = 'Anonymous Stakeholder'
+  } else if (actorEmail.startsWith('anonymous-')) {
+    const shortId = actorEmail.replace('anonymous-', '').toUpperCase().slice(0, 4)
+    actorName = `Stakeholder #${shortId}`
+  } else {
+    actorName = actorEmail.includes('@') ? actorEmail.split('@')[0] : actorEmail
+  }
 
   // Build message based on action type
   let icon = '✅'

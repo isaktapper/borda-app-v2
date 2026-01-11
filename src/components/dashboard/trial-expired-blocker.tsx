@@ -54,7 +54,7 @@ export function TrialExpiredBlocker({ organizationId }: TrialExpiredBlockerProps
 
         {/* Description */}
         <p className="text-muted-foreground mb-8">
-          Please upgrade your plan to continue using Borda and managing your customer portals.
+          Please upgrade your plan to continue using Borda and managing your stakeholder portals.
         </p>
 
         {/* Billing Toggle */}
