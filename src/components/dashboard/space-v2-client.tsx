@@ -11,6 +11,8 @@ import { SettingsContent } from '@/components/dashboard/settings/settings-conten
 import { ResponsesTabContent } from '@/components/dashboard/responses-tab-content'
 import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/spaces/[spaceId]/block-actions'
 import { reorderPages, deletePage, renamePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
+import { getWelcomePopup, updateWelcomePopup } from '@/app/(app)/spaces/[spaceId]/welcome-popup-actions'
+import type { WelcomePopupContent } from '@/components/dashboard/editor/welcome-popup-editor'
 import type { EngagementScoreResult } from '@/lib/engagement-score'
 
 interface Block {
@@ -75,6 +77,9 @@ export function ProjectV2Client({
     const [isDirty, setIsDirty] = useState(false)
     const [deletedBlockIds, setDeletedBlockIds] = useState<string[]>([])
     const [isPending, startTransition] = useTransition()
+    
+    // Welcome popup state
+    const [welcomePopup, setWelcomePopup] = useState<WelcomePopupContent | null>(null)
 
     // Get current blocks for selected page
     const currentBlocks = selectedPageId ? (pageBlocks[selectedPageId] || []) : []
@@ -86,6 +91,23 @@ export function ProjectV2Client({
             setSidebarView('blocks')
         }
     }, [initialPageId])
+
+    // Fetch welcome popup content
+    useEffect(() => {
+        const fetchWelcomePopup = async () => {
+            const popup = await getWelcomePopup(spaceId)
+            setWelcomePopup(popup)
+        }
+        fetchWelcomePopup()
+    }, [spaceId])
+
+    // Handle welcome popup save
+    const handleWelcomePopupSave = async (content: WelcomePopupContent) => {
+        const result = await updateWelcomePopup(spaceId, content)
+        if (result.success) {
+            setWelcomePopup(content)
+        }
+    }
 
     // Load blocks when page is selected
     useEffect(() => {
@@ -191,6 +213,7 @@ export function ProjectV2Client({
         const newId = `new-${Date.now()}`
         let initialContent: any = {}
         if (type === 'text') initialContent = { html: '<p></p>' }
+        if (type === 'action_plan') initialContent = { milestones: [], permissions: { customerCanEdit: true, customerCanComplete: true } }
         if (type === 'task') initialContent = { tasks: [] }
         if (type === 'file_upload') initialContent = { label: '', description: '', acceptedTypes: [], maxFiles: 1 }
         if (type === 'file_download') initialContent = { title: '', description: '', files: [] }
@@ -345,6 +368,8 @@ export function ProjectV2Client({
                             onAddBlock={handleAddBlock}
                             editingBlock={editingBlock}
                             onBlockChange={handleBlockChange}
+                            welcomePopup={welcomePopup}
+                            onWelcomePopupSave={handleWelcomePopupSave}
                         />
 
                         {/* Main Content */}

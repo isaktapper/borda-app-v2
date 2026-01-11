@@ -23,19 +23,17 @@ import {
     Plus,
     Type,
     Loader2,
-    CheckSquare,
     Upload,
     Download,
     HelpCircle,
-    Calendar,
     LayoutGrid,
-    AlignLeft,
     List,
-    ListChecks,
     Video,
     User,
-    Minus,
-    Target
+    Target,
+    Image as ImageIcon,
+    MessageSquare,
+    FolderKanban
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BlockItem } from './block-item'
@@ -72,17 +70,34 @@ interface BlockEditorProps {
     isLoading?: boolean
 }
 
-const BLOCK_TYPES = [
-    { type: 'text', label: 'Text / Rubrik', icon: Type, description: 'Vanlig text, stycken eller rubriker.' },
-    { type: 'action_plan', label: 'Action Plan', icon: Target, description: 'Collaborative project plan with milestones and tasks.' },
-    { type: 'task', label: 'To-do', icon: CheckSquare, description: 'Task for the stakeholder with checkbox and deadline.' },
-    { type: 'form', label: 'Form', icon: HelpCircle, description: 'Collect responses from the stakeholder.' },
-    { type: 'file_upload', label: 'Filuppladdning', icon: Upload, description: 'Be kunden ladda upp dokument eller bilder.' },
-    { type: 'file_download', label: 'Files to download', icon: Download, description: 'Files for the stakeholder to download.' },
-    { type: 'embed', label: 'Video / Embed', icon: Video, description: 'Embed Loom, YouTube or Calendly.' },
-    { type: 'contact', label: 'Contact card', icon: User, description: 'Show contact info for the stakeholder.' },
-    { type: 'divider', label: 'Avskiljare', icon: Minus, description: 'Linje eller mellanrum.' },
-    { type: 'meeting', label: 'Book meeting', icon: Calendar, description: 'Embed link for scheduling.', disabled: true },
+type BlockCategory = 'content' | 'projects' | 'collaboration'
+
+interface BlockTypeConfig {
+    type: string
+    label: string
+    icon: any
+    category: BlockCategory
+}
+
+const BLOCK_CATEGORIES: { id: BlockCategory; label: string }[] = [
+    { id: 'content', label: 'Content' },
+    { id: 'projects', label: 'Projects' },
+    { id: 'collaboration', label: 'Collaboration' },
+]
+
+const BLOCK_TYPES: BlockTypeConfig[] = [
+    // Content
+    { type: 'text', label: 'Text', icon: Type, category: 'content' },
+    { type: 'media', label: 'Media', icon: ImageIcon, category: 'content' },
+    { type: 'accordion', label: 'Accordion', icon: List, category: 'content' },
+    { type: 'embed', label: 'Embed', icon: Video, category: 'content' },
+    // Projects
+    { type: 'action_plan', label: 'Action Plan', icon: Target, category: 'projects' },
+    // Collaboration
+    { type: 'form', label: 'Form', icon: HelpCircle, category: 'collaboration' },
+    { type: 'file_upload', label: 'File Upload', icon: Upload, category: 'collaboration' },
+    { type: 'file_download', label: 'Files', icon: Download, category: 'collaboration' },
+    { type: 'contact', label: 'Contact', icon: User, category: 'collaboration' },
 ]
 
 export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading }: BlockEditorProps) {
@@ -337,49 +352,141 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
 }
 
 function BlockPickerButton({ onSelect, open, onOpenChange }: { onSelect: (type: string) => void, open: boolean, onOpenChange: (open: boolean) => void }) {
+    const [selectedCategory, setSelectedCategory] = useState<BlockCategory | 'all'>('all')
+
+    const handleSelect = (type: string) => {
+        onSelect(type)
+        setSelectedCategory('all')
+    }
+
+    const filteredBlockTypes = selectedCategory === 'all' 
+        ? BLOCK_TYPES 
+        : BLOCK_TYPES.filter(b => b.category === selectedCategory)
+
+    const getBlocksByCategory = (category: BlockCategory) => 
+        BLOCK_TYPES.filter(b => b.category === category)
+
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+            onOpenChange(isOpen)
+            if (!isOpen) setSelectedCategory('all')
+        }}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="gap-2 rounded-full h-10 px-6 hover:bg-primary/5 hover:text-primary transition-all shadow-sm">
                     <Plus className="size-4" />
                     Add block
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>Select block type</DialogTitle>
-                    <DialogDescription>
-                        Choose what type of content you want to add to the page.
+            <DialogContent className="max-w-2xl p-0 gap-0">
+                <DialogHeader className="p-6 pb-4">
+                    <DialogTitle className="text-xl font-bold text-center">Add a Block</DialogTitle>
+                    <DialogDescription className="text-center">
+                        Select a block below to add to your page.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-4">
-                    {BLOCK_TYPES.map((type) => (
+                
+                <div className="flex border-t">
+                    {/* Left sidebar - Category filter */}
+                    <div className="w-44 border-r p-3 space-y-1 bg-muted/20">
                         <button
-                            key={type.type}
-                            disabled={type.disabled}
-                            onClick={() => onSelect(type.type)}
+                            onClick={() => setSelectedCategory('all')}
                             className={cn(
-                                "flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left",
-                                !type.disabled
-                                    ? "hover:border-primary hover:bg-primary/5 border-transparent bg-muted/30"
-                                    : "opacity-50 cursor-not-allowed border-transparent bg-muted/10"
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                selectedCategory === 'all' 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
                         >
-                            <div className={cn(
-                                "p-2.5 rounded-lg",
-                                !type.disabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                            )}>
-                                <type.icon className="size-5" />
-                            </div>
-                            <div>
-                                <div className="font-semibold text-sm flex items-center gap-2">
-                                    {type.label}
-                                    {type.disabled && <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground uppercase tracking-wider font-bold">Kommer snart</span>}
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-0.5">{type.description}</div>
-                            </div>
+                            <LayoutGrid className="size-4" />
+                            All
                         </button>
-                    ))}
+                        <button
+                            onClick={() => setSelectedCategory('content')}
+                            className={cn(
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                selectedCategory === 'content' 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="size-4" />
+                            Content
+                        </button>
+                        <button
+                            onClick={() => setSelectedCategory('projects')}
+                            className={cn(
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                selectedCategory === 'projects' 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            <FolderKanban className="size-4" />
+                            Projects
+                        </button>
+                        <button
+                            onClick={() => setSelectedCategory('collaboration')}
+                            className={cn(
+                                "w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                                selectedCategory === 'collaboration' 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
+                        >
+                            <User className="size-4" />
+                            Collaboration
+                        </button>
+                    </div>
+
+                    {/* Right side - Block grid */}
+                    <div className="flex-1 p-4 max-h-[400px] overflow-y-auto">
+                        {selectedCategory === 'all' ? (
+                            <div className="space-y-5">
+                                {BLOCK_CATEGORIES.map(cat => {
+                                    const categoryBlocks = getBlocksByCategory(cat.id)
+                                    if (categoryBlocks.length === 0) return null
+                                    return (
+                                        <div key={cat.id}>
+                                            <h4 className="text-sm font-semibold text-foreground mb-2">{cat.label}</h4>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {categoryBlocks.map((type) => (
+                                                    <button
+                                                        key={type.type}
+                                                        onClick={() => handleSelect(type.type)}
+                                                        className="group flex flex-col items-center text-center rounded-lg p-2 transition-all hover:bg-primary/5"
+                                                    >
+                                                        <div className="w-full aspect-[4/3] rounded-lg bg-muted/50 flex items-center justify-center transition-colors group-hover:bg-primary/10">
+                                                            <type.icon className="size-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                                                        </div>
+                                                        <span className="text-xs font-medium mt-1.5 text-foreground/70 group-hover:text-primary transition-colors">
+                                                            {type.label}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-4 gap-2">
+                                {filteredBlockTypes.map((type) => (
+                                    <button
+                                        key={type.type}
+                                        onClick={() => handleSelect(type.type)}
+                                        className="group flex flex-col items-center text-center rounded-lg p-2 transition-all hover:bg-primary/5"
+                                    >
+                                        <div className="w-full aspect-[4/3] rounded-lg bg-muted/50 flex items-center justify-center transition-colors group-hover:bg-primary/10">
+                                            <type.icon className="size-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
+                                        </div>
+                                        <span className="text-xs font-medium mt-1.5 text-foreground/70 group-hover:text-primary transition-colors">
+                                            {type.label}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

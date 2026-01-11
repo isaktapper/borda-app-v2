@@ -1,6 +1,6 @@
 'use client'
 
-import { X, Type, CheckSquare, Upload, Download, HelpCircle, Video, User, Minus, Pencil, Target } from 'lucide-react'
+import { X, Type, CheckSquare, Upload, Download, HelpCircle, Video, User, Minus, Pencil, Target, Image as ImageIcon, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { TextBlockEditor } from '@/components/dashboard/editor/text-block-editor'
@@ -12,6 +12,8 @@ import { FormBlockEditor } from '@/components/dashboard/editor/form-block-editor
 import { EmbedBlockEditor } from '@/components/dashboard/editor/embed-block-editor'
 import { ContactCardBlockEditor } from '@/components/dashboard/editor/contact-card-block-editor'
 import { DividerBlockEditor } from '@/components/dashboard/editor/divider-block-editor'
+import { MediaBlockEditor } from '@/components/dashboard/editor/media-block-editor'
+import { AccordionBlockEditor } from '@/components/dashboard/editor/accordion-block-editor'
 
 interface Block {
     id: string
@@ -41,8 +43,21 @@ const BLOCK_CONFIG: Record<string, { label: string; description: string; icon: a
         icon: Target,
         color: 'from-emerald-500/20 to-emerald-500/5 text-emerald-600 dark:text-emerald-400'
     },
+    media: {
+        label: 'Media',
+        description: 'Image with title and description',
+        icon: ImageIcon,
+        color: 'from-pink-500/20 to-pink-500/5 text-pink-600 dark:text-pink-400'
+    },
+    accordion: {
+        label: 'Accordion',
+        description: 'Collapsible content sections',
+        icon: List,
+        color: 'from-amber-500/20 to-amber-500/5 text-amber-600 dark:text-amber-400'
+    },
+    // Deprecated: task block replaced by action_plan
     task: {
-        label: 'To-do List',
+        label: 'To-do List (Deprecated)',
         description: 'Checkable tasks for your client',
         icon: CheckSquare,
         color: 'from-green-500/20 to-green-500/5 text-green-600 dark:text-green-400'
@@ -77,8 +92,9 @@ const BLOCK_CONFIG: Record<string, { label: string; description: string; icon: a
         icon: User, 
         color: 'from-indigo-500/20 to-indigo-500/5 text-indigo-600 dark:text-indigo-400' 
     },
+    // Deprecated: divider block no longer available for new blocks
     divider: { 
-        label: 'Divider', 
+        label: 'Divider (Deprecated)', 
         description: 'Visual separator between sections',
         icon: Minus, 
         color: 'from-gray-500/20 to-gray-500/5 text-gray-600 dark:text-gray-400' 
@@ -224,6 +240,22 @@ function BlockEditorContent({ block, spaceId, onChange }: BlockEditorContentProp
                     content={block.content}
                     onChange={onChange}
                     spaceId={spaceId}
+                />
+            )
+        case 'media':
+            return (
+                <MediaBlockEditor
+                    blockId={block.id}
+                    spaceId={spaceId}
+                    content={block.content}
+                    onChange={onChange}
+                />
+            )
+        case 'accordion':
+            return (
+                <AccordionBlockEditor
+                    content={block.content}
+                    onChange={onChange}
                 />
             )
         case 'task':

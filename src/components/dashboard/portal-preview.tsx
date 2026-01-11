@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Eye, X, Loader2, LayoutDashboard, FileText, Mail } from 'lucide-react'
+import { Eye, X, Loader2, FileText, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { PortalBlockRenderer } from '@/components/portal/block-renderers'
@@ -86,7 +86,6 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
     const [loading, setLoading] = useState(false)
     const [blocksLoading, setBlocksLoading] = useState(false)
     const [branding, setBranding] = useState<Branding | null>(null)
-    const [showOverview, setShowOverview] = useState(true)
 
     // Fetch project and pages when preview opens
     useEffect(() => {
@@ -98,7 +97,6 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
     // Fetch blocks when page is selected
     useEffect(() => {
         if (selectedPage) {
-            setShowOverview(false)
             fetchBlocks(selectedPage.id)
         }
     }, [selectedPage])
@@ -123,9 +121,10 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
             if (brandingData) {
                 setBranding(brandingData as Branding)
             }
-            // Start on Overview
-            setShowOverview(true)
-            setSelectedPage(null)
+            // Start on first page
+            if (pagesData && pagesData.length > 0) {
+                setSelectedPage(pagesData[0] as Page)
+            }
         } catch (error) {
             console.error('Error fetching project data:', error)
         } finally {
@@ -146,14 +145,7 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
         }
     }
 
-    const handleOverviewClick = () => {
-        setShowOverview(true)
-        setSelectedPage(null)
-        setBlocks([])
-    }
-
     const handlePageClick = (page: Page) => {
-        setShowOverview(false)
         setSelectedPage(page)
     }
 
@@ -221,20 +213,6 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
                                 <div className="flex justify-center">
                                     <nav className="overflow-x-auto scrollbar-hide">
                                         <div className="flex gap-1 min-w-max">
-                                            {/* Overview Tab */}
-                                            <button
-                                                onClick={handleOverviewClick}
-                                                className={cn(
-                                                    "flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors rounded-md whitespace-nowrap",
-                                                    showOverview
-                                                        ? "text-primary bg-primary/10"
-                                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                                )}
-                                            >
-                                                <LayoutDashboard className="size-4 shrink-0" />
-                                                <span>Overview</span>
-                                            </button>
-
                                             {/* Page Tabs */}
                                             {pages.map((page) => {
                                                 const isActive = selectedPage?.id === page.id
@@ -290,19 +268,6 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
                                 <div className="flex flex-col items-center justify-center py-20">
                                     <Loader2 className="size-8 animate-spin text-muted-foreground mb-4" />
                                     <p className="text-sm text-muted-foreground">Loading portal...</p>
-                                </div>
-                            ) : showOverview ? (
-                                /* Overview Page */
-                                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                    <div className="text-center py-20">
-                                        <LayoutDashboard className="size-12 text-muted-foreground/50 mx-auto mb-4" />
-                                        <h2 className="text-xl font-semibold text-foreground mb-2">
-                                            Overview
-                                        </h2>
-                                        <p className="text-muted-foreground max-w-md mx-auto">
-                                            This is the overview page. Select a page from the navigation to preview its content.
-                                        </p>
-                                    </div>
                                 </div>
                             ) : selectedPage ? (
                                 /* Page Content */

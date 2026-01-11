@@ -187,12 +187,12 @@ export async function getPortalTasks(spaceId: string, pageId: string) {
     const supabase = await getAuthPortalClient(spaceId)
     if (!supabase) return {}
 
-    // 1. Get all task blocks for this page
+    // 1. Get all task AND action_plan blocks for this page
     const { data: blocks } = await supabase
         .from('blocks')
-        .select('id')
+        .select('id, type')
         .eq('page_id', pageId)
-        .eq('type', 'task')
+        .in('type', ['task', 'action_plan'])
 
     if (!blocks || blocks.length === 0) return {}
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { Type, Target, CheckSquare, HelpCircle, Upload, Download, Video, User, Minus } from 'lucide-react'
+import { Type, Target, CheckSquare, HelpCircle, Upload, Download, Video, User, Minus, Image as ImageIcon, List, ChevronLeft } from 'lucide-react'
 import { TextBlockEditor } from './text-block-editor'
 import { ActionPlanBlockEditor } from './action-plan-block-editor'
 import { TaskBlockEditor } from './task-block-editor'
@@ -10,6 +10,8 @@ import { FileDownloadBlockEditor } from './file-download-block-editor'
 import { EmbedBlockEditor } from './embed-block-editor'
 import { ContactCardBlockEditor } from './contact-card-block-editor'
 import { DividerBlockEditor } from './divider-block-editor'
+import { MediaBlockEditor } from './media-block-editor'
+import { AccordionBlockEditor } from './accordion-block-editor'
 
 interface Block {
     id: string
@@ -22,6 +24,37 @@ interface EditorTabContentProps {
     editingBlock: Block | null
     spaceId: string
     onBlockChange: (blockId: string, updates: any) => void
+    onBack: () => void
+}
+
+function getBlockTitle(block: Block): string {
+    // Try to get title from content
+    if (block.content?.title) {
+        return block.content.title
+    }
+    
+    // For text blocks, extract from HTML
+    if (block.type === 'text' && block.content?.html) {
+        const text = block.content.html.replace(/<[^>]*>/g, '').trim()
+        if (text) {
+            return text.slice(0, 40) + (text.length > 40 ? '...' : '')
+        }
+    }
+    
+    // For other block types with specific content
+    if (block.type === 'contact' && block.content?.name) {
+        return block.content.name
+    }
+    
+    if (block.type === 'file_upload' && block.content?.label) {
+        return block.content.label
+    }
+    
+    if (block.type === 'embed' && block.content?.url) {
+        return 'Embedded content'
+    }
+    
+    return 'Untitled'
 }
 
 const BLOCK_EDITOR_CONFIG: Record<string, { label: string; description: string; icon: any }> = {
@@ -35,8 +68,19 @@ const BLOCK_EDITOR_CONFIG: Record<string, { label: string; description: string; 
         description: 'Collaborative milestones and tasks',
         icon: Target
     },
+    media: {
+        label: 'Media',
+        description: 'Image with title and description',
+        icon: ImageIcon
+    },
+    accordion: {
+        label: 'Accordion',
+        description: 'Collapsible content sections',
+        icon: List
+    },
+    // Deprecated: task block replaced by action_plan
     task: {
-        label: 'To-do List',
+        label: 'To-do List (Deprecated)',
         description: 'Checkable tasks for your client',
         icon: CheckSquare
     },
@@ -65,8 +109,9 @@ const BLOCK_EDITOR_CONFIG: Record<string, { label: string; description: string; 
         description: 'Display contact information',
         icon: User
     },
+    // Deprecated: divider block no longer available for new blocks
     divider: {
-        label: 'Divider',
+        label: 'Divider (Deprecated)',
         description: 'Visual separator between sections',
         icon: Minus
     }
@@ -75,7 +120,8 @@ const BLOCK_EDITOR_CONFIG: Record<string, { label: string; description: string; 
 export function EditorTabContent({
     editingBlock,
     spaceId,
-    onBlockChange
+    onBlockChange,
+    onBack
 }: EditorTabContentProps) {
     if (!editingBlock) {
         return (
@@ -92,19 +138,25 @@ export function EditorTabContent({
         icon: Type
     }
 
-    const Icon = config.icon
+    const blockTitle = getBlockTitle(editingBlock)
 
     return (
         <div className="flex flex-col h-full">
-            {/* Block info header */}
-            <div className="p-4 border-b bg-muted/30 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                        <Icon className="size-4 text-primary" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-sm">{config.label}</h3>
-                        <p className="text-xs text-muted-foreground">{config.description}</p>
+            {/* Header - matching pages/blocks design */}
+            <div className="p-4 border-b">
+                <div className="flex items-center justify-center relative">
+                    {/* Back button */}
+                    <button
+                        onClick={onBack}
+                        className="absolute left-0 p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ChevronLeft className="size-5" />
+                    </button>
+
+                    {/* Centered text */}
+                    <div className="flex flex-col items-center text-center">
+                        <span className="text-xs text-muted-foreground">{config.label}</span>
+                        <h3 className="font-semibold text-base">{blockTitle}</h3>
                     </div>
                 </div>
             </div>
@@ -143,6 +195,22 @@ function BlockEditorRouter({ block, spaceId, onChange }: BlockEditorRouterProps)
                     content={block.content}
                     onChange={onChange}
                     spaceId={spaceId}
+                />
+            )
+        case 'media':
+            return (
+                <MediaBlockEditor
+                    blockId={block.id}
+                    spaceId={spaceId}
+                    content={block.content}
+                    onChange={onChange}
+                />
+            )
+        case 'accordion':
+            return (
+                <AccordionBlockEditor
+                    content={block.content}
+                    onChange={onChange}
                 />
             )
         case 'task':

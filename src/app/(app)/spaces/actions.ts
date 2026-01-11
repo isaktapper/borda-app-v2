@@ -388,7 +388,8 @@ export async function getSpaces(includeArchived: boolean = false) {
                 tags: tagsMap.get(project.id) || [],
                 engagement_score: project.engagement_score || null,
                 engagement_level: project.engagement_level || null,
-                engagement_calculated_at: project.engagement_calculated_at || null
+                engagement_calculated_at: project.engagement_calculated_at || null,
+                engagement_factors: project.engagement_factors || null
             }
         })
     )

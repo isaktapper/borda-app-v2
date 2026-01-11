@@ -53,27 +53,39 @@ async function getTaskStats(spaceId: string): Promise<{ completed: number; total
 
   const pageIds = pages.map(p => p.id)
 
-  // Get all task blocks
+  // Get all task blocks AND action_plan blocks
   const { data: blocks } = await supabase
     .from('blocks')
-    .select('id, content')
+    .select('id, type, content')
     .in('page_id', pageIds)
-    .eq('type', 'task')
+    .in('type', ['task', 'action_plan'])
     .is('deleted_at', null)
 
   if (!blocks || blocks.length === 0) {
     return { completed: 0, total: 0 }
   }
 
-  // Count total tasks across all task blocks
-  let totalTasks = 0
-  const tasksByBlock: { [blockId: string]: number } = {}
+  const taskBlocks = blocks.filter(b => b.type === 'task')
+  const actionPlanBlocks = blocks.filter(b => b.type === 'action_plan')
 
-  for (const block of blocks) {
+  // Count total tasks across all blocks
+  let totalTasks = 0
+
+  // Count from legacy task blocks
+  for (const block of taskBlocks) {
     const content = block.content as any
     const tasks = content?.tasks || []
     totalTasks += tasks.length
-    tasksByBlock[block.id] = tasks.length
+  }
+
+  // Count from action_plan blocks
+  for (const block of actionPlanBlocks) {
+    const content = block.content as any
+    const milestones = content?.milestones || []
+    for (const milestone of milestones) {
+      const tasks = milestone.tasks || []
+      totalTasks += tasks.length
+    }
   }
 
   if (totalTasks === 0) {

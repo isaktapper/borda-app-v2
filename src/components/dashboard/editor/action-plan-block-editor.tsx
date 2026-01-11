@@ -29,7 +29,11 @@ import {
   User,
   Target,
   Lock,
-  Link,
+  Zap,
+  Info,
+  ExternalLink,
+  FileText,
+  Layers,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BlockEditorWrapper } from './block-editor-wrapper'
@@ -61,13 +65,24 @@ import type {
   Milestone,
   Task,
   Assignee,
+  QuickAction,
+  QuickActionType,
 } from '@/types/action-plan'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   createEmptyMilestone,
   createEmptyTask,
   getInitials,
   resetIdCounter,
 } from '@/lib/action-plan-utils'
+import { getPages } from '@/app/(app)/spaces/[spaceId]/pages-actions'
+import { getBlocks } from '@/app/(app)/spaces/[spaceId]/block-actions'
 
 interface ActionPlanBlockEditorProps {
   content: ActionPlanContent
@@ -93,7 +108,7 @@ export function ActionPlanBlockEditor({
     }
   }, [])
 
-  const [activeTab, setActiveTab] = useState<'milestones' | 'permissions'>('milestones')
+  const [activeTab, setActiveTab] = useState<'info' | 'milestones' | 'permissions'>('info')
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -209,12 +224,41 @@ export function ActionPlanBlockEditor({
     <BlockEditorWrapper
       blockType="action_plan"
       tabs={[
+        { id: 'info', label: 'Info', icon: Info },
         { id: 'milestones', label: 'Milestones', icon: Target },
         { id: 'permissions', label: 'Permissions', icon: Lock },
       ]}
       activeTab={activeTab}
-      onTabChange={(tabId) => setActiveTab(tabId as 'milestones' | 'permissions')}
+      onTabChange={(tabId) => setActiveTab(tabId as 'info' | 'milestones' | 'permissions')}
     >
+      {activeTab === 'info' && (
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="action-plan-title" className="text-sm font-medium">
+              Title
+            </Label>
+            <Input
+              id="action-plan-title"
+              placeholder="e.g., Proposed next steps"
+              value={content.title || ''}
+              onChange={(e) => onChange({ title: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="action-plan-description" className="text-sm font-medium">
+              Description
+            </Label>
+            <Textarea
+              id="action-plan-description"
+              placeholder="Add a description for this action plan..."
+              value={content.description || ''}
+              onChange={(e) => onChange({ description: e.target.value })}
+              rows={3}
+            />
+          </div>
+        </div>
+      )}
+
       {activeTab === 'milestones' && (
         <div className="space-y-4">
           <DndContext
@@ -520,13 +564,18 @@ function TaskItem({
       <Checkbox disabled className="size-4" />
 
       {/* Task title - takes up remaining space */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-2">
         <Input
           value={task.title}
           onChange={(e) => onUpdate(milestoneId, task.id, { title: e.target.value })}
           placeholder="Task title..."
-          className="border-none p-0 h-auto text-sm font-medium focus-visible:ring-0 bg-transparent"
+          className="border-none p-0 h-auto text-sm font-medium focus-visible:ring-0 bg-transparent flex-1"
         />
+        {task.quickAction && (
+          <span className="bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs font-medium shrink-0">
+            {task.quickAction.title}
+          </span>
+        )}
       </div>
 
       {/* Assignee picker */}
@@ -564,16 +613,14 @@ function TaskItem({
         </PopoverContent>
       </Popover>
 
-      {/* Link - placeholder for future functionality */}
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-7 w-7 p-0 text-muted-foreground"
-        title="Add link (coming soon)"
-        disabled
-      >
-        <Link className="size-3.5" />
-      </Button>
+      {/* Quick Action */}
+      <QuickActionPicker
+        quickAction={task.quickAction}
+        onUpdate={(quickAction) =>
+          onUpdate(milestoneId, task.id, { quickAction })
+        }
+        spaceId={spaceId}
+      />
 
       {/* Description button */}
       {task.description !== undefined ? (
@@ -767,6 +814,313 @@ function AssigneePicker({ assignee, onSelect, spaceId }: AssigneePickerProps) {
             </Button>
             <Button onClick={handleAddExternal} disabled={!externalName.trim()}>
               Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ============================================================================
+// Quick Action Picker
+// ============================================================================
+
+interface QuickActionPickerProps {
+  quickAction?: QuickAction
+  onUpdate: (quickAction: QuickAction | undefined) => void
+  spaceId: string
+}
+
+function QuickActionPicker({ quickAction, onUpdate, spaceId }: QuickActionPickerProps) {
+  const [showDialog, setShowDialog] = useState(false)
+  const [actionType, setActionType] = useState<QuickActionType>('link')
+  const [title, setTitle] = useState('')
+  const [url, setUrl] = useState('')
+  const [pageId, setPageId] = useState('')
+  const [blockId, setBlockId] = useState('')
+  const [pages, setPages] = useState<{ id: string; title: string }[]>([])
+  const [blocks, setBlocks] = useState<{ id: string; type: string; title: string }[]>([])
+  const [isLoadingPages, setIsLoadingPages] = useState(false)
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false)
+
+  // Fetch pages when dialog opens
+  useEffect(() => {
+    if (showDialog && pages.length === 0) {
+      fetchPages()
+    }
+  }, [showDialog])
+
+  // Fetch blocks when page is selected
+  useEffect(() => {
+    if (pageId && actionType === 'go_to_block') {
+      fetchBlocks(pageId)
+    }
+  }, [pageId, actionType])
+
+  const fetchPages = async () => {
+    setIsLoadingPages(true)
+    try {
+      const pagesData = await getPages(spaceId)
+      setPages(pagesData.map((p: any) => ({ id: p.id, title: p.title })))
+    } catch (error) {
+      console.error('Failed to fetch pages:', error)
+    } finally {
+      setIsLoadingPages(false)
+    }
+  }
+
+  const fetchBlocks = async (selectedPageId: string) => {
+    setIsLoadingBlocks(true)
+    try {
+      const blocksData = await getBlocks(selectedPageId)
+      setBlocks(blocksData.map((b: any) => ({
+        id: b.id,
+        type: b.type,
+        title: getBlockDisplayTitle(b)
+      })))
+    } catch (error) {
+      console.error('Failed to fetch blocks:', error)
+    } finally {
+      setIsLoadingBlocks(false)
+    }
+  }
+
+  const getBlockDisplayTitle = (block: any): string => {
+    if (block.content?.title) return block.content.title
+    if (block.type === 'text') {
+      const html = block.content?.html || ''
+      const text = html.replace(/<[^>]*>/g, '').trim()
+      return text.slice(0, 30) || 'Text block'
+    }
+    return `${block.type} block`
+  }
+
+  const handleOpen = () => {
+    // Pre-fill form if editing existing quick action
+    if (quickAction) {
+      setActionType(quickAction.type)
+      setTitle(quickAction.title)
+      setUrl(quickAction.url || '')
+      setPageId(quickAction.pageId || '')
+      setBlockId(quickAction.blockId || '')
+    } else {
+      setActionType('link')
+      setTitle('')
+      setUrl('')
+      setPageId('')
+      setBlockId('')
+    }
+    setShowDialog(true)
+  }
+
+  const handleSave = () => {
+    if (!title.trim()) return
+
+    const newQuickAction: QuickAction = {
+      type: actionType,
+      title: title.trim(),
+    }
+
+    if (actionType === 'link' && url.trim()) {
+      newQuickAction.url = url.trim()
+    } else if (actionType === 'go_to_page' && pageId) {
+      newQuickAction.pageId = pageId
+    } else if (actionType === 'go_to_block' && pageId && blockId) {
+      newQuickAction.pageId = pageId
+      newQuickAction.blockId = blockId
+    }
+
+    onUpdate(newQuickAction)
+    setShowDialog(false)
+  }
+
+  const handleRemove = () => {
+    onUpdate(undefined)
+    setShowDialog(false)
+  }
+
+  const isValid = () => {
+    if (!title.trim()) return false
+    if (actionType === 'link') return !!url.trim()
+    if (actionType === 'go_to_page') return !!pageId
+    if (actionType === 'go_to_block') return !!pageId && !!blockId
+    return false
+  }
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={cn(
+          'h-7 w-7 p-0',
+          quickAction ? 'text-primary' : 'text-muted-foreground'
+        )}
+        title={quickAction ? `Quick Action: ${quickAction.title}` : 'Add Quick Action'}
+        onClick={handleOpen}
+      >
+        <Zap className="size-3.5" />
+      </Button>
+
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="size-5 text-primary" />
+              Quick Action
+            </DialogTitle>
+            <DialogDescription>
+              Add a button that customers can click to navigate or open a link.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Action Type Selection */}
+            <div className="space-y-2">
+              <Label>Action Type</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActionType('link')}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all',
+                    actionType === 'link'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <ExternalLink className="size-5" />
+                  <span className="text-xs font-medium">Link</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActionType('go_to_page')}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all',
+                    actionType === 'go_to_page'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <FileText className="size-5" />
+                  <span className="text-xs font-medium">Go to Page</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActionType('go_to_block')}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all',
+                    actionType === 'go_to_block'
+                      ? 'border-primary bg-primary/5 text-primary'
+                      : 'border-border hover:border-primary/50'
+                  )}
+                >
+                  <Layers className="size-5" />
+                  <span className="text-xs font-medium">Go to Block</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Button Title */}
+            <div className="space-y-2">
+              <Label htmlFor="qa-title">Button Title</Label>
+              <Input
+                id="qa-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Open Dashboard, View Details..."
+              />
+            </div>
+
+            {/* Link-specific fields */}
+            {actionType === 'link' && (
+              <div className="space-y-2">
+                <Label htmlFor="qa-url">URL</Label>
+                <Input
+                  id="qa-url"
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+            )}
+
+            {/* Go to Page fields */}
+            {actionType === 'go_to_page' && (
+              <div className="space-y-2">
+                <Label>Select Page</Label>
+                <Select value={pageId} onValueChange={setPageId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={isLoadingPages ? 'Loading...' : 'Choose a page'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pages.map((page) => (
+                      <SelectItem key={page.id} value={page.id}>
+                        {page.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Go to Block fields */}
+            {actionType === 'go_to_block' && (
+              <>
+                <div className="space-y-2">
+                  <Label>Select Page</Label>
+                  <Select value={pageId} onValueChange={(val) => { setPageId(val); setBlockId(''); }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={isLoadingPages ? 'Loading...' : 'Choose a page'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pages.map((page) => (
+                        <SelectItem key={page.id} value={page.id}>
+                          {page.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {pageId && (
+                  <div className="space-y-2">
+                    <Label>Select Block</Label>
+                    <Select value={blockId} onValueChange={setBlockId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingBlocks ? 'Loading...' : 'Choose a block'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {blocks.map((block) => (
+                          <SelectItem key={block.id} value={block.id}>
+                            {block.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            {quickAction && (
+              <Button
+                variant="ghost"
+                onClick={handleRemove}
+                className="text-destructive hover:text-destructive"
+              >
+                Remove
+              </Button>
+            )}
+            <div className="flex-1" />
+            <Button variant="outline" onClick={() => setShowDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={!isValid()}>
+              {quickAction ? 'Update' : 'Add'}
             </Button>
           </DialogFooter>
         </DialogContent>

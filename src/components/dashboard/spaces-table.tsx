@@ -84,6 +84,12 @@ type Space = {
     engagement_score: number | null
     engagement_level: 'high' | 'medium' | 'low' | 'none' | null
     engagement_calculated_at: string | null
+    engagement_factors: {
+        visits: { score: number; count: number }
+        tasks: { score: number; completed: number; total: number }
+        formFields: { score: number; answered: number; total: number }
+        files: { score: number; uploaded: number; total: number }
+    } | null
 }
 
 type SortField = keyof Space | 'assigned_to'
@@ -101,7 +107,7 @@ export interface SpacesTableRef {
 // Define all available columns
 const COLUMNS: ColumnDefinition[] = [
     { id: 'id', label: 'ID', defaultVisible: false },
-    { id: 'client_name', label: 'Stakeholder', defaultVisible: true },
+    { id: 'client_name', label: 'Customer', defaultVisible: true },
     { id: 'name', label: 'Space Name', defaultVisible: true },
     { id: 'status', label: 'Status', defaultVisible: true },
     { id: 'tags', label: 'Tags', defaultVisible: true },
@@ -430,6 +436,12 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                     </div>
                 )
             case 'engagement_level':
+                const defaultFactors = {
+                    visits: { score: 0, count: 0 },
+                    tasks: { score: 0, completed: 0, total: 0 },
+                    formFields: { score: 0, answered: 0, total: 0 },
+                    files: { score: 0, uploaded: 0, total: 0 },
+                }
                 const engagement: EngagementScoreResult | null =
                     space.engagement_score !== null &&
                         space.engagement_level !== null &&
@@ -437,17 +449,12 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                         ? {
                             score: space.engagement_score,
                             level: space.engagement_level,
-                            factors: {
-                                visits: { score: 0, count: 0 },
-                                tasks: { score: 0, completed: 0, total: 0 },
-                                formFields: { score: 0, answered: 0, total: 0 },
-                                files: { score: 0, uploaded: 0, total: 0 },
-                            },
+                            factors: space.engagement_factors || defaultFactors,
                             calculatedAt: new Date(space.engagement_calculated_at)
                         }
                         : null
 
-                return <EngagementBadge engagement={engagement} showPopover={false} />
+                return <EngagementBadge engagement={engagement} showPopover={true} />
             case 'target_go_live_date':
                 return (
                     <span className="text-sm">
@@ -591,9 +598,15 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                                     </TableCell>
                                     {orderedVisibleColumns.map(columnId => (
                                         <TableCell key={columnId} className={`p-0 whitespace-nowrap text-left ${columnId === 'created_at' ? 'text-right' : ''}`}>
-                                            <Link href={`/spaces/${space.id}`} className="block py-3 px-3">
-                                                {renderCell(space, columnId)}
-                                            </Link>
+                                            {columnId === 'engagement_level' ? (
+                                                <div className="py-3 px-3">
+                                                    {renderCell(space, columnId)}
+                                                </div>
+                                            ) : (
+                                                <Link href={`/spaces/${space.id}`} className="block py-3 px-3">
+                                                    {renderCell(space, columnId)}
+                                                </Link>
+                                            )}
                                         </TableCell>
                                     ))}
                                 </TableRow>
