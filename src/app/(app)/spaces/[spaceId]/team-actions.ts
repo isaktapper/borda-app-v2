@@ -4,9 +4,9 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { randomUUID } from 'crypto'
 import { sendEmail } from '@/lib/email'
-import { customerInviteTemplate } from '@/lib/email/templates'
+import { stakeholderInviteTemplate } from '@/lib/email/templates'
 
-export async function inviteCustomer(spaceId: string, email: string) {
+export async function inviteStakeholder(spaceId: string, email: string, name?: string) {
     try {
         const supabase = await createClient()
         const adminSupabase = await createAdminClient()
@@ -15,13 +15,14 @@ export async function inviteCustomer(spaceId: string, email: string) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return { error: 'Not authenticated' }
 
-        // 2. Create project member record (pending customer)
+        // 2. Create space member record (pending stakeholder)
         const { error: memberError } = await supabase
             .from('space_members')
             .insert({
                 space_id: spaceId,
                 invited_email: email,
-                role: 'customer',
+                name: name || null,
+                role: 'stakeholder',
                 invited_by: user.id,
                 invited_at: new Date().toISOString()
             })
@@ -73,12 +74,12 @@ export async function inviteCustomer(spaceId: string, email: string) {
         await sendEmail({
             to: email,
             subject: `You have access to ${project?.name || 'your project'}`,
-            html: customerInviteTemplate({
+            html: stakeholderInviteTemplate({
                 projectName: project?.name || 'your project',
-                clientName: project?.client_name || email,
+                clientName: name || project?.client_name || email,
                 accessLink
             }),
-            type: 'customer_invite',
+            type: 'stakeholder_invite',
             metadata: { spaceId, email }
         })
 
@@ -162,12 +163,12 @@ export async function resendInvite(memberId: string, spaceId: string) {
         await sendEmail({
             to: member.invited_email,
             subject: `You have access to ${project?.name || 'your project'}`,
-            html: customerInviteTemplate({
+            html: stakeholderInviteTemplate({
                 projectName: project?.name || 'your project',
-                clientName: project?.client_name || member.invited_email,
+                clientName: member.name || project?.client_name || member.invited_email,
                 accessLink
             }),
-            type: 'customer_invite_resend',
+            type: 'stakeholder_invite_resend',
             metadata: { spaceId, email: member.invited_email }
         })
 

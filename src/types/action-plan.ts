@@ -7,14 +7,14 @@
 
 export type TaskStatus = 'pending' | 'in_progress' | 'completed'
 
-export type AssigneeType = 'staff' | 'customer' | 'external'
+export type AssigneeType = 'staff' | 'stakeholder'
 
 export type QuickActionType = 'link' | 'go_to_page' | 'go_to_block'
 
 export interface Assignee {
   type: AssigneeType
   staffId?: string        // auth.users.id if type='staff'
-  customerId?: string     // space_members.id if type='customer'
+  stakeholderId?: string  // space_members.id if type='stakeholder'
   name: string            // Display name (required for all types)
   email?: string          // Optional email
   avatarUrl?: string      // Optional avatar URL (for staff)
@@ -47,8 +47,8 @@ export interface Milestone {
 }
 
 export interface ActionPlanPermissions {
-  customerCanEdit: boolean      // Can customers edit task details?
-  customerCanComplete: boolean  // Can customers mark tasks complete?
+  stakeholderCanEdit: boolean      // Can stakeholders edit task details?
+  stakeholderCanComplete: boolean  // Can stakeholders mark tasks complete?
 }
 
 export interface ActionPlanContent {

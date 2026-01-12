@@ -97,8 +97,8 @@ export function ActionPlanBlockEditor({
 }: ActionPlanBlockEditorProps) {
   const milestones = content.milestones || []
   const permissions = content.permissions || {
-    customerCanEdit: true,
-    customerCanComplete: true,
+    stakeholderCanEdit: true,
+    stakeholderCanComplete: true,
   }
 
   // Reset ID counter when component mounts (for new blocks)
@@ -304,7 +304,7 @@ export function ActionPlanBlockEditor({
           <div className="space-y-3 bg-grey-100 p-4 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="customer-can-edit" className="text-sm font-medium">
+                <Label htmlFor="stakeholder-can-edit" className="text-sm font-medium">
                   Stakeholders can edit
                 </Label>
                 <p className="text-xs text-muted-foreground">
@@ -312,17 +312,17 @@ export function ActionPlanBlockEditor({
                 </p>
               </div>
               <Switch
-                id="customer-can-edit"
-                checked={permissions.customerCanEdit}
+                id="stakeholder-can-edit"
+                checked={permissions.stakeholderCanEdit}
                 onCheckedChange={(checked) =>
-                  updatePermissions({ customerCanEdit: checked })
+                  updatePermissions({ stakeholderCanEdit: checked })
                 }
               />
             </div>
 
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label htmlFor="customer-can-complete" className="text-sm font-medium">
+                <Label htmlFor="stakeholder-can-complete" className="text-sm font-medium">
                   Stakeholders can complete tasks
                 </Label>
                 <p className="text-xs text-muted-foreground">
@@ -330,10 +330,10 @@ export function ActionPlanBlockEditor({
                 </p>
               </div>
               <Switch
-                id="customer-can-complete"
-                checked={permissions.customerCanComplete}
+                id="stakeholder-can-complete"
+                checked={permissions.stakeholderCanComplete}
                 onCheckedChange={(checked) =>
-                  updatePermissions({ customerCanComplete: checked })
+                  updatePermissions({ stakeholderCanComplete: checked })
                 }
               />
             </div>
@@ -688,28 +688,90 @@ interface AssigneePickerProps {
   spaceId: string
 }
 
+interface AssigneeData {
+  staff: Array<{ id: string; name: string; email: string; avatarUrl?: string }>
+  stakeholders: Array<{ id: string; name: string; email: string }>
+}
+
 function AssigneePicker({ assignee, onSelect, spaceId }: AssigneePickerProps) {
-  const [showExternalDialog, setShowExternalDialog] = useState(false)
-  const [externalName, setExternalName] = useState('')
-  const [externalEmail, setExternalEmail] = useState('')
+  const [showAddDialog, setShowAddDialog] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newEmail, setNewEmail] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [assignees, setAssignees] = useState<AssigneeData>({ staff: [], stakeholders: [] })
+  const [popoverOpen, setPopoverOpen] = useState(false)
 
-  const handleAddExternal = () => {
-    if (!externalName.trim()) return
+  // Fetch assignees when popover opens
+  useEffect(() => {
+    if (popoverOpen && spaceId) {
+      fetchAssignees()
+    }
+  }, [popoverOpen, spaceId])
 
+  const fetchAssignees = async () => {
+    try {
+      const { getSpaceAssignees } = await import('@/app/(app)/spaces/[spaceId]/stakeholder-actions')
+      const data = await getSpaceAssignees(spaceId)
+      setAssignees(data)
+    } catch (error) {
+      console.error('Error fetching assignees:', error)
+    }
+  }
+
+  const handleAddStakeholder = async () => {
+    if (!newName.trim()) return
+    setIsLoading(true)
+
+    try {
+      const { createStakeholder } = await import('@/app/(app)/spaces/[spaceId]/stakeholder-actions')
+      const result = await createStakeholder(spaceId, newName.trim(), newEmail.trim() || undefined)
+      
+      if ('id' in result) {
+        onSelect({
+          type: 'stakeholder',
+          stakeholderId: result.id,
+          name: newName.trim(),
+          email: newEmail.trim() || undefined,
+        })
+        
+        // Refresh the list
+        await fetchAssignees()
+      }
+    } catch (error) {
+      console.error('Error creating stakeholder:', error)
+    }
+
+    setNewName('')
+    setNewEmail('')
+    setIsLoading(false)
+    setShowAddDialog(false)
+    setPopoverOpen(false)
+  }
+
+  const handleSelectStaff = (staff: AssigneeData['staff'][0]) => {
     onSelect({
-      type: 'external',
-      name: externalName.trim(),
-      email: externalEmail.trim() || undefined,
+      type: 'staff',
+      staffId: staff.id,
+      name: staff.name,
+      email: staff.email,
+      avatarUrl: staff.avatarUrl,
     })
+    setPopoverOpen(false)
+  }
 
-    setExternalName('')
-    setExternalEmail('')
-    setShowExternalDialog(false)
+  const handleSelectStakeholder = (stakeholder: AssigneeData['stakeholders'][0]) => {
+    onSelect({
+      type: 'stakeholder',
+      stakeholderId: stakeholder.id,
+      name: stakeholder.name,
+      email: stakeholder.email,
+    })
+    setPopoverOpen(false)
   }
 
   return (
     <>
-      <Popover>
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -739,67 +801,109 @@ function AssigneePicker({ assignee, onSelect, spaceId }: AssigneePickerProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-2" align="start">
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-80 overflow-y-auto">
             {assignee && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start h-8 text-xs text-destructive"
-                onClick={() => onSelect(undefined)}
+                onClick={() => { onSelect(undefined); setPopoverOpen(false) }}
               >
                 <X className="size-3 mr-2" />
                 Remove assignee
               </Button>
             )}
 
-            <div className="text-xs font-medium text-muted-foreground px-2 py-1">
-              Quick assign
-            </div>
+            {/* Staff section */}
+            {assignees.staff.length > 0 && (
+              <>
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1">
+                  Team
+                </div>
+                {assignees.staff.map((staff) => (
+                  <Button
+                    key={staff.id}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8 text-xs"
+                    onClick={() => handleSelectStaff(staff)}
+                  >
+                    <Avatar className="size-4 mr-2">
+                      {staff.avatarUrl && <AvatarImage src={staff.avatarUrl} />}
+                      <AvatarFallback className="text-[8px]">{getInitials(staff.name)}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{staff.name}</span>
+                  </Button>
+                ))}
+              </>
+            )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start h-8 text-xs"
-              onClick={() => setShowExternalDialog(true)}
-            >
-              <Plus className="size-3 mr-2" />
-              Add external person
-            </Button>
+            {/* Stakeholders section */}
+            {assignees.stakeholders.length > 0 && (
+              <>
+                <div className="text-xs font-medium text-muted-foreground px-2 py-1 mt-2">
+                  Stakeholders
+                </div>
+                {assignees.stakeholders.map((stakeholder) => (
+                  <Button
+                    key={stakeholder.id}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start h-8 text-xs"
+                    onClick={() => handleSelectStakeholder(stakeholder)}
+                  >
+                    <Avatar className="size-4 mr-2">
+                      <AvatarFallback className="text-[8px]">{getInitials(stakeholder.name)}</AvatarFallback>
+                    </Avatar>
+                    <span className="truncate">{stakeholder.name}</span>
+                  </Button>
+                ))}
+              </>
+            )}
 
-            <div className="text-xs text-muted-foreground px-2 py-1 mt-2">
-              Note: Staff and stakeholder selection will be implemented with space members fetch
+            {/* Add new stakeholder */}
+            <div className="pt-2 border-t mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start h-8 text-xs"
+                onClick={() => setShowAddDialog(true)}
+              >
+                <Plus className="size-3 mr-2" />
+                Add new person
+              </Button>
             </div>
           </div>
         </PopoverContent>
       </Popover>
 
-      <Dialog open={showExternalDialog} onOpenChange={setShowExternalDialog}>
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add External Person</DialogTitle>
+            <DialogTitle>Add Person</DialogTitle>
             <DialogDescription>
-              Assign this task to someone outside your organization
+              Add a new stakeholder to assign tasks to
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="external-name">Name *</Label>
+              <Label htmlFor="new-name">Name *</Label>
               <Input
-                id="external-name"
-                value={externalName}
-                onChange={(e) => setExternalName(e.target.value)}
+                id="new-name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
                 placeholder="Enter name..."
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="external-email">Email (optional)</Label>
+              <Label htmlFor="new-email">Email (for reminders)</Label>
               <Input
-                id="external-email"
+                id="new-email"
                 type="email"
-                value={externalEmail}
-                onChange={(e) => setExternalEmail(e.target.value)}
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
                 placeholder="Enter email..."
               />
             </div>
@@ -808,12 +912,12 @@ function AssigneePicker({ assignee, onSelect, spaceId }: AssigneePickerProps) {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setShowExternalDialog(false)}
+              onClick={() => setShowAddDialog(false)}
             >
               Cancel
             </Button>
-            <Button onClick={handleAddExternal} disabled={!externalName.trim()}>
-              Add
+            <Button onClick={handleAddStakeholder} disabled={!newName.trim() || isLoading}>
+              {isLoading ? 'Adding...' : 'Add & Assign'}
             </Button>
           </DialogFooter>
         </DialogContent>

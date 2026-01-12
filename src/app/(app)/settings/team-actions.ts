@@ -132,7 +132,7 @@ export async function inviteToOrganization(
 
   await sendEmail({
     to: email,
-    subject: `Invitation to ${organization?.name || 'an organization'} on Impel`,
+    subject: `You've been invited to ${organization?.name || 'an organization'}`,
     html: orgInviteTemplate({
       organizationName: organization?.name || 'the organization',
       invitedByName: inviter?.full_name || inviter?.email || 'en kollega',
@@ -304,7 +304,7 @@ export async function resendInvitation(memberId: string) {
 
   await sendEmail({
     to: member.invited_email,
-    subject: `Reminder: Invitation to ${organization?.name || 'an organization'} on Impel`,
+    subject: `Reminder: You've been invited to ${organization?.name || 'an organization'}`,
     html: orgInviteTemplate({
       organizationName: organization?.name || 'the organization',
       invitedByName: inviter?.full_name || inviter?.email || 'en kollega',

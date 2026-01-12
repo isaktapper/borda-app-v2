@@ -115,7 +115,7 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
         const newId = `new-${Date.now()}`
         let initialContent: any = {}
         if (type === 'text') initialContent = { html: '<p></p>' }
-        if (type === 'action_plan') initialContent = { milestones: [], permissions: { customerCanEdit: true, customerCanComplete: true } }
+        if (type === 'action_plan') initialContent = { milestones: [], permissions: { stakeholderCanEdit: true, stakeholderCanComplete: true } }
         if (type === 'task') initialContent = { tasks: [] }
         if (type === 'file_upload') initialContent = { label: '', description: '', acceptedTypes: [], maxFiles: 1 }
         if (type === 'file_download') initialContent = { title: '', description: '', files: [] }

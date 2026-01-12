@@ -261,8 +261,8 @@ function ActionPlanBlock({ blockId, content }: { blockId: string; content: Actio
     const ctx = useContext(BlockContext)
     const milestones = content.milestones || []
     const permissions = content.permissions || {
-        customerCanEdit: true,
-        customerCanComplete: true,
+        stakeholderCanEdit: true,
+        stakeholderCanComplete: true,
     }
 
     // Track which milestones are open (first one open by default)
@@ -388,7 +388,7 @@ function ActionPlanBlock({ blockId, content }: { blockId: string; content: Actio
                                             const fullCompositeId = `${blockId}-${taskCompositeId}`
                                             const status = ctx.tasks?.[fullCompositeId] || 'pending'
                                             const isCompleted = status === 'completed'
-                                            const canComplete = ctx.interactive && permissions.customerCanComplete
+                                            const canComplete = ctx.interactive && permissions.stakeholderCanComplete
 
                                             return (
                                                 <div

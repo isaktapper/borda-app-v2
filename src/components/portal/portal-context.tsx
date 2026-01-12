@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useTransition, useRef } from 'react'
-import { toggleTaskStatus, saveResponse, uploadFile, deleteFile, logTaskActivity } from '@/app/space/actions'
+import { toggleTaskStatus, uploadFile, deleteFile, logTaskActivity, saveResponse } from '@/app/space/actions'
 import { toast } from 'sonner'
 
 interface PortalState {
@@ -78,15 +78,21 @@ export function PortalProvider({
             // Update the specific task
             blockTasks[taskId] = newStatus
 
-            // Save to responses table
-            const result = await saveResponse(blockId, spaceId, { tasks: blockTasks })
-            if (result.error) {
+            // Save to responses table via API route
+            const apiResponse = await fetch('/api/portal/save-response', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ blockId, spaceId, value: { tasks: blockTasks } })
+            })
+            const result = await apiResponse.json()
+            
+            if (!apiResponse.ok || result.error) {
                 // Rollback
                 setState(prev => ({
                     ...prev,
                     tasks: { ...prev.tasks, [compositeId]: currentStatus }
                 }))
-                toast.error('Kunde inte uppdatera uppgiften')
+                toast.error(result.error || 'Kunde inte uppdatera uppgiften')
             } else {
                 // Log task activity
                 await logTaskActivity(spaceId, blockId, taskId, taskTitle || 'Task', newStatus)

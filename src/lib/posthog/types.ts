@@ -118,7 +118,7 @@ export interface CustomerInvitedProperties {
 
 export interface TaskProperties {
     task_type?: string
-    completed_by?: 'internal' | 'customer'
+    completed_by?: 'internal' | 'stakeholder'
     space_id?: string
 }
 
@@ -186,7 +186,7 @@ export interface ChurnProperties {
 export interface PortalViewProperties {
     space_id: string
     is_first_view: boolean
-    visitor_type?: 'customer' | 'internal'
+    visitor_type?: 'stakeholder' | 'internal'
 }
 
 // ============================================

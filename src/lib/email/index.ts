@@ -12,6 +12,8 @@ interface SendEmailParams {
   to: string
   subject: string
   html: string
+  from?: string      // Override default from address
+  replyTo?: string   // Reply-to address
   type?: string
   metadata?: Record<string, any>
 }
@@ -20,12 +22,19 @@ export async function sendEmail({
   to,
   subject,
   html,
+  from,
+  replyTo,
   type = 'general',
   metadata = {}
 }: SendEmailParams) {
-  // In development: log instead of sending
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📧 Email:', { to, subject, type })
+  const defaultFrom = process.env.EMAIL_FROM || 'Borda <help@borda.work>'
+  const senderFrom = from || defaultFrom
+
+  // In development: log instead of sending (unless SEND_EMAILS_IN_DEV is set)
+  const skipSendInDev = process.env.NODE_ENV === 'development' && !process.env.SEND_EMAILS_IN_DEV
+  
+  if (skipSendInDev) {
+    console.log('📧 Email (dev mode - not sent):', { to, subject, from: senderFrom, replyTo, type })
     console.log('HTML Preview:', html)
 
     // Still log to database in development
@@ -36,10 +45,11 @@ export async function sendEmail({
   try {
     const resend = getResendClient()
     const result = await resend.emails.send({
-      from: process.env.EMAIL_FROM || 'Impel <noreply@impel.se>',
+      from: senderFrom,
       to,
       subject,
-      html
+      html,
+      ...(replyTo && { replyTo })
     })
 
     // Log to database

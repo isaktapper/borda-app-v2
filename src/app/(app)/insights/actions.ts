@@ -89,11 +89,11 @@ export async function getInsightsData(): Promise<InsightsData> {
       .eq('organization_id', orgId)
       .is('deleted_at', null),
     
-    // Get project members with invite data
+    // Get project members (stakeholders) with invite data
     supabase
       .from('space_members')
       .select('space_id, invited_email, invited_at, role')
-      .eq('role', 'customer'),
+      .eq('role', 'stakeholder'),
     
     // Get portal visits
     supabase

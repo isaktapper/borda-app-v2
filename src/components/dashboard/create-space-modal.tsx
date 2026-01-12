@@ -238,7 +238,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                             </div>
                         )}
                         <div className="grid gap-2">
-                            <Label htmlFor="clientName">Stakeholder Name</Label>
+                            <Label htmlFor="clientName">Customer Name</Label>
                             <Input
                                 id="clientName"
                                 name="clientName"
@@ -354,7 +354,7 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
                     <DialogFooter>
                         <Button type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save Space
+                            Create Space
                         </Button>
                     </DialogFooter>
                     </form>

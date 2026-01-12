@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { sendEmail } from '@/lib/email'
 import { taskReminderTemplate } from '@/lib/email/templates'
+import type { ActionPlanContent, Task } from '@/types/action-plan'
+
+interface TaskWithEmail {
+  email: string
+  task: {
+    title: string
+    description?: string
+    due_date?: string
+  }
+  spaceName: string
+  spaceId: string
+}
 
 export async function GET(request: NextRequest) {
   // Verify cron secret for security
@@ -12,126 +24,214 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Optional: Test mode parameters
+  const { searchParams } = new URL(request.url)
+  const testSpaceId = searchParams.get('spaceId')
+  const forceAll = searchParams.get('force') === 'true' // Ignore date filter for testing
+
   try {
     const supabase = await createAdminClient()
 
-    // Calculate tomorrow's date (for due_date comparison)
+    // Calculate today and tomorrow dates
+    const today = new Date()
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
-    const tomorrowDate = tomorrow.toISOString().split('T')[0]
+    
+    const todayStr = today.toISOString().split('T')[0]
+    const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
-    // Fetch tasks that are due tomorrow and not completed
-    const { data: tasks, error: tasksError } = await supabase
-      .from('tasks')
+    // 1. Fetch all action_plan blocks from active spaces
+    let query = supabase
+      .from('blocks')
       .select(`
         id,
-        title,
-        description,
-        due_date,
-        page_id,
-        pages!inner(
+        content,
+        pages!inner (
           id,
           space_id,
-          projects!inner(
+          spaces!inner (
             id,
             name,
-            status,
-            project_members!inner(
-              invited_email,
-              role
-            )
+            status
           )
         )
       `)
-      .eq('status', 'pending')
-      .eq('due_date', tomorrowDate)
-      .eq('pages.projects.status', 'active')
-      .eq('pages.projects.project_members.role', 'customer')
+      .eq('type', 'action_plan')
+      .eq('pages.spaces.status', 'active')
 
-    if (tasksError) {
-      console.error('Error fetching tasks:', tasksError)
-      return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 })
+    // Filter by specific space if testing
+    if (testSpaceId) {
+      query = query.eq('pages.space_id', testSpaceId)
     }
 
-    if (!tasks || tasks.length === 0) {
-      return NextResponse.json({ message: 'No tasks due tomorrow', sent: 0 })
+    const { data: blocks, error: blocksError } = await query
+
+    if (blocksError) {
+      console.error('Error fetching blocks:', blocksError)
+      return NextResponse.json({ error: 'Failed to fetch blocks' }, { status: 500 })
     }
 
-    // Group tasks by customer email and project
-    interface ProjectData {
-      projectName: string
-      spaceId: string
-      tasks: Array<{
-        title: string
-        description?: string
-        due_date?: string
-      }>
+    if (!blocks || blocks.length === 0) {
+      return NextResponse.json({ message: 'No action plan blocks found', sent: 0 })
     }
 
-    const tasksByCustomer = new Map<string, Map<string, ProjectData>>()
+    // 2. Fetch task responses to check completion status
+    const blockIds = blocks.map(b => b.id)
+    const { data: responses } = await supabase
+      .from('responses')
+      .select('block_id, value')
+      .in('block_id', blockIds)
 
-    for (const task of tasks) {
-      const project = (task as any).pages.projects
-      const members = project.project_members
-
-      if (!members || members.length === 0) continue
-
-      for (const member of members) {
-        if (!member.invited_email) continue
-
-        if (!tasksByCustomer.has(member.invited_email)) {
-          tasksByCustomer.set(member.invited_email, new Map())
-        }
-
-        const customerProjects = tasksByCustomer.get(member.invited_email)!
-
-        if (!customerProjects.has(project.id)) {
-          customerProjects.set(project.id, {
-            projectName: project.name,
-            spaceId: project.id,
-            tasks: []
-          })
-        }
-
-        customerProjects.get(project.id)!.tasks.push({
-          title: task.title,
-          description: task.description,
-          due_date: task.due_date
-        })
+    const responseMap = new Map<string, Record<string, string>>()
+    for (const response of responses || []) {
+      if (response.value?.tasks) {
+        responseMap.set(response.block_id, response.value.tasks)
       }
     }
 
-    // Send emails
+    // 3. Fetch staff emails for staff assignees
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, email')
+
+    const userEmailMap = new Map<string, string>()
+    for (const user of users || []) {
+      if (user.email) {
+        userEmailMap.set(user.id, user.email)
+      }
+    }
+
+    // 4. Fetch stakeholder emails
+    const { data: stakeholders } = await supabase
+      .from('space_members')
+      .select('id, invited_email')
+      .eq('role', 'stakeholder')
+
+    const stakeholderEmailMap = new Map<string, string>()
+    for (const stakeholder of stakeholders || []) {
+      if (stakeholder.invited_email) {
+        stakeholderEmailMap.set(stakeholder.id, stakeholder.invited_email)
+      }
+    }
+
+    // 5. Extract tasks due today or tomorrow with email assignees
+    const tasksWithEmails: TaskWithEmail[] = []
+
+    for (const block of blocks) {
+      const content = block.content as ActionPlanContent
+      const page = block.pages as any
+      const space = page.spaces
+      const spaceId = space.id
+      const spaceName = space.name
+
+      const taskStatuses = responseMap.get(block.id) || {}
+
+      for (const milestone of content.milestones || []) {
+        for (const task of milestone.tasks || []) {
+          // Check if task has a due date for today or tomorrow (skip check if force mode)
+          if (!forceAll) {
+            if (!task.dueDate) continue
+            if (task.dueDate !== todayStr && task.dueDate !== tomorrowStr) continue
+          }
+
+          // Check if task is not completed
+          const compositeId = `${milestone.id}-${task.id}`
+          const status = taskStatuses[compositeId] || 'pending'
+          if (status === 'completed') continue
+
+          // Check if task has an assignee with email
+          if (!task.assignee) continue
+
+          let email: string | undefined
+
+          if (task.assignee.type === 'staff' && task.assignee.staffId) {
+            email = userEmailMap.get(task.assignee.staffId)
+          } else if (task.assignee.type === 'stakeholder' && task.assignee.stakeholderId) {
+            email = stakeholderEmailMap.get(task.assignee.stakeholderId)
+          } else if (task.assignee.email) {
+            // Fallback to email stored directly on assignee
+            email = task.assignee.email
+          }
+
+          if (!email) continue
+
+          tasksWithEmails.push({
+            email,
+            task: {
+              title: task.title,
+              description: task.description,
+              due_date: task.dueDate
+            },
+            spaceName,
+            spaceId
+          })
+        }
+      }
+    }
+
+    if (tasksWithEmails.length === 0) {
+      return NextResponse.json({ message: 'No tasks due today or tomorrow', sent: 0 })
+    }
+
+    // 6. Group tasks by email and space
+    const tasksByEmailAndSpace = new Map<string, Map<string, {
+      spaceName: string
+      spaceId: string
+      tasks: TaskWithEmail['task'][]
+    }>>()
+
+    for (const taskWithEmail of tasksWithEmails) {
+      if (!tasksByEmailAndSpace.has(taskWithEmail.email)) {
+        tasksByEmailAndSpace.set(taskWithEmail.email, new Map())
+      }
+
+      const spaceMap = tasksByEmailAndSpace.get(taskWithEmail.email)!
+
+      if (!spaceMap.has(taskWithEmail.spaceId)) {
+        spaceMap.set(taskWithEmail.spaceId, {
+          spaceName: taskWithEmail.spaceName,
+          spaceId: taskWithEmail.spaceId,
+          tasks: []
+        })
+      }
+
+      spaceMap.get(taskWithEmail.spaceId)!.tasks.push(taskWithEmail.task)
+    }
+
+    // 7. Send emails
     let emailsSent = 0
 
-    for (const [email, projects] of tasksByCustomer) {
-      for (const [spaceId, projectData] of projects) {
+    for (const [email, spaceMap] of tasksByEmailAndSpace) {
+      for (const [spaceId, spaceData] of spaceMap) {
         const portalLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared`
 
-        await sendEmail({
-          to: email,
-          subject: `Reminder: ${projectData.tasks.length} task${projectData.tasks.length > 1 ? 'er' : ''}  to complete`,
-          html: taskReminderTemplate({
-            tasks: projectData.tasks,
-            projectName: projectData.projectName,
-            portalLink
-          }),
-          type: 'task_reminder',
-          metadata: {
-            spaceId,
-            taskCount: projectData.tasks.length,
-            dueDate: tomorrowDate
-          }
-        })
+        try {
+          await sendEmail({
+            to: email,
+            subject: `Reminder: ${spaceData.tasks.length} task${spaceData.tasks.length > 1 ? 's' : ''} due soon`,
+            html: taskReminderTemplate({
+              tasks: spaceData.tasks,
+              projectName: spaceData.spaceName,
+              portalLink
+            }),
+            type: 'task_reminder',
+            metadata: {
+              spaceId,
+              taskCount: spaceData.tasks.length
+            }
+          })
 
-        emailsSent++
+          emailsSent++
+        } catch (emailError) {
+          console.error(`Failed to send reminder to ${email}:`, emailError)
+        }
       }
     }
 
     return NextResponse.json({
       message: 'Task reminders sent',
       sent: emailsSent,
-      tasksProcessed: tasks.length
+      tasksProcessed: tasksWithEmails.length
     })
   } catch (error) {
     console.error('Error in task reminders cron:', error)

@@ -318,7 +318,7 @@ await sendEmail({
 })
 ```
 
-- Uses Resend API (`NEXT_PUBLIC_RESEND_API_KEY`)
+- Uses Resend API (`RESEND_API_KEY`)
 - Logs all emails to `email_log` table
 - Templates in `/src/lib/email/templates.ts`
 
@@ -375,7 +375,12 @@ PORTAL_SESSION_SECRET=  # 30+ character random string
 CRON_SECRET=  # Bearer token for cron endpoints
 
 # Email
-NEXT_PUBLIC_RESEND_API_KEY=
+RESEND_API_KEY=
+EMAIL_FROM="Borda <help@borda.work>"
+SEND_EMAILS_IN_DEV=true  # Optional: set to send real emails in development
+
+# Webhooks
+WEBHOOK_SECRET=  # Secret for webhook authentication
 ```
 
 ## Common Gotchas

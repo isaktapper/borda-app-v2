@@ -75,13 +75,13 @@ export async function validatePortalToken(spaceId: string, token: string) {
 export async function requestPortalAccess(spaceId: string, email: string) {
     const supabase = await createAdminClient()
 
-    // 1. Verify that email is a member of the project
+    // 1. Verify that email is a stakeholder of the project
     const { data: member, error: memberError } = await supabase
         .from('space_members')
         .select('id')
         .eq('space_id', spaceId)
         .eq('invited_email', email)
-        .eq('role', 'customer')
+        .eq('role', 'stakeholder')
         .limit(1)
         .single()
 
@@ -230,13 +230,13 @@ export async function validateRestrictedAccess(
         return { success: false, error: 'This portal is no longer available.' }
     }
 
-    // Check if email is approved
+    // Check if email is approved (stakeholder)
     const { data: member } = await supabase
         .from('space_members')
         .select('id')
         .eq('space_id', spaceId)
         .eq('invited_email', email.toLowerCase())
-        .eq('role', 'customer')
+        .eq('role', 'stakeholder')
         .single()
 
     if (!member) {

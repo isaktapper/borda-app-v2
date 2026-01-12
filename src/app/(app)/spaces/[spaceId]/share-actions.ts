@@ -40,12 +40,12 @@ export async function getShareSettings(spaceId: string): Promise<{ success: true
         return { success: false, error: 'Could not load project settings' }
     }
 
-    // Get approved customers
+    // Get approved stakeholders
     const { data: members, error: membersError } = await supabase
         .from('space_members')
-        .select('id, invited_email, invited_at, joined_at')
+        .select('id, name, invited_email, invited_at, joined_at')
         .eq('space_id', spaceId)
-        .eq('role', 'customer')
+        .eq('role', 'stakeholder')
         .order('invited_at', { ascending: false, nullsFirst: false })
 
     if (membersError) {
@@ -127,20 +127,20 @@ export async function addApprovedEmail(
         .select('id')
         .eq('space_id', spaceId)
         .eq('invited_email', email.toLowerCase())
-        .eq('role', 'customer')
+        .eq('role', 'stakeholder')
         .single()
 
     if (existing) {
         return { success: false, error: 'Email already added' }
     }
 
-    // Add new customer
+    // Add new stakeholder
     const { data, error } = await supabase
         .from('space_members')
         .insert({
             space_id: spaceId,
             invited_email: email.toLowerCase(),
-            role: 'customer',
+            role: 'stakeholder',
             invited_at: new Date().toISOString()
         })
         .select('id')
@@ -165,7 +165,7 @@ export async function removeApprovedEmail(
         .delete()
         .eq('id', memberId)
         .eq('space_id', spaceId)
-        .eq('role', 'customer')
+        .eq('role', 'stakeholder')
 
     if (error) {
         console.error('[removeApprovedEmail] Error:', error)
