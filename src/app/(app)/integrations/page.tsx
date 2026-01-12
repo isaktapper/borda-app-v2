@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { SlackConnectionCard } from '@/components/dashboard/settings/slack-connection-card'
 import { TeamsConnectionCard } from '@/components/dashboard/settings/teams-connection-card'
+import { IntegrationEventTracker } from '@/components/integration-event-tracker'
 import { Loader2 } from 'lucide-react'
 import { getCachedUser, getCachedOrgMember } from '@/lib/queries/user'
 
@@ -61,6 +62,11 @@ async function IntegrationsContent() {
 export default function IntegrationsPage() {
   return (
     <div className="space-y-6">
+      {/* Track integration events from URL params */}
+      <Suspense fallback={null}>
+        <IntegrationEventTracker />
+      </Suspense>
+      
       {/* Header */}
       <div className="border-b pb-4">
         <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>

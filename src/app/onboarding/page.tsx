@@ -5,6 +5,8 @@ import { JoinOrgForm } from './onboarding-forms'
 import { OnboardingWizard } from './onboarding-wizard'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { AuthEventTracker } from '@/components/auth-event-tracker'
 
 export default async function OnboardingPage({
     searchParams,
@@ -53,10 +55,18 @@ export default async function OnboardingPage({
     const params = await searchParams
     const forceCreate = params.create === 'true'
 
+    // Detect auth method from user metadata
+    const authMethod = user.app_metadata?.provider === 'google' ? 'google' : 'email'
+
     // If matched org exists and user hasn't chosen to create new
     if (matchedOrg && !forceCreate) {
         return (
             <div className="flex min-h-screen items-center justify-center p-4 bg-muted/20">
+                {/* Track signup completion for new users */}
+                <Suspense fallback={null}>
+                    <AuthEventTracker isNewUser={true} authMethod={authMethod as 'email' | 'google'} />
+                </Suspense>
+                
                 <div className="w-full max-w-md space-y-6">
                     <div className="text-center space-y-2">
                         <h1 className="text-3xl font-bold">Welcome to Borda</h1>
@@ -100,6 +110,11 @@ export default async function OnboardingPage({
     // Show the onboarding wizard for new organization creation
     return (
         <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background via-background to-primary/5">
+            {/* Track signup completion for new users */}
+            <Suspense fallback={null}>
+                <AuthEventTracker isNewUser={true} authMethod={authMethod as 'email' | 'google'} />
+            </Suspense>
+            
             <div className="w-full max-w-2xl space-y-8 py-8">
                 <div className="text-center space-y-2">
                     <h1 className="text-3xl font-bold">Welcome to Borda</h1>

@@ -13,6 +13,7 @@ import {
 import { cn } from '@/lib/utils'
 import { PLANS, PlanType, BillingInterval } from '@/lib/stripe'
 import { toast } from 'sonner'
+import { trackUpgradeClicked } from '@/lib/posthog'
 
 interface Subscription {
   id: string
@@ -59,6 +60,13 @@ export function BillingSection({
       toast.error('Only the organization owner can manage billing')
       return
     }
+    
+    // Track upgrade click
+    trackUpgradeClicked({
+      current_plan: (currentPlan || 'trial') as 'trial' | 'growth' | 'scale',
+      target_plan: plan,
+      source: 'billing_settings'
+    })
     
     setLoading(plan)
     setError(null)

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,12 @@ import { Building2, Palette, Users, Megaphone, Upload, X, Loader2, Check, ArrowR
 import { cn } from '@/lib/utils'
 import { isValidHexColor, normalizeHexColor } from '@/lib/branding'
 import { createOrganizationWithOnboarding } from './actions'
+import { 
+    trackOnboardingStep, 
+    trackOnboardingCompleted, 
+    trackWorkspaceCreated,
+    trackTrialStarted 
+} from '@/lib/posthog'
 
 interface OnboardingWizardProps {
     domain: string | null
@@ -72,11 +78,17 @@ const steps = [
     { id: 4, title: 'Discovery', icon: Megaphone, description: 'How you found us' },
 ]
 
+const STEP_NAMES = ['organization', 'branding', 'company', 'discovery'] as const
+
 export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
     const [currentStep, setCurrentStep] = useState(1)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    
+    // Tracking state
+    const onboardingStartTime = useRef(Date.now())
+    const stepStartTime = useRef(Date.now())
 
     // Form state
     const [orgName, setOrgName] = useState('')
@@ -88,6 +100,18 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
     const [companySize, setCompanySize] = useState('')
     const [referralSource, setReferralSource] = useState('')
     const [referralSourceOther, setReferralSourceOther] = useState('')
+
+    // Track step views
+    useEffect(() => {
+        const timeOnPreviousStep = Math.round((Date.now() - stepStartTime.current) / 1000)
+        stepStartTime.current = Date.now()
+        
+        trackOnboardingStep({
+            step: currentStep,
+            step_name: STEP_NAMES[currentStep - 1],
+            time_on_step_seconds: currentStep > 1 ? timeOnPreviousStep : undefined
+        })
+    }, [currentStep])
 
     const canProceed = () => {
         switch (currentStep) {
@@ -169,6 +193,28 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
         if (result?.error) {
             setError(result.error)
             setIsSubmitting(false)
+        } else {
+            // Track successful onboarding completion
+            const totalTimeSeconds = Math.round((Date.now() - onboardingStartTime.current) / 1000)
+            
+            trackOnboardingCompleted({
+                time_to_complete_seconds: totalTimeSeconds,
+                steps_completed: 4,
+                industry,
+                company_size: companySize,
+                referral_source: referralSource
+            })
+
+            trackWorkspaceCreated({
+                workspace_name: orgName,
+                has_logo: !!logoFile,
+                has_brand_color: brandColor !== '#3B82F6',
+                industry,
+                company_size: companySize
+            })
+
+            // Track trial start (14 days is Borda's default)
+            trackTrialStarted(14)
         }
         // On success, the action will redirect
     }

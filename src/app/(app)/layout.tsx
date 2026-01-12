@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import { DashboardSidebar } from '@/components/dashboard/dashboard-sidebar'
 import { DashboardHeader } from '@/components/dashboard/dashboard-header'
 import { TrialExpiredBlocker } from '@/components/dashboard/trial-expired-blocker'
+import { PostHogIdentifier } from '@/components/posthog-identifier'
 import { getAvatarSignedUrl } from './settings/profile/avatar-actions'
 import {
     getCachedUser,
@@ -59,9 +60,21 @@ export default async function DashboardLayout({
         spaceLimitReached = !spacePermission.allowed
     }
 
-    const orgName = memberData.data?.organizations && !Array.isArray(memberData.data.organizations)
-        ? (memberData.data.organizations as any).name
-        : 'Borda'
+    // Get organization details
+    const organization = memberData.data?.organizations && !Array.isArray(memberData.data.organizations)
+        ? (memberData.data.organizations as any)
+        : null
+    
+    const orgName = organization?.name || 'Borda'
+    
+    // Get subscription to determine plan
+    let plan: 'trial' | 'growth' | 'scale' = 'trial'
+    if (memberData.data?.organization_id) {
+        const subscription = await getOrganizationSubscription(memberData.data.organization_id)
+        if (subscription?.plan) {
+            plan = subscription.plan as 'trial' | 'growth' | 'scale'
+        }
+    }
 
     // Generate signed URL for avatar if it exists
     const avatarUrl = profileData.data?.avatar_url
@@ -76,6 +89,22 @@ export default async function DashboardLayout({
 
     return (
         <SidebarProvider>
+            {/* PostHog user identification */}
+            <PostHogIdentifier
+                userId={user.id}
+                userEmail={user.email || ''}
+                userName={profileData.data?.full_name}
+                userRole={memberData.data?.role as 'owner' | 'admin' | 'member'}
+                createdAt={user.created_at}
+                organizationId={memberData.data?.organization_id}
+                organizationName={orgName}
+                plan={plan}
+                isTrialing={isTrialing}
+                trialDaysRemaining={trialDaysRemaining}
+                industry={organization?.industry}
+                companySize={organization?.company_size}
+            />
+            
             {/* Show blocker modal if trial has expired */}
             {trialExpired && memberData.data?.organization_id && (
                 <TrialExpiredBlocker organizationId={memberData.data.organization_id} />

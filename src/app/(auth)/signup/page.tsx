@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -8,10 +8,19 @@ import { Loader2 } from 'lucide-react'
 import { signup } from '@/app/auth/actions'
 import Link from 'next/link'
 import { GoogleButton } from '@/components/ui/google-button'
+import { trackSignupStarted } from '@/lib/posthog'
 
 export default function SignupPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Track when user lands on signup page
+    useEffect(() => {
+        // Get UTM source from URL params if available
+        const params = new URLSearchParams(window.location.search)
+        const source = params.get('utm_source') || params.get('ref') || undefined
+        trackSignupStarted(source)
+    }, [])
 
     const handleSubmit = async (formData: FormData) => {
         setLoading(true)

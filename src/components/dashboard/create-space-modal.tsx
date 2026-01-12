@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils"
 import type { Template } from "@/lib/types/templates"
 import { MultiStepLoader } from "@/components/ui/multi-step-loader"
 import Link from 'next/link'
+import { trackSpaceCreated, trackFeatureUsed } from '@/lib/posthog'
 
 interface CreateSpaceModalProps {
     trigger?: React.ReactNode
@@ -140,6 +141,23 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
             if (logoResult.error) {
                 console.error('Failed to upload client logo:', logoResult.error)
                 // Don't block space creation if logo upload fails
+            }
+        }
+
+        // Track space creation
+        if (result.spaceId) {
+            trackSpaceCreated({
+                space_id: result.spaceId,
+                space_name: projectName || clientName,
+                status: 'draft'
+            })
+
+            // Track template usage if used
+            if (selectedTemplate && selectedTemplate !== 'blank') {
+                trackFeatureUsed({ 
+                    feature_name: 'template', 
+                    context: 'space_creation' 
+                })
             }
         }
 
