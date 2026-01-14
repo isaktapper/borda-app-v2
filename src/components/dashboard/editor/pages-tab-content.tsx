@@ -18,10 +18,11 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, FileText, Plus, Sparkles, MoreVertical, Info, ChevronRight } from 'lucide-react'
+import { Trash2, FileText, Plus, Sparkles, MoreVertical, Info, ChevronRight, Check, X } from 'lucide-react'
 import { WelcomePopupEditor, WelcomePopupContent } from './welcome-popup-editor'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { CreatePageModal } from '@/components/dashboard/create-page-modal'
 import {
@@ -62,6 +63,15 @@ interface PagesTabContentProps {
     onPagesReorder: (pages: Page[]) => void
     welcomePopup?: WelcomePopupContent | null
     onWelcomePopupSave?: (content: WelcomePopupContent) => Promise<void>
+    isTemplateMode?: boolean
+}
+
+// Helper to generate slug from title
+function generateSlug(title: string): string {
+    return title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '') || 'untitled'
 }
 
 export function PagesTabContent({
@@ -72,10 +82,30 @@ export function PagesTabContent({
     onPageDelete,
     onPagesReorder,
     welcomePopup,
-    onWelcomePopupSave
+    onWelcomePopupSave,
+    isTemplateMode = false,
 }: PagesTabContentProps) {
     const [deleteId, setDeleteId] = useState<string | null>(null)
     const [showWelcomeEditor, setShowWelcomeEditor] = useState(false)
+    const [showCreatePageInput, setShowCreatePageInput] = useState(false)
+    const [newPageTitle, setNewPageTitle] = useState('')
+
+    // Handle local page creation for template mode
+    const handleCreateLocalPage = () => {
+        if (!newPageTitle.trim()) return
+        
+        const newPage: Page = {
+            id: `page-${Date.now()}`,
+            title: newPageTitle.trim(),
+            slug: generateSlug(newPageTitle.trim()),
+            sort_order: pages.length
+        }
+        
+        onPageCreated(newPage)
+        setNewPageTitle('')
+        setShowCreatePageInput(false)
+        onPageSelect(newPage.id)
+    }
 
     // All hooks must be called before any conditional returns
     const sensors = useSensors(
@@ -134,51 +164,102 @@ export function PagesTabContent({
             <div className="p-4 border-b">
                 <div className="flex items-center justify-center relative">
                     <h3 className="font-semibold text-base">Pages overview</h3>
-                    <CreatePageModal 
-                        spaceId={spaceId} 
-                        onPageCreated={onPageCreated}
-                        trigger={
-                            <Button size="icon" className="size-8 rounded-lg absolute right-0">
-                                <Plus className="size-4" />
-                            </Button>
-                        }
-                    />
+                    {isTemplateMode ? (
+                        <Button 
+                            size="icon" 
+                            className="size-8 rounded-lg absolute right-0"
+                            onClick={() => setShowCreatePageInput(true)}
+                        >
+                            <Plus className="size-4" />
+                        </Button>
+                    ) : (
+                        <CreatePageModal 
+                            spaceId={spaceId} 
+                            onPageCreated={onPageCreated}
+                            trigger={
+                                <Button size="icon" className="size-8 rounded-lg absolute right-0">
+                                    <Plus className="size-4" />
+                                </Button>
+                            }
+                        />
+                    )}
                 </div>
+                
+                {/* Inline page creation for template mode */}
+                {isTemplateMode && showCreatePageInput && (
+                    <div className="flex items-center gap-2 mt-3">
+                        <Input
+                            placeholder="Page title..."
+                            value={newPageTitle}
+                            onChange={(e) => setNewPageTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleCreateLocalPage()
+                                if (e.key === 'Escape') {
+                                    setShowCreatePageInput(false)
+                                    setNewPageTitle('')
+                                }
+                            }}
+                            autoFocus
+                            className="flex-1 h-8 text-sm"
+                        />
+                        <Button 
+                            size="icon" 
+                            className="size-8 shrink-0"
+                            onClick={handleCreateLocalPage}
+                            disabled={!newPageTitle.trim()}
+                        >
+                            <Check className="size-4" />
+                        </Button>
+                        <Button 
+                            size="icon" 
+                            variant="ghost"
+                            className="size-8 shrink-0"
+                            onClick={() => {
+                                setShowCreatePageInput(false)
+                                setNewPageTitle('')
+                            }}
+                        >
+                            <X className="size-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
 
-            {/* Welcome Pop-Up Section */}
-            <div className="px-4 pt-4">
-                <button
-                    onClick={() => setShowWelcomeEditor(true)}
-                    className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group"
-                >
-                    <div className="flex items-center gap-3">
-                        <span className="text-base">👋</span>
-                        <span className="text-sm font-medium text-foreground">Welcome Pop-Up</span>
-                        <Tooltip>
-                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                <span className="text-muted-foreground hover:text-foreground transition-colors">
-                                    <Info className="size-4" />
-                                </span>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[200px]">
-                                <p className="text-xs">Show a welcome message when stakeholders first visit your space.</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            welcomePopup?.enabled 
-                                ? "bg-emerald-100 text-emerald-700" 
-                                : "bg-muted text-muted-foreground"
-                        )}>
-                            {welcomePopup?.enabled ? 'Active' : 'Inactive'}
-                        </span>
-                        <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                    </div>
-                </button>
-            </div>
+            {/* Welcome Pop-Up Section - not shown in template mode */}
+            {!isTemplateMode && (
+                <div className="px-4 pt-4">
+                    <button
+                        onClick={() => setShowWelcomeEditor(true)}
+                        className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-base">👋</span>
+                            <span className="text-sm font-medium text-foreground">Welcome Pop-Up</span>
+                            <Tooltip>
+                                <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                    <span className="text-muted-foreground hover:text-foreground transition-colors">
+                                        <Info className="size-4" />
+                                    </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[200px]">
+                                    <p className="text-xs">Show a welcome message when stakeholders first visit your space.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className={cn(
+                                "text-xs px-2 py-0.5 rounded-full",
+                                welcomePopup?.enabled 
+                                    ? "bg-emerald-100 text-emerald-700" 
+                                    : "bg-muted text-muted-foreground"
+                            )}>
+                                {welcomePopup?.enabled ? 'Active' : 'Inactive'}
+                            </span>
+                            <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </div>
+                    </button>
+                </div>
+            )}
 
             {/* Pages List */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -201,16 +282,27 @@ export function PagesTabContent({
                             Pages help you organize your content into logical sections for your client.
                         </p>
 
-                        <CreatePageModal
-                            spaceId={spaceId}
-                            onPageCreated={onPageCreated}
-                            trigger={
-                                <Button size="sm" className="gap-1.5">
-                                    <Plus className="size-3.5" />
-                                    Create first page
-                                </Button>
-                            }
-                        />
+                        {isTemplateMode ? (
+                            <Button 
+                                size="sm" 
+                                className="gap-1.5"
+                                onClick={() => setShowCreatePageInput(true)}
+                            >
+                                <Plus className="size-3.5" />
+                                Create first page
+                            </Button>
+                        ) : (
+                            <CreatePageModal
+                                spaceId={spaceId}
+                                onPageCreated={onPageCreated}
+                                trigger={
+                                    <Button size="sm" className="gap-1.5">
+                                        <Plus className="size-3.5" />
+                                        Create first page
+                                    </Button>
+                                }
+                            />
+                        )}
                     </div>
                 ) : (
                     <DndContext

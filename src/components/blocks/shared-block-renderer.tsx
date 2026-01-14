@@ -31,7 +31,12 @@ import {
     ChevronDown,
     Play,
     ExternalLink,
-    Zap
+    Zap,
+    ArrowRight,
+    Circle,
+    PartyPopper,
+    Clock,
+    AlertCircle,
 } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
@@ -67,6 +72,8 @@ interface BlockInteractionContext {
     interactive: boolean
     /** Space ID for file operations */
     spaceId?: string
+    /** All blocks in the current page (for cross-block references like NextTaskBlock) */
+    allBlocks?: Block[]
     /** Task states for action plans and tasks */
     tasks?: Record<string, 'pending' | 'completed'>
     /** Form responses */
@@ -84,6 +91,54 @@ interface BlockInteractionContext {
 }
 
 const BlockContext = createContext<BlockInteractionContext>({ interactive: false })
+
+// Next Task Block Types
+interface NextTaskBlockContent {
+    title?: string
+    description?: string
+    actionPlanBlockIds: string[]  // Selected action plan blocks
+    sortMode: 'smart' | 'due_date' | 'order'  // Smart = overdue > due date > order
+    layoutStyle: 'bold' | 'light'
+    showProgress: boolean         // Show "X of Y tasks remaining"
+    showMilestoneName: boolean    // Show which milestone the task belongs to
+}
+
+// Action Plan Progress Block Types
+interface ActionPlanProgressContent {
+    title?: string
+    description?: string
+    viewMode: 'single' | 'multiple'  // Single = milestones in one plan, Multiple = overview of multiple plans
+    actionPlanBlockIds: string[]     // Selected action plan blocks
+    showUpcomingTasks: boolean       // Show upcoming tasks in popover
+    maxUpcomingTasks: number         // Max number of tasks to show (default 3)
+}
+
+interface ResolvedTask {
+    blockId: string
+    milestoneId: string
+    milestoneTitle: string
+    taskId: string
+    compositeId: string  // blockId-milestoneId-taskId format
+    task: {
+        id: string
+        title: string
+        description?: string
+        dueDate?: string
+        assignee?: {
+            type: 'staff' | 'stakeholder'
+            name: string
+            avatarUrl?: string
+        }
+        quickAction?: {
+            type: 'link' | 'go_to_page' | 'go_to_block'
+            title: string
+            url?: string
+            pageId?: string
+            blockId?: string
+        }
+    }
+    priority: number  // Lower = higher priority
+}
 
 // ============================================================================
 // Main Renderer
@@ -140,6 +195,12 @@ function renderBlock(block: Block) {
             return <MediaBlock content={block.content} />
         case 'accordion':
             return <AccordionBlock content={block.content} />
+        case 'timeline':
+            return <TimelineBlock content={block.content} />
+        case 'next_task':
+            return <NextTaskBlock blockId={block.id} content={block.content} />
+        case 'action_plan_progress':
+            return <ActionPlanProgressBlock blockId={block.id} content={block.content} />
         default:
             return (
                 <BlockContainer className="bg-muted/10">
@@ -1381,8 +1442,1224 @@ function AccordionBlock({ content }: { content: AccordionBlockContent }) {
 }
 
 // ============================================================================
+// Timeline Block
+// ============================================================================
+
+interface TimelinePhase {
+    id: string
+    title: string
+    description?: string
+    date?: string
+    status: 'completed' | 'current' | 'upcoming'
+}
+
+interface TimelineBlockContent {
+    title?: string
+    description?: string
+    phases: TimelinePhase[]
+    showDates: boolean
+}
+
+function TimelineBlock({ content }: { content: TimelineBlockContent }) {
+    const phases = content.phases || []
+    const showDates = content.showDates ?? true
+
+    if (phases.length === 0) {
+        return (
+            <BlockContainer
+                title={content.title}
+                description={content.description}
+            >
+                <div className="text-center p-5 rounded-lg bg-muted/10">
+                    <p className="text-sm text-muted-foreground">No phases added yet</p>
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    return (
+        <BlockContainer
+            title={content.title}
+            description={content.description}
+        >
+            {/* Horizontal scroll container */}
+            <div className="overflow-x-auto">
+                <div className="flex justify-center min-w-min py-1">
+                    {phases.map((phase, index) => (
+                        <TimelinePhaseCard 
+                            key={phase.id} 
+                            phase={phase} 
+                            showDate={showDates}
+                            isFirst={index === 0}
+                            isLast={index === phases.length - 1}
+                        />
+                    ))}
+                </div>
+            </div>
+        </BlockContainer>
+    )
+}
+
+function TimelinePhaseCard({ 
+    phase, 
+    showDate,
+    isFirst,
+    isLast 
+}: { 
+    phase: TimelinePhase
+    showDate: boolean
+    isFirst: boolean
+    isLast: boolean
+}) {
+    const getStatusStyles = () => {
+        switch (phase.status) {
+            case 'completed':
+                return {
+                    iconBg: 'bg-emerald-100 text-emerald-600',
+                    connector: 'bg-emerald-400',
+                    border: 'border-emerald-200',
+                    glow: '',
+                }
+            case 'current':
+                return {
+                    iconBg: 'bg-primary/10 text-primary',
+                    connector: 'bg-primary/30',
+                    border: 'border-primary/30',
+                    glow: 'ring-2 ring-primary/20',
+                }
+            case 'upcoming':
+                return {
+                    iconBg: 'bg-muted text-muted-foreground',
+                    connector: 'bg-muted',
+                    border: 'border-muted',
+                    glow: '',
+                }
+        }
+    }
+
+    const styles = getStatusStyles()
+
+    const formatDate = (dateString: string) => {
+        try {
+            return format(new Date(dateString), 'd MMM')
+        } catch {
+            return dateString
+        }
+    }
+
+    return (
+        <div className="relative flex flex-col items-center shrink-0 px-4">
+            {/* Connector line - positioned at card center height */}
+            <div 
+                className="absolute top-[65px] h-0.5 z-0"
+                style={{
+                    left: isFirst ? '50%' : '-16px',
+                    right: isLast ? '50%' : '-16px',
+                }}
+            >
+                <div className={cn("w-full h-full", styles.connector)} />
+            </div>
+
+            {/* Phase card - fixed height for consistency */}
+            {phase.description ? (
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <div className={cn(
+                            "relative z-10 flex flex-col items-center justify-between w-[120px] h-[130px] py-4 px-3 rounded-lg bg-white border cursor-help",
+                            styles.border,
+                            styles.glow
+                        )}>
+                            {/* Info icon indicator */}
+                            <Info className="absolute top-2 right-2 size-3.5 text-muted-foreground/50" />
+                            
+                            {/* Status icon */}
+                            <div className={cn(
+                                "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                                styles.iconBg
+                            )}>
+                                {phase.status === 'completed' && <Check className="size-5" />}
+                                {phase.status === 'current' && <ArrowRight className="size-5" />}
+                                {phase.status === 'upcoming' && <Circle className="size-4" />}
+                            </div>
+
+                            {/* Date - always reserve space */}
+                            <span className="text-xs text-muted-foreground shrink-0">
+                                {showDate && phase.date ? formatDate(phase.date) : '\u00A0'}
+                            </span>
+
+                            {/* Title at bottom */}
+                            <span className={cn(
+                                "text-sm font-medium text-center line-clamp-2",
+                                phase.status === 'upcoming' && 'text-muted-foreground'
+                            )}>
+                                {phase.title || 'Untitled'}
+                            </span>
+                        </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-xs">
+                        <p className="text-sm">{phase.description}</p>
+                    </TooltipContent>
+                </Tooltip>
+            ) : (
+                <div className={cn(
+                    "relative z-10 flex flex-col items-center justify-between w-[120px] h-[130px] py-4 px-3 rounded-lg bg-white border",
+                    styles.border,
+                    styles.glow
+                )}>
+                    {/* Status icon */}
+                    <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                        styles.iconBg
+                    )}>
+                        {phase.status === 'completed' && <Check className="size-5" />}
+                        {phase.status === 'current' && <ArrowRight className="size-5" />}
+                        {phase.status === 'upcoming' && <Circle className="size-4" />}
+                    </div>
+
+                    {/* Date - always reserve space */}
+                    <span className="text-xs text-muted-foreground shrink-0">
+                        {showDate && phase.date ? formatDate(phase.date) : '\u00A0'}
+                    </span>
+
+                    {/* Title at bottom */}
+                    <span className={cn(
+                        "text-sm font-medium text-center line-clamp-2",
+                        phase.status === 'upcoming' && 'text-muted-foreground'
+                    )}>
+                        {phase.title || 'Untitled'}
+                    </span>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ============================================================================
+// Next Task Block
+// ============================================================================
+
+interface NextTaskBlockProps {
+    blockId: string
+    content: NextTaskBlockContent
+    allBlocks?: Block[]  // All blocks in the space for resolving action plans
+}
+
+function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
+    const ctx = useContext(BlockContext)
+    const [fetchedBlocks, setFetchedBlocks] = useState<Block[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [showConfetti, setShowConfetti] = useState(false)
+    const [useDarkText, setUseDarkText] = useState(false)
+    
+    const layoutStyle = content.layoutStyle || 'light'
+    const showProgress = content.showProgress ?? true
+    const showMilestoneName = content.showMilestoneName ?? true
+    const sortMode = content.sortMode || 'smart'
+
+    // Calculate if brand color is light (needs dark text) or dark (needs light text)
+    useEffect(() => {
+        if (layoutStyle !== 'bold') return
+        
+        // Get the computed primary color from CSS variable
+        const computedStyle = getComputedStyle(document.documentElement)
+        const primaryHsl = computedStyle.getPropertyValue('--primary').trim()
+        
+        if (primaryHsl) {
+            // Parse HSL values (format: "h s% l%" e.g. "262 83% 58%")
+            const hslMatch = primaryHsl.match(/(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%?\s+(\d+(?:\.\d+)?)%?/)
+            if (hslMatch) {
+                const lightness = parseFloat(hslMatch[3])
+                // If lightness > 60%, use dark text; otherwise use light text
+                setUseDarkText(lightness > 60)
+            }
+        }
+    }, [layoutStyle])
+
+    // Text colors based on brand color brightness
+    const textColor = useDarkText ? 'text-black' : 'text-white'
+    const textColorMuted = useDarkText ? 'text-black/70' : 'text-white/70'
+    const textColorSubtle = useDarkText ? 'text-black/60' : 'text-white/60'
+    const bgOverlay = useDarkText ? 'bg-black/10' : 'bg-white/10'
+    const bgOverlayHover = useDarkText ? 'bg-black/20' : 'bg-white/20'
+    const borderColor = useDarkText ? 'border-black/30' : 'border-white/50'
+    const borderColorHover = useDarkText ? 'border-black/50' : 'border-white'
+
+    // Get action plan blocks - combine context blocks (same page) with database fetch (other pages)
+    // If actionPlanBlockIds is empty, fetch ALL action plans for the space
+    useEffect(() => {
+        async function fetchActionPlans() {
+            const selectAll = !content.actionPlanBlockIds?.length
+            
+            // Start with blocks from context (blocks on the same page in editor mode)
+            let foundBlocks: Block[] = []
+            let missingIds: string[] = selectAll ? [] : [...content.actionPlanBlockIds]
+
+            if (ctx.allBlocks) {
+                const contextBlocks = selectAll
+                    ? ctx.allBlocks.filter(b => b.type === 'action_plan')
+                    : ctx.allBlocks.filter(
+                        b => b.type === 'action_plan' && content.actionPlanBlockIds.includes(b.id)
+                    )
+                foundBlocks = contextBlocks
+                
+                // Find which IDs are still missing (might be on other pages)
+                if (!selectAll) {
+                    const foundIds = new Set(contextBlocks.map(b => b.id))
+                    missingIds = content.actionPlanBlockIds.filter(id => !foundIds.has(id))
+                }
+            }
+
+            // If we have specific IDs and found all from context, we're done
+            if (!selectAll && missingIds.length === 0) {
+                setFetchedBlocks(foundBlocks)
+                setIsLoading(false)
+                return
+            }
+
+            // Fetch blocks from database (for blocks on other pages or in portal mode)
+            try {
+                const supabase = createClient()
+                
+                if (selectAll) {
+                    // Fetch all action plans for the space via pages
+                    if (ctx.spaceId) {
+                        const { data: pages } = await supabase
+                            .from('pages')
+                            .select('id')
+                            .eq('space_id', ctx.spaceId)
+                        
+                        if (pages && pages.length > 0) {
+                            const pageIds = pages.map(p => p.id)
+                            const { data: dbBlocks } = await supabase
+                                .from('blocks')
+                                .select('id, type, content, sort_order')
+                                .eq('type', 'action_plan')
+                                .in('page_id', pageIds)
+                            
+                            // Merge and dedupe with context blocks
+                            const contextIds = new Set(foundBlocks.map(b => b.id))
+                            const uniqueDbBlocks = (dbBlocks || []).filter(b => !contextIds.has(b.id))
+                            setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                        } else {
+                            setFetchedBlocks(foundBlocks)
+                        }
+                    } else {
+                        setFetchedBlocks(foundBlocks)
+                    }
+                } else {
+                    // Fetch specific IDs
+                    const { data: dbBlocks } = await supabase
+                        .from('blocks')
+                        .select('id, type, content, sort_order')
+                        .eq('type', 'action_plan')
+                        .in('id', missingIds)
+                    
+                    const allFoundBlocks = [...foundBlocks, ...(dbBlocks || [])]
+                    setFetchedBlocks(allFoundBlocks)
+                }
+            } catch (error) {
+                console.error('Failed to fetch action plan blocks:', error)
+                setFetchedBlocks(foundBlocks)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchActionPlans()
+    }, [ctx.spaceId, ctx.allBlocks, content.actionPlanBlockIds])
+
+    // Use fetched blocks for all operations
+    const allBlocks = fetchedBlocks
+
+    // Resolve next task using smart priority algorithm
+    const resolveNextTask = (): ResolvedTask | null => {
+        if (!allBlocks.length) return null
+
+        const allTasks: ResolvedTask[] = []
+
+        for (const block of allBlocks) {
+            const actionPlanContent = block.content as ActionPlanContent
+            const milestones = actionPlanContent.milestones || []
+
+            for (const milestone of milestones) {
+                for (const task of milestone.tasks || []) {
+                    const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                    const status = ctx.tasks?.[compositeId] || 'pending'
+
+                    // Skip completed tasks
+                    if (status === 'completed') continue
+
+                    // Calculate priority based on sort mode
+                    let priority = 0
+                    if (sortMode === 'smart' || sortMode === 'due_date') {
+                        if (task.dueDate) {
+                            const dueDate = new Date(task.dueDate)
+                            const today = new Date()
+                            today.setHours(0, 0, 0, 0)
+                            dueDate.setHours(0, 0, 0, 0)
+                            
+                            const daysDiff = Math.floor((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+                            
+                            if (daysDiff < 0) {
+                                // Overdue: negative priority (highest)
+                                priority = daysDiff - 1000
+                            } else if (daysDiff === 0) {
+                                // Due today
+                                priority = -500
+                            } else {
+                                // Future: positive priority based on days
+                                priority = daysDiff
+                            }
+                        } else {
+                            // No due date: lower priority
+                            priority = sortMode === 'smart' ? 10000 + milestone.sortOrder * 100 + (milestone.tasks?.indexOf(task) || 0) : 10000
+                        }
+                    } else {
+                        // Order mode: priority by sort order
+                        priority = (block.sort_order || 0) * 10000 + milestone.sortOrder * 100 + (milestone.tasks?.indexOf(task) || 0)
+                    }
+
+                    allTasks.push({
+                        blockId: block.id,
+                        milestoneId: milestone.id,
+                        milestoneTitle: milestone.title,
+                        taskId: task.id,
+                        compositeId,
+                        task: {
+                            id: task.id,
+                            title: task.title,
+                            description: task.description,
+                            dueDate: task.dueDate,
+                            assignee: task.assignee,
+                            quickAction: task.quickAction,
+                        },
+                        priority,
+                    })
+                }
+            }
+        }
+
+        // Sort by priority (lower = higher priority)
+        allTasks.sort((a, b) => a.priority - b.priority)
+
+        return allTasks[0] || null
+    }
+
+    // Calculate progress stats
+    const getProgressStats = () => {
+        let total = 0
+        let completed = 0
+
+        for (const block of allBlocks) {
+            const actionPlanContent = block.content as ActionPlanContent
+            const milestones = actionPlanContent.milestones || []
+
+            for (const milestone of milestones) {
+                for (const task of milestone.tasks || []) {
+                    total++
+                    const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                    if (ctx.tasks?.[compositeId] === 'completed') {
+                        completed++
+                    }
+                }
+            }
+        }
+
+        return { total, completed, remaining: total - completed }
+    }
+
+    const nextTask = resolveNextTask()
+    const progress = getProgressStats()
+
+    // Handle task completion
+    const handleComplete = async () => {
+        if (!nextTask || !ctx.toggleTask) return
+        
+        setShowConfetti(true)
+        ctx.toggleTask(nextTask.compositeId, nextTask.task.title)
+        
+        // Hide confetti after animation
+        setTimeout(() => setShowConfetti(false), 2000)
+    }
+
+    // Check if task is overdue or due today
+    const getDueStatus = (dueDate?: string) => {
+        if (!dueDate) return null
+        const date = new Date(dueDate)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        date.setHours(0, 0, 0, 0)
+        
+        const daysDiff = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        
+        if (daysDiff < 0) return 'overdue'
+        if (daysDiff === 0) return 'today'
+        return 'upcoming'
+    }
+
+    // Loading state
+    if (isLoading) {
+        if (layoutStyle === 'bold') {
+            return (
+                <div className="bg-primary rounded-lg p-5">
+                    {(content.title || content.description) && (
+                        <div className="mb-4">
+                            {content.title && <h3 className={cn("text-lg font-semibold", textColor)}>{content.title}</h3>}
+                            {content.description && <p className={cn("text-sm mt-1", textColorMuted)}>{content.description}</p>}
+                        </div>
+                    )}
+                    <div className="flex items-center justify-center py-8">
+                        <Loader2 className={cn("size-6 animate-spin", textColorMuted)} />
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="flex items-center justify-center py-8">
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // No action plans found - only show if no action plans exist at all
+    if (allBlocks.length === 0) {
+        if (layoutStyle === 'bold') {
+            return (
+                <div className="bg-primary rounded-lg p-5">
+                    {(content.title || content.description) && (
+                        <div className="mb-4">
+                            {content.title && <h3 className={cn("text-lg font-semibold", textColor)}>{content.title}</h3>}
+                            {content.description && <p className={cn("text-sm mt-1", textColorMuted)}>{content.description}</p>}
+                        </div>
+                    )}
+                    <div className={cn("text-center py-6 px-4 rounded-lg", bgOverlay)}>
+                        <p className={cn("text-sm", textColorMuted)}>
+                            No action plans found
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="text-center py-6 px-4 rounded-lg bg-muted/10">
+                    <p className="text-sm text-muted-foreground">
+                        No action plans found
+                    </p>
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // All tasks completed
+    if (!nextTask && progress.total > 0) {
+        if (layoutStyle === 'bold') {
+            return (
+                <div className="bg-primary rounded-lg p-5">
+                    {(content.title || content.description) && (
+                        <div className="mb-4">
+                            {content.title && <h3 className={cn("text-lg font-semibold", textColor)}>{content.title}</h3>}
+                            {content.description && <p className={cn("text-sm mt-1", textColorMuted)}>{content.description}</p>}
+                        </div>
+                    )}
+                    <div className={cn("relative overflow-hidden rounded-xl p-6 text-center", bgOverlay)}>
+                        <div className="flex flex-col items-center gap-3">
+                            <div className={cn("size-12 rounded-full flex items-center justify-center", bgOverlayHover)}>
+                                <PartyPopper className={cn("size-6", textColor)} />
+                            </div>
+                            <div>
+                                <p className={cn("font-semibold text-lg", textColor)}>All tasks completed!</p>
+                                <p className={cn("text-sm mt-1", textColorMuted)}>{progress.completed} of {progress.total} tasks done</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="relative overflow-hidden rounded-xl p-6 text-center bg-emerald-50 border border-emerald-200">
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="size-12 rounded-full flex items-center justify-center bg-emerald-100">
+                            <PartyPopper className="size-6 text-emerald-600" />
+                        </div>
+                        <div>
+                            <p className="font-semibold text-lg text-emerald-700">All tasks completed!</p>
+                            <p className="text-sm mt-1 text-emerald-600">{progress.completed} of {progress.total} tasks done</p>
+                        </div>
+                    </div>
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // No tasks at all
+    if (!nextTask) {
+        if (layoutStyle === 'bold') {
+            return (
+                <div className="bg-primary rounded-lg p-5">
+                    {(content.title || content.description) && (
+                        <div className="mb-4">
+                            {content.title && <h3 className={cn("text-lg font-semibold", textColor)}>{content.title}</h3>}
+                            {content.description && <p className={cn("text-sm mt-1", textColorMuted)}>{content.description}</p>}
+                        </div>
+                    )}
+                    <div className={cn("text-center py-6 px-4 rounded-lg", bgOverlay)}>
+                        <p className={cn("text-sm", textColorMuted)}>
+                            No tasks found in the selected action plans.
+                        </p>
+                    </div>
+                </div>
+            )
+        }
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="text-center py-6 px-4 rounded-lg bg-muted/10">
+                    <p className="text-sm text-muted-foreground">
+                        No tasks found in the selected action plans.
+                    </p>
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    const dueStatus = getDueStatus(nextTask.task.dueDate)
+
+    // For Bold style, render the entire block with brand color
+    // Text color is #FFFFFF (white) or #000000 (black) based on brand color brightness
+    if (layoutStyle === 'bold') {
+        return (
+            <div className="bg-primary rounded-lg p-5 relative overflow-hidden">
+                {/* Confetti animation overlay */}
+                {showConfetti && (
+                    <div className={cn("absolute inset-0 flex items-center justify-center z-10 backdrop-blur-sm animate-in fade-in duration-300", useDarkText ? "bg-white/50" : "bg-black/30")}>
+                        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-500">
+                            <PartyPopper className={cn("size-10", textColor)} />
+                            <span className={cn("text-lg font-semibold", textColor)}>Great job!</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Block title & description */}
+                {(content.title || content.description) && (
+                    <div className="mb-4">
+                        {content.title && (
+                            <h3 className={cn("text-lg font-semibold", textColor)}>
+                                {content.title}
+                            </h3>
+                        )}
+                        {content.description && (
+                            <p className={cn("text-sm mt-1", textColorMuted)}>
+                                {content.description}
+                            </p>
+                        )}
+                    </div>
+                )}
+
+                {/* Progress indicator */}
+                {showProgress && progress.total > 0 && (
+                    <div className={cn("text-xs mb-3", textColorMuted)}>
+                        {progress.remaining} of {progress.total} tasks remaining
+                    </div>
+                )}
+
+                {/* Milestone name */}
+                {showMilestoneName && nextTask.milestoneTitle && (
+                    <div className={cn("text-xs font-medium mb-2 uppercase tracking-wide", textColorSubtle)}>
+                        {nextTask.milestoneTitle}
+                    </div>
+                )}
+
+                {/* Task card content */}
+                <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    {ctx.interactive && (
+                        <button
+                            onClick={handleComplete}
+                            className={cn(
+                                "shrink-0 size-6 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110",
+                                borderColor,
+                                `hover:${borderColorHover}`,
+                                `hover:${bgOverlayHover}`
+                            )}
+                        >
+                            <Check className={cn("size-3.5 opacity-0 hover:opacity-100 transition-opacity", textColor)} />
+                        </button>
+                    )}
+
+                    {/* Task details */}
+                    <div className="flex-1 min-w-0">
+                        <h4 className={cn("font-semibold text-base leading-tight", textColor)}>
+                            {nextTask.task.title}
+                        </h4>
+
+                        {nextTask.task.description && (
+                            <p className={cn("text-sm mt-1 line-clamp-2", textColorMuted)}>
+                                {nextTask.task.description}
+                            </p>
+                        )}
+
+                        {/* Meta row: due date, assignee */}
+                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                            {/* Due date */}
+                            {nextTask.task.dueDate && (
+                                <div className={cn(
+                                    "flex items-center gap-1.5 text-xs font-medium",
+                                    dueStatus === 'overdue' && textColor,
+                                    dueStatus === 'today' && textColor,
+                                    dueStatus === 'upcoming' && textColorMuted
+                                )}>
+                                    {dueStatus === 'overdue' && <AlertCircle className="size-3.5" />}
+                                    {dueStatus === 'today' && <Clock className="size-3.5" />}
+                                    {dueStatus === 'upcoming' && <CalendarIcon className="size-3.5" />}
+                                    <span>
+                                        {dueStatus === 'overdue' && 'Overdue: '}
+                                        {dueStatus === 'today' && 'Due today'}
+                                        {dueStatus === 'upcoming' && format(new Date(nextTask.task.dueDate), 'd MMM')}
+                                        {dueStatus === 'overdue' && format(new Date(nextTask.task.dueDate), 'd MMM')}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Assignee */}
+                            {nextTask.task.assignee && (
+                                <div className="flex items-center gap-1.5">
+                                    <Avatar className="size-5">
+                                        <AvatarImage src={nextTask.task.assignee.avatarUrl} />
+                                        <AvatarFallback className={cn("text-[10px]", bgOverlayHover, textColor)}>
+                                            {getInitials(nextTask.task.assignee.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className={cn("text-xs", textColorMuted)}>
+                                        {nextTask.task.assignee.name}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick action button */}
+                        {nextTask.task.quickAction && (
+                            <div className="mt-3">
+                                <button
+                                    onClick={() => {
+                                        if (nextTask.task.quickAction?.type === 'link' && nextTask.task.quickAction.url) {
+                                            window.open(nextTask.task.quickAction.url, '_blank')
+                                        }
+                                    }}
+                                    className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors", bgOverlayHover, textColor, `hover:${useDarkText ? 'bg-black/30' : 'bg-white/30'}`)}
+                                >
+                                    <Zap className="size-3" />
+                                    {nextTask.task.quickAction.title}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    // Light style - uses BlockContainer with normal styling
+    return (
+        <BlockContainer
+            title={content.title}
+            description={content.description}
+        >
+            <div className="relative overflow-hidden rounded-xl transition-all bg-white border border-grey-200 p-5">
+                {/* Confetti animation overlay */}
+                {showConfetti && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/50 backdrop-blur-sm animate-in fade-in duration-300">
+                        <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-500">
+                            <PartyPopper className="size-10 text-emerald-500" />
+                            <span className="text-lg font-semibold text-emerald-600">Great job!</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Progress indicator */}
+                {showProgress && progress.total > 0 && (
+                    <div className="text-xs mb-3 text-muted-foreground">
+                        {progress.remaining} of {progress.total} tasks remaining
+                    </div>
+                )}
+
+                {/* Milestone name */}
+                {showMilestoneName && nextTask.milestoneTitle && (
+                    <div className="text-xs font-medium mb-2 uppercase tracking-wide text-muted-foreground">
+                        {nextTask.milestoneTitle}
+                    </div>
+                )}
+
+                {/* Task card content */}
+                <div className="flex items-start gap-4">
+                    {/* Checkbox */}
+                    {ctx.interactive && (
+                        <button
+                            onClick={handleComplete}
+                            className="shrink-0 size-6 rounded-full border-2 border-grey-300 flex items-center justify-center transition-all hover:scale-110 hover:border-primary hover:bg-primary/10"
+                        >
+                            <Check className="size-3.5 text-primary opacity-0 hover:opacity-100 transition-opacity" />
+                        </button>
+                    )}
+
+                    {/* Task details */}
+                    <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-base leading-tight text-grey-900">
+                            {nextTask.task.title}
+                        </h4>
+
+                        {nextTask.task.description && (
+                            <p className="text-sm mt-1 line-clamp-2 text-muted-foreground">
+                                {nextTask.task.description}
+                            </p>
+                        )}
+
+                        {/* Meta row: due date, assignee */}
+                        <div className="flex items-center gap-3 mt-3 flex-wrap">
+                            {/* Due date */}
+                            {nextTask.task.dueDate && (
+                                <div className={cn(
+                                    "flex items-center gap-1.5 text-xs font-medium",
+                                    dueStatus === 'overdue' && "text-red-600",
+                                    dueStatus === 'today' && "text-amber-600",
+                                    dueStatus === 'upcoming' && "text-muted-foreground"
+                                )}>
+                                    {dueStatus === 'overdue' && <AlertCircle className="size-3.5" />}
+                                    {dueStatus === 'today' && <Clock className="size-3.5" />}
+                                    {dueStatus === 'upcoming' && <CalendarIcon className="size-3.5" />}
+                                    <span>
+                                        {dueStatus === 'overdue' && 'Overdue: '}
+                                        {dueStatus === 'today' && 'Due today'}
+                                        {dueStatus === 'upcoming' && format(new Date(nextTask.task.dueDate), 'd MMM')}
+                                        {dueStatus === 'overdue' && format(new Date(nextTask.task.dueDate), 'd MMM')}
+                                    </span>
+                                </div>
+                            )}
+
+                            {/* Assignee */}
+                            {nextTask.task.assignee && (
+                                <div className="flex items-center gap-1.5">
+                                    <Avatar className="size-5">
+                                        <AvatarImage src={nextTask.task.assignee.avatarUrl} />
+                                        <AvatarFallback className="text-[10px] bg-grey-100 text-grey-600">
+                                            {getInitials(nextTask.task.assignee.name)}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span className="text-xs text-muted-foreground">
+                                        {nextTask.task.assignee.name}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Quick action button */}
+                        {nextTask.task.quickAction && (
+                            <div className="mt-3">
+                                <QuickActionPill 
+                                    quickAction={nextTask.task.quickAction}
+                                    onClick={() => {
+                                        if (nextTask.task.quickAction?.type === 'link' && nextTask.task.quickAction.url) {
+                                            window.open(nextTask.task.quickAction.url, '_blank')
+                                        }
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </BlockContainer>
+    )
+}
+
+// ============================================================================
+// Action Plan Progress Block
+// ============================================================================
+
+interface ActionPlanProgressBlockProps {
+    blockId: string
+    content: ActionPlanProgressContent
+}
+
+function ActionPlanProgressBlock({ blockId, content }: ActionPlanProgressBlockProps) {
+    const ctx = useContext(BlockContext)
+    const [fetchedBlocks, setFetchedBlocks] = useState<Block[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    const viewMode = content.viewMode || 'multiple'
+    const showUpcomingTasks = content.showUpcomingTasks ?? true
+    const maxUpcomingTasks = content.maxUpcomingTasks ?? 3
+
+    // Get action plan blocks - combine context blocks (same page) with database fetch (other pages)
+    // If actionPlanBlockIds is empty, fetch ALL action plans for the space
+    useEffect(() => {
+        async function fetchActionPlans() {
+            const selectAll = !content.actionPlanBlockIds?.length
+            
+            // Start with blocks from context (blocks on the same page in editor mode)
+            let foundBlocks: Block[] = []
+            let missingIds: string[] = selectAll ? [] : [...content.actionPlanBlockIds]
+
+            if (ctx.allBlocks) {
+                const contextBlocks = selectAll
+                    ? ctx.allBlocks.filter(b => b.type === 'action_plan')
+                    : ctx.allBlocks.filter(
+                        b => b.type === 'action_plan' && content.actionPlanBlockIds.includes(b.id)
+                    )
+                foundBlocks = contextBlocks
+                
+                // Find which IDs are still missing (might be on other pages)
+                if (!selectAll) {
+                    const foundIds = new Set(contextBlocks.map(b => b.id))
+                    missingIds = content.actionPlanBlockIds.filter(id => !foundIds.has(id))
+                }
+            }
+
+            // If we have specific IDs and found all from context, we're done
+            if (!selectAll && missingIds.length === 0) {
+                setFetchedBlocks(foundBlocks)
+                setIsLoading(false)
+                return
+            }
+
+            // Fetch blocks from database (for blocks on other pages or in portal mode)
+            try {
+                const supabase = createClient()
+                
+                if (selectAll) {
+                    // Fetch all action plans for the space via pages
+                    if (ctx.spaceId) {
+                        const { data: pages } = await supabase
+                            .from('pages')
+                            .select('id')
+                            .eq('space_id', ctx.spaceId)
+                        
+                        if (pages && pages.length > 0) {
+                            const pageIds = pages.map(p => p.id)
+                            const { data: dbBlocks } = await supabase
+                                .from('blocks')
+                                .select('id, type, content, sort_order')
+                                .eq('type', 'action_plan')
+                                .in('page_id', pageIds)
+                            
+                            // Merge and dedupe with context blocks
+                            const contextIds = new Set(foundBlocks.map(b => b.id))
+                            const uniqueDbBlocks = (dbBlocks || []).filter(b => !contextIds.has(b.id))
+                            setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                        } else {
+                            setFetchedBlocks(foundBlocks)
+                        }
+                    } else {
+                        setFetchedBlocks(foundBlocks)
+                    }
+                } else {
+                    // Fetch specific IDs
+                    const { data: dbBlocks } = await supabase
+                        .from('blocks')
+                        .select('id, type, content, sort_order')
+                        .eq('type', 'action_plan')
+                        .in('id', missingIds)
+                    
+                    const allFoundBlocks = [...foundBlocks, ...(dbBlocks || [])]
+                    setFetchedBlocks(allFoundBlocks)
+                }
+            } catch (error) {
+                console.error('Failed to fetch action plan blocks:', error)
+                setFetchedBlocks(foundBlocks)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchActionPlans()
+    }, [ctx.spaceId, ctx.allBlocks, content.actionPlanBlockIds])
+
+    // Use fetched blocks for all operations
+    const allBlocks = fetchedBlocks
+
+    // Calculate progress for a single action plan
+    const calculatePlanProgress = (block: Block) => {
+        const actionPlanContent = block.content as ActionPlanContent
+        const milestones = actionPlanContent.milestones || []
+        let total = 0
+        let completed = 0
+
+        for (const milestone of milestones) {
+            for (const task of milestone.tasks || []) {
+                total++
+                const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                if (ctx.tasks?.[compositeId] === 'completed') {
+                    completed++
+                }
+            }
+        }
+
+        return { total, completed, percentage: total > 0 ? Math.round((completed / total) * 100) : 0 }
+    }
+
+    // Get upcoming tasks for a single action plan
+    const getUpcomingTasks = (block: Block) => {
+        const actionPlanContent = block.content as ActionPlanContent
+        const milestones = actionPlanContent.milestones || []
+        const tasks: Array<{
+            title: string
+            dueDate?: string
+            milestoneName: string
+        }> = []
+
+        for (const milestone of milestones) {
+            for (const task of milestone.tasks || []) {
+                const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                if (ctx.tasks?.[compositeId] !== 'completed') {
+                    tasks.push({
+                        title: task.title,
+                        dueDate: task.dueDate,
+                        milestoneName: milestone.title,
+                    })
+                }
+            }
+        }
+
+        // Sort by due date (soonest first, no date last)
+        tasks.sort((a, b) => {
+            if (!a.dueDate && !b.dueDate) return 0
+            if (!a.dueDate) return 1
+            if (!b.dueDate) return -1
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+        })
+
+        return tasks.slice(0, maxUpcomingTasks)
+    }
+
+    // Get next due date for a plan
+    const getNextDueDate = (block: Block) => {
+        const tasks = getUpcomingTasks(block)
+        const taskWithDate = tasks.find(t => t.dueDate)
+        if (!taskWithDate?.dueDate) return null
+
+        const date = new Date(taskWithDate.dueDate)
+        const today = new Date()
+        today.setHours(0, 0, 0, 0)
+        date.setHours(0, 0, 0, 0)
+
+        const daysDiff = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+        if (daysDiff < 0) return { text: 'Overdue', isOverdue: true }
+        if (daysDiff === 0) return { text: 'Today', isOverdue: false }
+        if (daysDiff === 1) return { text: 'Tomorrow', isOverdue: false }
+        return { text: format(date, 'd MMM'), isOverdue: false }
+    }
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="flex items-center justify-center py-8">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // Empty state - only show if no action plans exist at all
+    if (allBlocks.length === 0) {
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                <div className="text-center py-8 bg-muted/10 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                        No action plans found
+                    </p>
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // Single mode - show milestones from one action plan
+    if (viewMode === 'single' && allBlocks.length > 0) {
+        const block = allBlocks[0]
+        const actionPlanContent = block.content as ActionPlanContent
+        const milestones = actionPlanContent.milestones || []
+        const overallProgress = calculatePlanProgress(block)
+
+        return (
+            <BlockContainer title={content.title} description={content.description}>
+                {/* Overall progress bar */}
+                <div className="mb-6">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                        <span>Overall progress</span>
+                        <span>{overallProgress.percentage}%</span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-primary transition-all duration-300"
+                            style={{ width: `${overallProgress.percentage}%` }}
+                        />
+                    </div>
+                </div>
+
+                {/* Milestones list */}
+                <div className="space-y-3">
+                    {milestones.map((milestone) => {
+                        let milestoneTotal = 0
+                        let milestoneCompleted = 0
+
+                        for (const task of milestone.tasks || []) {
+                            milestoneTotal++
+                            const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                            if (ctx.tasks?.[compositeId] === 'completed') {
+                                milestoneCompleted++
+                            }
+                        }
+
+                        const milestonePercentage = milestoneTotal > 0 
+                            ? Math.round((milestoneCompleted / milestoneTotal) * 100) 
+                            : 0
+
+                        const upcomingTasks = (milestone.tasks || [])
+                            .filter(task => {
+                                const compositeId = `${block.id}-${milestone.id}-${task.id}`
+                                return ctx.tasks?.[compositeId] !== 'completed'
+                            })
+                            .slice(0, maxUpcomingTasks)
+
+                        return (
+                            <Tooltip key={milestone.id}>
+                                <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/10 hover:bg-muted/20 transition-colors cursor-default">
+                                        <CircularProgress
+                                            value={milestonePercentage}
+                                            size={32}
+                                            strokeWidth={3}
+                                            className="shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">
+                                                {milestone.title}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {milestoneCompleted} of {milestoneTotal} tasks
+                                            </div>
+                                        </div>
+                                        <div className="text-sm font-medium text-muted-foreground">
+                                            {milestonePercentage}%
+                                        </div>
+                                    </div>
+                                </TooltipTrigger>
+                                {showUpcomingTasks && upcomingTasks.length > 0 && (
+                                    <TooltipContent side="right" className="max-w-xs p-3 bg-popover text-popover-foreground">
+                                        <div className="space-y-2.5">
+                                            <div className="text-xs font-medium opacity-70">
+                                                Upcoming tasks
+                                            </div>
+                                            {upcomingTasks.map((task, idx) => (
+                                                <div key={idx} className="flex items-start gap-2">
+                                                    <Circle className="size-3 mt-0.5 opacity-40" />
+                                                    <div>
+                                                        <div className="text-sm font-medium">{task.title}</div>
+                                                        {task.dueDate && (
+                                                            <div className="text-xs opacity-60">
+                                                                {format(new Date(task.dueDate), 'd MMM')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        )
+                    })}
+                </div>
+            </BlockContainer>
+        )
+    }
+
+    // Multiple mode - show cards for each action plan
+    return (
+        <BlockContainer title={content.title} description={content.description}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {allBlocks.map((block) => {
+                    const actionPlanContent = block.content as ActionPlanContent
+                    const progress = calculatePlanProgress(block)
+                    const upcomingTasks = getUpcomingTasks(block)
+                    const nextDue = getNextDueDate(block)
+
+                    return (
+                        <Tooltip key={block.id}>
+                            <TooltipTrigger asChild>
+                                <div className="p-4 rounded-lg border border-grey-200 hover:border-grey-300 hover:bg-grey-50/50 transition-all cursor-default">
+                                    <div className="flex items-start gap-3">
+                                        <div className="relative shrink-0">
+                                            <CircularProgress
+                                                value={progress.percentage}
+                                                size={40}
+                                                strokeWidth={3}
+                                            />
+                                            {progress.percentage < 100 && (
+                                                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-medium">
+                                                    {progress.percentage}%
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-medium text-sm truncate">
+                                                {actionPlanContent.title || 'Action Plan'}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-0.5">
+                                                {progress.completed} of {progress.total} tasks
+                                            </div>
+                                            {nextDue && (
+                                                <div className={cn(
+                                                    "flex items-center gap-1 text-xs mt-1.5",
+                                                    nextDue.isOverdue ? "text-red-600" : "text-muted-foreground"
+                                                )}>
+                                                    <Circle className={cn(
+                                                        "size-2",
+                                                        nextDue.isOverdue ? "fill-red-500 text-red-500" : "fill-primary text-primary"
+                                                    )} />
+                                                    Next due: {nextDue.text}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </TooltipTrigger>
+                            {showUpcomingTasks && upcomingTasks.length > 0 && (
+                                <TooltipContent side="bottom" className="max-w-xs p-3 bg-popover text-popover-foreground">
+                                    <div className="space-y-2.5">
+                                        <div className="text-xs font-medium opacity-70">
+                                            Next {upcomingTasks.length} upcoming task{upcomingTasks.length !== 1 ? 's' : ''}
+                                        </div>
+                                        {upcomingTasks.map((task, idx) => (
+                                            <div key={idx} className="flex items-start gap-2">
+                                                <Circle className="size-3 mt-0.5 opacity-40" />
+                                                <div>
+                                                    <div className="text-sm font-medium">{task.title}</div>
+                                                    {task.dueDate && (
+                                                        <div className="text-xs opacity-60">
+                                                            {format(new Date(task.dueDate), 'd MMM')}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    )
+                })}
+            </div>
+        </BlockContainer>
+    )
+}
+
+// ============================================================================
 // Exports
 // ============================================================================
 
 export { BlockContainer } from './block-container'
-export type { BlockInteractionContext }
+export type { BlockInteractionContext, NextTaskBlockContent, ActionPlanProgressContent }

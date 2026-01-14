@@ -37,7 +37,9 @@ import {
     List,
     LayoutGrid,
     MessageSquare,
-    FolderKanban
+    FolderKanban,
+    GitBranch,
+    Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -104,6 +106,8 @@ const BLOCK_TYPES: BlockType[] = [
 const BLOCK_ICONS: Record<string, any> = {
     text: Type,
     action_plan: Target,
+    next_task: Zap,
+    timeline: GitBranch,
     media: ImageIcon,
     accordion: List,
     form: HelpCircle,
@@ -209,6 +213,16 @@ export function BlocksListView({
                 return block.content.name || 'Contact card'
             case 'divider':
                 return 'Divider'
+            case 'action_plan':
+                return block.content.title || 'Action plan'
+            case 'timeline':
+                return block.content.title || 'Timeline'
+            case 'next_task':
+                return block.content.title || 'Next Task'
+            case 'media':
+                return block.content.title || 'Media block'
+            case 'accordion':
+                return block.content.title || 'Accordion'
             default:
                 return block.type
         }

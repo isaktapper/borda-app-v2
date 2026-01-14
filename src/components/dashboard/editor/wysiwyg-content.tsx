@@ -17,12 +17,14 @@ interface WYSIWYGContentProps {
     isLoading: boolean
     onBlockSelect: (blockId: string) => void
     onBlockDelete: (blockId: string) => void
+    allBlocksFromAllPages?: Block[]  // For template mode: all blocks from all pages
 }
 
 export function WYSIWYGContent({
     blocks,
     selectedBlockId,
-    isLoading
+    isLoading,
+    allBlocksFromAllPages
 }: WYSIWYGContentProps) {
     // Sort and filter hidden blocks
     const visibleBlocks = blocks
@@ -82,7 +84,7 @@ export function WYSIWYGContent({
                             selectedBlockId === block.id && "ring-2 ring-primary/50 ring-offset-4 ring-offset-background"
                         )}
                     >
-                        <EditorBlockPreview block={block} />
+                        <EditorBlockPreview block={block} allBlocks={allBlocksFromAllPages || blocks} />
                     </div>
                 ))}
             </div>

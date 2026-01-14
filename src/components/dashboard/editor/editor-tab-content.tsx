@@ -1,6 +1,6 @@
 'use client'
 
-import { Type, Target, CheckSquare, HelpCircle, Upload, Download, Video, User, Minus, Image as ImageIcon, List, ChevronLeft } from 'lucide-react'
+import { Type, Target, CheckSquare, HelpCircle, Upload, Download, Video, User, Minus, Image as ImageIcon, List, ChevronLeft, GitBranch, Zap, BarChart3 } from 'lucide-react'
 import { TextBlockEditor } from './text-block-editor'
 import { ActionPlanBlockEditor } from './action-plan-block-editor'
 import { TaskBlockEditor } from './task-block-editor'
@@ -12,6 +12,9 @@ import { ContactCardBlockEditor } from './contact-card-block-editor'
 import { DividerBlockEditor } from './divider-block-editor'
 import { MediaBlockEditor } from './media-block-editor'
 import { AccordionBlockEditor } from './accordion-block-editor'
+import { TimelineBlockEditor } from './timeline-block-editor'
+import { NextTaskBlockEditor } from './next-task-block-editor'
+import { ActionPlanProgressBlockEditor } from './action-plan-progress-block-editor'
 
 interface Block {
     id: string
@@ -25,6 +28,7 @@ interface EditorTabContentProps {
     spaceId: string
     onBlockChange: (blockId: string, updates: any) => void
     onBack: () => void
+    isTemplateMode?: boolean
 }
 
 function getBlockTitle(block: Block): string {
@@ -67,6 +71,21 @@ const BLOCK_EDITOR_CONFIG: Record<string, { label: string; description: string; 
         label: 'Action Plan',
         description: 'Collaborative milestones and tasks',
         icon: Target
+    },
+    timeline: {
+        label: 'Timeline',
+        description: 'Visual journey with phases',
+        icon: GitBranch
+    },
+    next_task: {
+        label: 'Next Task',
+        description: 'Display the most relevant upcoming task',
+        icon: Zap
+    },
+    action_plan_progress: {
+        label: 'Progress',
+        description: 'Visual overview of action plan progress',
+        icon: BarChart3
     },
     media: {
         label: 'Media',
@@ -121,7 +140,8 @@ export function EditorTabContent({
     editingBlock,
     spaceId,
     onBlockChange,
-    onBack
+    onBack,
+    isTemplateMode = false,
 }: EditorTabContentProps) {
     if (!editingBlock) {
         return (
@@ -167,6 +187,7 @@ export function EditorTabContent({
                     block={editingBlock}
                     spaceId={spaceId}
                     onChange={(updates) => onBlockChange(editingBlock.id, updates)}
+                    isTemplateMode={isTemplateMode}
                 />
             </div>
         </div>
@@ -177,9 +198,10 @@ interface BlockEditorRouterProps {
     block: Block
     spaceId: string
     onChange: (updates: any) => void
+    isTemplateMode?: boolean
 }
 
-function BlockEditorRouter({ block, spaceId, onChange }: BlockEditorRouterProps) {
+function BlockEditorRouter({ block, spaceId, onChange, isTemplateMode = false }: BlockEditorRouterProps) {
     switch (block.type) {
         case 'text':
             return (
@@ -195,6 +217,7 @@ function BlockEditorRouter({ block, spaceId, onChange }: BlockEditorRouterProps)
                     content={block.content}
                     onChange={onChange}
                     spaceId={spaceId}
+                    isTemplateMode={isTemplateMode}
                 />
             )
         case 'media':
@@ -211,6 +234,29 @@ function BlockEditorRouter({ block, spaceId, onChange }: BlockEditorRouterProps)
                 <AccordionBlockEditor
                     content={block.content}
                     onChange={onChange}
+                />
+            )
+        case 'timeline':
+            return (
+                <TimelineBlockEditor
+                    content={block.content}
+                    onChange={onChange}
+                />
+            )
+        case 'next_task':
+            return (
+                <NextTaskBlockEditor
+                    content={block.content}
+                    onChange={onChange}
+                    spaceId={spaceId}
+                />
+            )
+        case 'action_plan_progress':
+            return (
+                <ActionPlanProgressBlockEditor
+                    content={block.content}
+                    onChange={onChange}
+                    spaceId={spaceId}
                 />
             )
         case 'task':

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,17 +16,17 @@ function LoginForm() {
     const redirect = searchParams.get('redirect') || '/spaces'
     const errorMsg = searchParams.get('error')
 
-    const [loading, setLoading] = useState(false)
+    const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(errorMsg)
 
     const handleSubmit = async (formData: FormData) => {
-        setLoading(true)
         setError(null)
-        const res = await login(formData)
-        setLoading(false)
-        if (res?.error) {
-            setError(res.error)
-        }
+        startTransition(async () => {
+            const res = await login(formData)
+            if (res?.error) {
+                setError(res.error)
+            }
+        })
     }
 
     return (
@@ -79,8 +79,8 @@ function LoginForm() {
 
                 {error && <p className="text-sm text-destructive">{error}</p>}
 
-                <Button type="submit" disabled={loading} className="w-full h-10 rounded-md font-medium">
-                    {loading ? <Loader2 className="size-4 animate-spin" /> : 'Sign in'}
+                <Button type="submit" disabled={isPending} className="w-full h-10 rounded-md font-medium">
+                    {isPending ? <Loader2 className="size-4 animate-spin" /> : 'Sign in'}
                 </Button>
             </form>
         </div>

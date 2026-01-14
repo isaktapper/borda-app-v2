@@ -130,6 +130,100 @@ export async function deleteBlock(blockId: string) {
     return { success: true }
 }
 
+export async function duplicateBlock(blockId: string) {
+    const supabase = await createClient()
+
+    // Get the original block
+    const { data: original, error: fetchError } = await supabase
+        .from('blocks')
+        .select('*')
+        .eq('id', blockId)
+        .single()
+
+    if (fetchError || !original) {
+        return { error: fetchError?.message || 'Block not found' }
+    }
+
+    // Get next sort order (place after the original)
+    const { data: laterBlocks } = await supabase
+        .from('blocks')
+        .select('id, sort_order')
+        .eq('page_id', original.page_id)
+        .gt('sort_order', original.sort_order)
+        .is('deleted_at', null)
+
+    // Shift later blocks down by 1
+    if (laterBlocks && laterBlocks.length > 0) {
+        await Promise.all(laterBlocks.map(b =>
+            supabase
+                .from('blocks')
+                .update({ sort_order: b.sort_order + 1 })
+                .eq('id', b.id)
+        ))
+    }
+
+    // Create duplicate with sort_order right after original
+    const { data: newBlock, error: insertError } = await supabase
+        .from('blocks')
+        .insert({
+            page_id: original.page_id,
+            type: original.type,
+            content: original.content,
+            sort_order: original.sort_order + 1
+        })
+        .select()
+        .single()
+
+    if (insertError) {
+        return { error: insertError.message }
+    }
+
+    return { success: true, block: newBlock }
+}
+
+export async function moveBlockToPage(blockId: string, targetPageId: string) {
+    const supabase = await createClient()
+
+    // Get the original block
+    const { data: original, error: fetchError } = await supabase
+        .from('blocks')
+        .select('*')
+        .eq('id', blockId)
+        .single()
+
+    if (fetchError || !original) {
+        return { error: fetchError?.message || 'Block not found' }
+    }
+
+    // Get next sort order on target page
+    const { data: lastBlock } = await supabase
+        .from('blocks')
+        .select('sort_order')
+        .eq('page_id', targetPageId)
+        .is('deleted_at', null)
+        .order('sort_order', { ascending: false })
+        .limit(1)
+        .single()
+
+    const newSortOrder = lastBlock ? lastBlock.sort_order + 1 : 0
+
+    // Move the block
+    const { error: updateError } = await supabase
+        .from('blocks')
+        .update({
+            page_id: targetPageId,
+            sort_order: newSortOrder,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', blockId)
+
+    if (updateError) {
+        return { error: updateError.message }
+    }
+
+    return { success: true, sourcePageId: original.page_id }
+}
+
 export async function reorderBlocks(pageId: string, blockIds: string[]) {
     const supabase = await createClient()
 
@@ -294,12 +388,15 @@ export async function bulkUpdateBlocks(pageId: string, spaceId: string, blocks: 
             } else if (block.type === 'action_plan') {
                 await createActionPlanBlock(pageId, spaceId, block.content, block.sort_order)
             } else {
-                await supabase.from('blocks').insert({
+                const { error: insertError } = await supabase.from('blocks').insert({
                     page_id: pageId,
                     type: block.type,
                     content: block.content,
                     sort_order: block.sort_order
                 })
+                if (insertError) {
+                    console.error(`Error inserting block type ${block.type}:`, insertError)
+                }
             }
         } else {
             if (block.type === 'task') {
@@ -319,15 +416,67 @@ export async function bulkUpdateBlocks(pageId: string, spaceId: string, blocks: 
                     updated_at: new Date().toISOString()
                 }).eq('id', block.id)
             } else {
-                await supabase.from('blocks').update({
+                const { error: updateError } = await supabase.from('blocks').update({
                     content: block.content,
                     sort_order: block.sort_order,
                     updated_at: new Date().toISOString()
                 }).eq('id', block.id)
+                if (updateError) {
+                    console.error(`Error updating block ${block.id}:`, updateError)
+                }
             }
         }
     }
 
-    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    revalidatePath(`/spaces/${spaceId}`)
     return { success: true }
+}
+
+/**
+ * Get all action plan blocks from a space
+ * Used by the Next Task Block editor to select which action plans to display tasks from
+ */
+export async function getActionPlanBlocksForSpace(spaceId: string) {
+    const supabase = await createClient()
+
+    // Get all pages in the space
+    const { data: pages, error: pagesError } = await supabase
+        .from('pages')
+        .select('id, title')
+        .eq('space_id', spaceId)
+        .is('deleted_at', null)
+
+    if (pagesError) {
+        console.error('Error fetching pages:', pagesError)
+        return []
+    }
+
+    if (!pages || pages.length === 0) return []
+
+    // Get all action plan blocks from those pages
+    const pageIds = pages.map(p => p.id)
+    const { data: blocks, error: blocksError } = await supabase
+        .from('blocks')
+        .select('id, page_id, content, sort_order')
+        .eq('type', 'action_plan')
+        .in('page_id', pageIds)
+        .is('deleted_at', null)
+        .order('sort_order', { ascending: true })
+
+    if (blocksError) {
+        console.error('Error fetching action plan blocks:', blocksError)
+        return []
+    }
+
+    // Join with page titles for display
+    return (blocks || []).map(block => {
+        const page = pages.find(p => p.id === block.page_id)
+        return {
+            id: block.id,
+            pageId: block.page_id,
+            pageTitle: page?.title || 'Unknown Page',
+            title: block.content?.title || 'Untitled Action Plan',
+            milestonesCount: block.content?.milestones?.length || 0,
+        }
+    })
 }

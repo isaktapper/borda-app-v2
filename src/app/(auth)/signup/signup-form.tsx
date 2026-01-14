@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -22,7 +22,7 @@ interface SignupFormProps {
 }
 
 export function SignupForm({ invitation, invitedEmail }: SignupFormProps) {
-    const [loading, setLoading] = useState(false)
+    const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
 
     const isInvited = !!invitation
@@ -35,23 +35,22 @@ export function SignupForm({ invitation, invitedEmail }: SignupFormProps) {
     }, [])
 
     const handleSubmit = async (formData: FormData) => {
-        setLoading(true)
         setError(null)
-        
-        let res
-        if (isInvited && invitation) {
-            // Add invitation data to form
-            formData.set('invitationId', invitation.id)
-            formData.set('organizationId', invitation.organizationId)
-            res = await signupWithInvitation(formData)
-        } else {
-            res = await signup(formData)
-        }
-        
-        setLoading(false)
-        if (res?.error) {
-            setError(res.error)
-        }
+        startTransition(async () => {
+            let res
+            if (isInvited && invitation) {
+                // Add invitation data to form
+                formData.set('invitationId', invitation.id)
+                formData.set('organizationId', invitation.organizationId)
+                res = await signupWithInvitation(formData)
+            } else {
+                res = await signup(formData)
+            }
+            
+            if (res?.error) {
+                setError(res.error)
+            }
+        })
     }
 
     return (
@@ -138,8 +137,8 @@ export function SignupForm({ invitation, invitedEmail }: SignupFormProps) {
 
                     {error && <p className="text-sm text-destructive">{error}</p>}
 
-                    <Button type="submit" disabled={loading} className="w-full h-10 rounded-md font-medium">
-                        {loading ? (
+                    <Button type="submit" disabled={isPending} className="w-full h-10 rounded-md font-medium">
+                        {isPending ? (
                             <Loader2 className="size-4 animate-spin" />
                         ) : isInvited ? (
                             'Accept invitation'

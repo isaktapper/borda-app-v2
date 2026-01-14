@@ -170,3 +170,11 @@ export async function shouldShowBordaBranding(
   // Default: show branding
   return true
 }
+
+/**
+ * Check if organization can use AI template generation
+ */
+export async function canUseAITemplates(organizationId: string): Promise<boolean> {
+  const limits = await getOrganizationLimits(organizationId)
+  return limits.canUseAITemplates
+}

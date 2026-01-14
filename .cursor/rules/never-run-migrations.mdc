@@ -1,0 +1,7 @@
+---
+description: Rule regarding migrations for supabase.
+alwaysApply: false
+---
+# Overview
+
+You can create migrations for supabase, but never run them. The user will run these themselves through an SQL query in Supabase.

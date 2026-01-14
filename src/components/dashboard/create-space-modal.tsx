@@ -111,11 +111,13 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
 
         if (selectedTemplate && selectedTemplate !== 'blank') {
             // Create from template
+            // Pass undefined for startDate to use today, and targetGoLiveDate for goLiveDate
             result = await createSpaceFromTemplate(
                 selectedTemplate,
                 clientName,
                 projectName,
-                targetGoLiveDate
+                undefined,        // startDate - uses today
+                targetGoLiveDate  // goLiveDate
             )
         } else {
             // Create blank project

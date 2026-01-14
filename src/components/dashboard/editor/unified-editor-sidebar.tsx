@@ -43,6 +43,8 @@ interface UnifiedEditorSidebarProps {
     onBlockToggle: (blockId: string, hidden: boolean) => void
     onBlockReorder: (blocks: Block[]) => void
     onBlockDelete: (blockId: string) => void
+    onBlockDuplicate: (blockId: string) => void
+    onBlockMove: (blockId: string, targetPageId: string) => void
     onAddBlock: (type: string) => void
 
     // Editor tab
@@ -52,6 +54,9 @@ interface UnifiedEditorSidebarProps {
     // Welcome popup
     welcomePopup?: WelcomePopupContent | null
     onWelcomePopupSave?: (content: WelcomePopupContent) => Promise<void>
+
+    // Template mode
+    isTemplateMode?: boolean
 }
 
 export function UnifiedEditorSidebar({
@@ -71,11 +76,14 @@ export function UnifiedEditorSidebar({
     onBlockToggle,
     onBlockReorder,
     onBlockDelete,
+    onBlockDuplicate,
+    onBlockMove,
     onAddBlock,
     editingBlock,
     onBlockChange,
     welcomePopup,
-    onWelcomePopupSave
+    onWelcomePopupSave,
+    isTemplateMode = false,
 }: UnifiedEditorSidebarProps) {
     // Get page title and block type for breadcrumb
     const selectedPage = pages.find(p => p.id === selectedPageId)
@@ -104,6 +112,7 @@ export function UnifiedEditorSidebar({
                         onPagesReorder={onPagesReorder}
                         welcomePopup={welcomePopup}
                         onWelcomePopupSave={onWelcomePopupSave}
+                        isTemplateMode={isTemplateMode}
                     />
                 )}
                 {activeView === 'blocks' && (
@@ -113,10 +122,14 @@ export function UnifiedEditorSidebar({
                         blocks={blocks}
                         isLoadingBlocks={isLoadingBlocks}
                         selectedBlockId={selectedBlockId}
+                        currentPageId={selectedPageId}
+                        pages={pages}
                         onBlockSelect={onBlockSelect}
                         onBlockToggle={onBlockToggle}
                         onBlockReorder={onBlockReorder}
                         onBlockDelete={onBlockDelete}
+                        onBlockDuplicate={onBlockDuplicate}
+                        onBlockMove={onBlockMove}
                         onAddBlock={onAddBlock}
                         onBack={() => onViewChange('pages')}
                     />
@@ -127,6 +140,7 @@ export function UnifiedEditorSidebar({
                         spaceId={spaceId}
                         onBlockChange={onBlockChange}
                         onBack={() => onViewChange('blocks')}
+                        isTemplateMode={isTemplateMode}
                     />
                 )}
             </div>
@@ -138,6 +152,9 @@ function getBlockTypeLabel(type: string): string {
     const labels: Record<string, string> = {
         text: 'Text Block',
         action_plan: 'Action Plan',
+        action_plan_progress: 'Progress',
+        next_task: 'Next Task',
+        timeline: 'Timeline',
         task: 'To-do List',
         form: 'Form',
         file_upload: 'File Upload',

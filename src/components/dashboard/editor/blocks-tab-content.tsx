@@ -37,7 +37,13 @@ import {
     MessageSquare,
     FolderKanban,
     MoreVertical,
-    ChevronLeft
+    ChevronLeft,
+    GitBranch,
+    Zap,
+    BarChart3,
+    Copy,
+    ArrowRightLeft,
+    FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -46,6 +52,10 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -64,16 +74,27 @@ interface Block {
     sort_order: number
 }
 
+interface Page {
+    id: string
+    title: string
+    slug: string
+    sort_order: number
+}
+
 interface BlocksTabContentProps {
     spaceId: string
     pageTitle: string
     blocks: Block[]
     isLoadingBlocks: boolean
     selectedBlockId: string | null
+    currentPageId: string | null
+    pages: Page[]
     onBlockSelect: (blockId: string) => void
     onBlockToggle: (blockId: string, hidden: boolean) => void
     onBlockReorder: (blocks: Block[]) => void
     onBlockDelete: (blockId: string) => void
+    onBlockDuplicate: (blockId: string) => void
+    onBlockMove: (blockId: string, targetPageId: string) => void
     onAddBlock: (type: string) => void
     onBack: () => void
 }
@@ -101,6 +122,9 @@ const BLOCK_TYPES: BlockType[] = [
     { type: 'embed', label: 'Embed', icon: Video, category: 'content' },
     // Projects
     { type: 'action_plan', label: 'Action Plan', icon: Target, category: 'projects' },
+    { type: 'action_plan_progress', label: 'Progress', icon: BarChart3, category: 'projects' },
+    { type: 'next_task', label: 'Next Task', icon: Zap, category: 'projects' },
+    { type: 'timeline', label: 'Timeline', icon: GitBranch, category: 'projects' },
     // Collaboration
     { type: 'form', label: 'Form', icon: HelpCircle, category: 'collaboration' },
     { type: 'file_upload', label: 'File Upload', icon: Upload, category: 'collaboration' },
@@ -111,6 +135,9 @@ const BLOCK_TYPES: BlockType[] = [
 const BLOCK_ICONS: Record<string, any> = {
     text: Type,
     action_plan: Target,
+    action_plan_progress: BarChart3,
+    next_task: Zap,
+    timeline: GitBranch,
     media: ImageIcon,
     accordion: List,
     form: HelpCircle,
@@ -131,10 +158,14 @@ export function BlocksTabContent({
     blocks,
     isLoadingBlocks,
     selectedBlockId,
+    currentPageId,
+    pages,
     onBlockSelect,
     onBlockToggle,
     onBlockReorder,
     onBlockDelete,
+    onBlockDuplicate,
+    onBlockMove,
     onAddBlock,
     onBack
 }: BlocksTabContentProps) {
@@ -197,6 +228,12 @@ export function BlocksTabContent({
                 return block.content.title || 'Media block'
             case 'accordion':
                 return block.content.title || 'Accordion'
+            case 'timeline':
+                return block.content.title || 'Timeline'
+            case 'next_task':
+                return block.content.title || 'Next Task'
+            case 'action_plan_progress':
+                return block.content.title || 'Progress'
             case 'form':
                 return block.content.title || 'Form'
             case 'file_upload':
@@ -418,9 +455,13 @@ export function BlocksTabContent({
                                         title={getBlockTitle(block)}
                                         icon={BLOCK_ICONS[block.type] || Type}
                                         isSelected={selectedBlockId === block.id}
+                                        currentPageId={currentPageId}
+                                        pages={pages}
                                         onSelect={() => onBlockSelect(block.id)}
                                         onToggle={(hidden) => onBlockToggle(block.id, hidden)}
                                         onDelete={() => onBlockDelete(block.id)}
+                                        onDuplicate={() => onBlockDuplicate(block.id)}
+                                        onMove={(targetPageId) => onBlockMove(block.id, targetPageId)}
                                     />
                                 ))}
                             </div>
@@ -438,12 +479,16 @@ interface SortableBlockItemProps {
     title: string
     icon: any
     isSelected: boolean
+    currentPageId: string | null
+    pages: Page[]
     onSelect: () => void
     onToggle: (hidden: boolean) => void
     onDelete: () => void
+    onDuplicate: () => void
+    onMove: (targetPageId: string) => void
 }
 
-function SortableBlockItem({ block, blockTypeLabel, title, icon: Icon, isSelected, onSelect, onToggle, onDelete }: SortableBlockItemProps) {
+function SortableBlockItem({ block, blockTypeLabel, title, icon: Icon, isSelected, currentPageId, pages, onSelect, onToggle, onDelete, onDuplicate, onMove }: SortableBlockItemProps) {
     const isHidden = block.content.hidden === true
 
     const {
@@ -499,6 +544,41 @@ function SortableBlockItem({ block, blockTypeLabel, title, icon: Icon, isSelecte
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onDuplicate()
+                        }}
+                    >
+                        <Copy className="size-4 mr-2" />
+                        Duplicate
+                    </DropdownMenuItem>
+                    {pages.length > 1 && (
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger onClick={(e) => e.stopPropagation()}>
+                                <ArrowRightLeft className="size-4 mr-2" />
+                                Move to page
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                {pages
+                                    .filter(p => p.id !== currentPageId)
+                                    .map(page => (
+                                        <DropdownMenuItem
+                                            key={page.id}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                onMove(page.id)
+                                            }}
+                                        >
+                                            <FileText className="size-4 mr-2" />
+                                            {page.title}
+                                        </DropdownMenuItem>
+                                    ))
+                                }
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                         onClick={(e) => {
                             e.stopPropagation()

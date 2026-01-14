@@ -9,7 +9,7 @@ import { EditorEmptyState } from '@/components/dashboard/editor/editor-empty-sta
 import { ActivitySidebar } from '@/components/dashboard/activity/activity-sidebar'
 import { SettingsContent } from '@/components/dashboard/settings/settings-content'
 import { ResponsesTabContent } from '@/components/dashboard/responses-tab-content'
-import { getBlocks, bulkUpdateBlocks, deleteTaskBlock } from '@/app/(app)/spaces/[spaceId]/block-actions'
+import { getBlocks, bulkUpdateBlocks, deleteTaskBlock, duplicateBlock, moveBlockToPage } from '@/app/(app)/spaces/[spaceId]/block-actions'
 import { reorderPages, deletePage, renamePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 import { getWelcomePopup, updateWelcomePopup } from '@/app/(app)/spaces/[spaceId]/welcome-popup-actions'
 import type { WelcomePopupContent } from '@/components/dashboard/editor/welcome-popup-editor'
@@ -214,6 +214,9 @@ export function ProjectV2Client({
         let initialContent: any = {}
         if (type === 'text') initialContent = { html: '<p></p>' }
         if (type === 'action_plan') initialContent = { milestones: [], permissions: { stakeholderCanEdit: true, stakeholderCanComplete: true } }
+        if (type === 'timeline') initialContent = { title: '', description: '', phases: [], showDates: true }
+        if (type === 'next_task') initialContent = { title: '', description: '', actionPlanBlockIds: [], sortMode: 'smart', layoutStyle: 'light', showProgress: true, showMilestoneName: true }
+        if (type === 'action_plan_progress') initialContent = { title: '', description: '', viewMode: 'multiple', actionPlanBlockIds: [], showUpcomingTasks: true, maxUpcomingTasks: 3 }
         if (type === 'task') initialContent = { tasks: [] }
         if (type === 'file_upload') initialContent = { label: '', description: '', acceptedTypes: [], maxFiles: 1 }
         if (type === 'file_download') initialContent = { title: '', description: '', files: [] }
@@ -260,6 +263,108 @@ export function ProjectV2Client({
             setEditingBlock(null)
         }
         setIsDirty(true)
+    }
+
+    // Handle duplicating a block
+    const handleDuplicateBlock = async (blockId: string) => {
+        if (!selectedPageId) return
+
+        const block = currentBlocks.find(b => b.id === blockId)
+        if (!block) return
+
+        // For new (unsaved) blocks, just duplicate locally
+        if (block.id.startsWith('new-')) {
+            const newId = `new-${Date.now()}`
+            const duplicatedBlock: Block = {
+                id: newId,
+                type: block.type,
+                content: JSON.parse(JSON.stringify(block.content)), // Deep clone
+                sort_order: block.sort_order + 1
+            }
+
+            // Shift later blocks down and insert duplicate
+            setPageBlocks(prev => {
+                const pageBlocks = prev[selectedPageId] || []
+                const updated = pageBlocks.map(b =>
+                    b.sort_order > block.sort_order
+                        ? { ...b, sort_order: b.sort_order + 1 }
+                        : b
+                )
+                return {
+                    ...prev,
+                    [selectedPageId]: [...updated, duplicatedBlock].sort((a, b) => a.sort_order - b.sort_order)
+                }
+            })
+            setIsDirty(true)
+            return
+        }
+
+        // For existing blocks, call server action
+        startTransition(async () => {
+            const result = await duplicateBlock(blockId)
+            if (result.success && result.block) {
+                // Refresh blocks for this page
+                const blocks = await getBlocks(selectedPageId)
+                setPageBlocks(prev => ({ ...prev, [selectedPageId]: blocks as Block[] }))
+            }
+        })
+    }
+
+    // Handle moving a block to another page
+    const handleMoveBlock = async (blockId: string, targetPageId: string) => {
+        if (!selectedPageId) return
+
+        const block = currentBlocks.find(b => b.id === blockId)
+        if (!block) return
+
+        // For new (unsaved) blocks, just move locally
+        if (block.id.startsWith('new-')) {
+            // Remove from current page
+            setPageBlocks(prev => ({
+                ...prev,
+                [selectedPageId]: prev[selectedPageId].filter(b => b.id !== blockId)
+            }))
+
+            // Add to target page
+            const targetBlocks = pageBlocks[targetPageId] || []
+            const newSortOrder = targetBlocks.length > 0
+                ? Math.max(...targetBlocks.map(b => b.sort_order)) + 1
+                : 0
+
+            setPageBlocks(prev => ({
+                ...prev,
+                [targetPageId]: [...(prev[targetPageId] || []), { ...block, sort_order: newSortOrder }]
+            }))
+
+            if (selectedBlockId === blockId) {
+                setSelectedBlockId(null)
+                setEditingBlock(null)
+            }
+            setIsDirty(true)
+            return
+        }
+
+        // For existing blocks, call server action
+        startTransition(async () => {
+            const result = await moveBlockToPage(blockId, targetPageId)
+            if (result.success) {
+                // Refresh blocks for both pages
+                const [sourceBlocks, targetBlocks] = await Promise.all([
+                    getBlocks(selectedPageId),
+                    getBlocks(targetPageId)
+                ])
+                setPageBlocks(prev => ({
+                    ...prev,
+                    [selectedPageId]: sourceBlocks as Block[],
+                    [targetPageId]: targetBlocks as Block[]
+                }))
+
+                if (selectedBlockId === blockId) {
+                    setSelectedBlockId(null)
+                    setEditingBlock(null)
+                }
+            }
+        })
     }
 
     // Handle page creation
@@ -365,6 +470,8 @@ export function ProjectV2Client({
                             onBlockToggle={handleBlockToggle}
                             onBlockReorder={handleBlockReorder}
                             onBlockDelete={handleDeleteBlock}
+                            onBlockDuplicate={handleDuplicateBlock}
+                            onBlockMove={handleMoveBlock}
                             onAddBlock={handleAddBlock}
                             editingBlock={editingBlock}
                             onBlockChange={handleBlockChange}

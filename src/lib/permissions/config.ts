@@ -5,12 +5,14 @@ export const PLAN_LIMITS = {
     maxTemplates: 2,
     hasAnalytics: false,
     canRemoveBranding: false,
+    canUseAITemplates: false,
   },
   scale: {
     maxActiveSpaces: Infinity,
     maxTemplates: Infinity,
     hasAnalytics: true,
     canRemoveBranding: true,
+    canUseAITemplates: true,
   },
   trial: {
     // Trial = Scale permissions
@@ -18,6 +20,7 @@ export const PLAN_LIMITS = {
     maxTemplates: Infinity,
     hasAnalytics: true,
     canRemoveBranding: true,
+    canUseAITemplates: true,
   },
 } as const
 
