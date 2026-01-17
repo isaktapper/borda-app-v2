@@ -246,7 +246,7 @@ export function PortalPreview({ spaceId, projectName }: PortalPreviewProps) {
                                     <button
                                         className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary/90 transition-colors whitespace-nowrap pointer-events-none opacity-75"
                                     >
-                                        Contact us
+                                        Get in touch
                                     </button>
                                     <Button
                                         variant="ghost"
