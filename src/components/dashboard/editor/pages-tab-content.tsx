@@ -18,7 +18,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Trash2, FileText, Plus, Sparkles, MoreVertical, Info, ChevronRight, Check, X } from 'lucide-react'
+import { Trash2, FileText, Plus, Sparkles, MoreVertical, Info, ChevronRight, Check, X, Pencil } from 'lucide-react'
 import { WelcomePopupEditor, WelcomePopupContent } from './welcome-popup-editor'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -60,6 +60,7 @@ interface PagesTabContentProps {
     onPageSelect: (pageId: string) => void
     onPageCreated: (page: Page) => void
     onPageDelete: (pageId: string) => void
+    onPageRename: (pageId: string, newTitle: string) => void
     onPagesReorder: (pages: Page[]) => void
     welcomePopup?: WelcomePopupContent | null
     onWelcomePopupSave?: (content: WelcomePopupContent) => Promise<void>
@@ -80,6 +81,7 @@ export function PagesTabContent({
     onPageSelect,
     onPageCreated,
     onPageDelete,
+    onPageRename,
     onPagesReorder,
     welcomePopup,
     onWelcomePopupSave,
@@ -321,6 +323,7 @@ export function PagesTabContent({
                                         page={page}
                                         onSelect={() => onPageSelect(page.id)}
                                         onDelete={() => setDeleteId(page.id)}
+                                        onRename={(newTitle) => onPageRename(page.id, newTitle)}
                                     />
                                 ))}
                             </div>
@@ -357,10 +360,13 @@ interface SortablePageItemProps {
     page: Page
     onSelect: () => void
     onDelete: () => void
+    onRename: (newTitle: string) => void
 }
 
-function SortablePageItem({ page, onSelect, onDelete }: SortablePageItemProps) {
+function SortablePageItem({ page, onSelect, onDelete, onRename }: SortablePageItemProps) {
     const [isEnabled, setIsEnabled] = useState(true)
+    const [isRenaming, setIsRenaming] = useState(false)
+    const [renameValue, setRenameValue] = useState(page.title)
     
     const {
         attributes,
@@ -376,57 +382,114 @@ function SortablePageItem({ page, onSelect, onDelete }: SortablePageItemProps) {
         transition,
     }
 
+    const handleRenameSubmit = () => {
+        const trimmed = renameValue.trim()
+        if (trimmed && trimmed !== page.title) {
+            onRename(trimmed)
+        }
+        setIsRenaming(false)
+    }
+
+    const handleRenameCancel = () => {
+        setRenameValue(page.title)
+        setIsRenaming(false)
+    }
+
     return (
         <div
             ref={setNodeRef}
             style={style}
             {...attributes}
-            {...listeners}
-            onClick={onSelect}
+            {...(isRenaming ? {} : listeners)}
+            onClick={isRenaming ? undefined : onSelect}
             className={cn(
-                "group flex items-center gap-3 rounded-xl px-4 py-3 transition-all cursor-pointer",
+                "group flex items-center gap-3 rounded-xl px-4 py-3 transition-all",
                 "bg-white border border-border shadow-sm",
-                "hover:shadow-md hover:border-border/80",
+                !isRenaming && "cursor-pointer hover:shadow-md hover:border-border/80",
                 isDragging && "opacity-50 z-50 ring-2 ring-primary shadow-lg cursor-grabbing"
             )}
         >
-            {/* Title */}
-            <span className="flex-1 text-sm font-medium truncate">
-                {page.title}
-            </span>
-
-            {/* Kebab Menu */}
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <button
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        <MoreVertical className="size-4" />
-                    </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-40">
-                    <DropdownMenuItem 
-                        onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete()
+            {/* Title or Rename Input */}
+            {isRenaming ? (
+                <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Input
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenameSubmit()
+                            if (e.key === 'Escape') handleRenameCancel()
                         }}
-                        className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                        autoFocus
+                        className="h-7 text-sm flex-1"
+                    />
+                    <Button 
+                        size="icon" 
+                        className="size-7 shrink-0"
+                        onClick={handleRenameSubmit}
+                        disabled={!renameValue.trim()}
                     >
-                        <Trash2 className="size-4 mr-2" />
-                        Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+                        <Check className="size-3.5" />
+                    </Button>
+                    <Button 
+                        size="icon" 
+                        variant="ghost"
+                        className="size-7 shrink-0"
+                        onClick={handleRenameCancel}
+                    >
+                        <X className="size-3.5" />
+                    </Button>
+                </div>
+            ) : (
+                <span className="flex-1 text-sm font-medium truncate">
+                    {page.title}
+                </span>
+            )}
 
-            {/* Toggle */}
-            <Switch
-                checked={isEnabled}
-                onCheckedChange={(checked) => {
-                    setIsEnabled(checked)
-                }}
-                onClick={(e) => e.stopPropagation()}
-            />
+            {/* Kebab Menu - hidden when renaming */}
+            {!isRenaming && (
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <MoreVertical className="size-4" />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem 
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                setIsRenaming(true)
+                            }}
+                        >
+                            <Pencil className="size-4 mr-2" />
+                            Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onDelete()
+                            }}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                        >
+                            <Trash2 className="size-4 mr-2" />
+                            Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+
+            {/* Toggle - hidden when renaming */}
+            {!isRenaming && (
+                <Switch
+                    checked={isEnabled}
+                    onCheckedChange={(checked) => {
+                        setIsEnabled(checked)
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                />
+            )}
         </div>
     )
 }

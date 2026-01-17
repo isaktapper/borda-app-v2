@@ -688,6 +688,14 @@ function FileUploadBlock({ blockId, content }: { blockId: string; content: any }
     const [progress, setProgress] = useState(0)
     const files = ctx.files?.[blockId] || []
 
+    const formatFileSize = (bytes: number | null | undefined): string => {
+        if (!bytes || bytes === 0) return '0 B'
+        const k = 1024
+        const sizes = ['B', 'KB', 'MB', 'GB']
+        const i = Math.floor(Math.log(bytes) / Math.log(k))
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+    }
+
     const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!ctx.interactive || !ctx.spaceId) return
         
@@ -803,9 +811,9 @@ function FileUploadBlock({ blockId, content }: { blockId: string; content: any }
                                         <FileUp className="size-4 text-primary" />
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-sm font-medium truncate">{file.name}</p>
+                                        <p className="text-sm font-medium truncate">{file.original_name || file.name || 'Unnamed file'}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            {formatFileSize(file.file_size_bytes ?? file.size)}
                                         </p>
                                     </div>
                                 </div>

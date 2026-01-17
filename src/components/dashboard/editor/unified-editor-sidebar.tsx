@@ -33,6 +33,7 @@ interface UnifiedEditorSidebarProps {
     onPageSelect: (pageId: string) => void
     onPageCreated: (page: Page) => void
     onPageDelete: (pageId: string) => void
+    onPageRename: (pageId: string, newTitle: string) => void
     onPagesReorder: (pages: Page[]) => void
 
     // Blocks tab
@@ -68,6 +69,7 @@ export function UnifiedEditorSidebar({
     onPageSelect,
     onPageCreated,
     onPageDelete,
+    onPageRename,
     onPagesReorder,
     blocks,
     isLoadingBlocks,
@@ -109,6 +111,7 @@ export function UnifiedEditorSidebar({
                         onPageSelect={onPageSelect}
                         onPageCreated={onPageCreated}
                         onPageDelete={onPageDelete}
+                        onPageRename={onPageRename}
                         onPagesReorder={onPagesReorder}
                         welcomePopup={welcomePopup}
                         onWelcomePopupSave={onWelcomePopupSave}

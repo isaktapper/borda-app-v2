@@ -385,22 +385,22 @@ export function ProjectV2Client({
         })
     }
 
-    // Handle page reorder
-    const handlePagesReorder = (newPages: Page[]) => {
-        setPages(newPages)
-        setIsDirty(true)
-    }
-
     // Handle page rename
     const handlePageRename = async (pageId: string, newTitle: string) => {
         startTransition(async () => {
             const res = await renamePage(pageId, spaceId, newTitle)
             if (res.success) {
-                setPages(prev => prev.map(p =>
-                    p.id === pageId ? { ...p, title: newTitle, slug: res.slug || p.slug } : p
+                setPages(prev => prev.map(p => 
+                    p.id === pageId ? { ...p, title: newTitle } : p
                 ))
             }
         })
+    }
+
+    // Handle page reorder
+    const handlePagesReorder = (newPages: Page[]) => {
+        setPages(newPages)
+        setIsDirty(true)
     }
 
     // Handle save
@@ -462,6 +462,7 @@ export function ProjectV2Client({
                             onPageSelect={handlePageSelect}
                             onPageCreated={handlePageCreated}
                             onPageDelete={handlePageDelete}
+                            onPageRename={handlePageRename}
                             onPagesReorder={handlePagesReorder}
                             blocks={currentBlocks}
                             isLoadingBlocks={isLoadingBlocks}

@@ -345,6 +345,14 @@ export function TemplateEditorClient({
         setIsDirty(true)
     }
 
+    // Handle page rename
+    const handlePageRename = async (pageId: string, newTitle: string) => {
+        setPages(prev => prev.map(p => 
+            p.id === pageId ? { ...p, title: newTitle } : p
+        ))
+        setIsDirty(true)
+    }
+
     // Handle page reorder
     const handlePagesReorder = (newPages: Page[]) => {
         setPages(newPages.map((p, i) => ({ ...p, sort_order: i })))
@@ -422,6 +430,7 @@ export function TemplateEditorClient({
                             onPageSelect={handlePageSelect}
                             onPageCreated={handlePageCreated}
                             onPageDelete={handlePageDelete}
+                            onPageRename={handlePageRename}
                             onPagesReorder={handlePagesReorder}
                             blocks={currentBlocks}
                             isLoadingBlocks={isLoadingBlocks}
