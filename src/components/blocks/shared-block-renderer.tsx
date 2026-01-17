@@ -37,7 +37,9 @@ import {
     PartyPopper,
     Clock,
     AlertCircle,
+    Eye,
 } from 'lucide-react'
+import Link from 'next/link'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react'
@@ -65,6 +67,7 @@ interface Block {
     type: string
     content: any
     sort_order?: number
+    page_slug?: string  // Page slug for navigation
 }
 
 interface BlockInteractionContext {
@@ -151,6 +154,7 @@ interface ResolvedTask {
     milestoneTitle: string
     taskId: string
     compositeId: string  // blockId-milestoneId-taskId format
+    pageSlug?: string  // Page slug for navigation to the action plan
     task: {
         id: string
         title: string
@@ -1817,16 +1821,28 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                 }
             }
 
-            // If we have specific IDs and found all from context, we're done
-            if (!selectAll && missingIds.length === 0) {
-                setFetchedBlocks(foundBlocks)
-                setIsLoading(false)
-                return
-            }
+            // NOTE: We always fetch from DB to get page_slug, even when blocks are found in context
 
             // Fetch blocks from database (for blocks on other pages or in portal mode)
             try {
                 const supabase = createClient()
+                
+                // Helper to transform blocks with page slug
+                // Supabase returns page as object for singular relations
+                const getPageSlug = (page: any): string | undefined => {
+                    if (!page) return undefined
+                    if (Array.isArray(page)) return page[0]?.slug
+                    return page.slug
+                }
+                
+                const transformBlocks = (blocks: any[]): Block[] => 
+                    blocks.map(b => ({
+                        id: b.id,
+                        type: b.type,
+                        content: b.content,
+                        sort_order: b.sort_order,
+                        page_slug: getPageSlug(b.page)
+                    }))
                 
                 if (selectAll) {
                     // Fetch all action plans for the space via pages
@@ -1840,14 +1856,31 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                             const pageIds = pages.map(p => p.id)
                             const { data: dbBlocks } = await supabase
                                 .from('blocks')
-                                .select('id, type, content, sort_order')
+                                .select('id, type, content, sort_order, page:pages(slug)')
                                 .eq('type', 'action_plan')
                                 .in('page_id', pageIds)
                             
-                            // Merge and dedupe with context blocks
-                            const contextIds = new Set(foundBlocks.map(b => b.id))
-                            const uniqueDbBlocks = (dbBlocks || []).filter(b => !contextIds.has(b.id))
-                            setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                            // Use DB blocks (with page_slug) and merge content from context blocks
+                            // This ensures we have page_slug while keeping fresh content from context
+                            const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
+                            const mergedBlocks: Block[] = []
+                            
+                            // First, add context blocks with page_slug from DB
+                            for (const ctxBlock of foundBlocks) {
+                                const dbBlock = dbBlocksMap.get(ctxBlock.id)
+                                mergedBlocks.push({
+                                    ...ctxBlock,
+                                    page_slug: getPageSlug(dbBlock?.page)
+                                })
+                                dbBlocksMap.delete(ctxBlock.id) // Remove from map so we don't add it again
+                            }
+                            
+                            // Then add remaining DB blocks (not in context)
+                            for (const dbBlock of dbBlocksMap.values()) {
+                                mergedBlocks.push(transformBlocks([dbBlock])[0])
+                            }
+                            
+                            setFetchedBlocks(mergedBlocks)
                         } else {
                             setFetchedBlocks(foundBlocks)
                         }
@@ -1855,15 +1888,33 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                         setFetchedBlocks(foundBlocks)
                     }
                 } else {
-                    // Fetch specific IDs
+                    // Fetch specific IDs - also need to get page_slug for context blocks
+                    const allBlockIds = [...new Set([...foundBlocks.map(b => b.id), ...missingIds])]
                     const { data: dbBlocks } = await supabase
                         .from('blocks')
-                        .select('id, type, content, sort_order')
+                        .select('id, type, content, sort_order, page:pages(slug)')
                         .eq('type', 'action_plan')
-                        .in('id', missingIds)
+                        .in('id', allBlockIds)
                     
-                    const allFoundBlocks = [...foundBlocks, ...(dbBlocks || [])]
-                    setFetchedBlocks(allFoundBlocks)
+                    // Merge: use context block content but add page_slug from DB
+                    const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
+                    const mergedBlocks: Block[] = []
+                    
+                    for (const ctxBlock of foundBlocks) {
+                        const dbBlock = dbBlocksMap.get(ctxBlock.id)
+                        mergedBlocks.push({
+                            ...ctxBlock,
+                            page_slug: getPageSlug(dbBlock?.page)
+                        })
+                        dbBlocksMap.delete(ctxBlock.id)
+                    }
+                    
+                    // Add remaining DB blocks
+                    for (const dbBlock of dbBlocksMap.values()) {
+                        mergedBlocks.push(transformBlocks([dbBlock])[0])
+                    }
+                    
+                    setFetchedBlocks(mergedBlocks)
                 }
             } catch (error) {
                 console.error('Failed to fetch action plan blocks:', error)
@@ -1933,6 +1984,7 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                         milestoneTitle: milestone.title,
                         taskId: task.id,
                         compositeId,
+                        pageSlug: block.page_slug,
                         task: {
                             id: task.id,
                             title: task.title,
@@ -2263,6 +2315,24 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                                 </button>
                             </div>
                         )}
+
+                        {/* View Task button */}
+                        {/* View Task button */}
+                        {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
+                            <div className="mt-4 pt-3 border-t border-white/20">
+                                <Link
+                                    href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
+                                    className={cn(
+                                        "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                                        bgOverlayHover, textColor, 
+                                        useDarkText ? "hover:bg-black/30" : "hover:bg-white/30"
+                                    )}
+                                >
+                                    <Eye className="size-4" />
+                                    View Task
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -2373,6 +2443,19 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                                         }
                                     }}
                                 />
+                            </div>
+                        )}
+
+                        {/* View Task button */}
+                        {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
+                            <div className="mt-4 pt-3 border-t border-grey-100">
+                                <Link
+                                    href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
+                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors"
+                                >
+                                    <Eye className="size-4" />
+                                    View Task
+                                </Link>
                             </div>
                         )}
                     </div>
