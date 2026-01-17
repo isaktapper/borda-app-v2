@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { getSpaceProgress } from '@/app/(app)/spaces/progress-actions'
 import { sanitizeStoragePath, isValidStoragePath } from '@/lib/storage-security'
 import { canCreateSpace } from '@/lib/permissions'
+import { extractAllTasks } from '@/lib/action-plan-utils'
+import type { ActionPlanContent } from '@/types/action-plan'
 
 export async function createSpace(formData: FormData) {
     const supabase = await createClient()
@@ -280,7 +282,7 @@ export async function getSpaces(includeArchived: boolean = false) {
             const response = responsesByBlockId.get(block.id)
             const content = block.content as any
 
-            // Count tasks
+            // Count tasks from legacy task blocks
             if (block.type === 'task') {
                 const blockTasks = content?.tasks || []
                 const taskStatuses = response?.value?.tasks || {}
@@ -288,6 +290,20 @@ export async function getSpaces(includeArchived: boolean = false) {
                 blockTasks.forEach((task: any) => {
                     totalTasks++
                     const status = taskStatuses[task.id] || 'pending'
+                    if (status === 'completed') {
+                        completedTasks++
+                    }
+                })
+            }
+
+            // Count tasks from action_plan blocks
+            if (block.type === 'action_plan') {
+                const taskStatuses = response?.value?.tasks || {}
+                const extractedTasks = extractAllTasks(content as ActionPlanContent, block.id)
+
+                extractedTasks.forEach(({ compositeId }) => {
+                    totalTasks++
+                    const status = taskStatuses[compositeId] || 'pending'
                     if (status === 'completed') {
                         completedTasks++
                     }
