@@ -2233,7 +2233,7 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                 )}
 
                 {/* Task card content */}
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                     {/* Checkbox */}
                     {ctx.interactive && (
                         <button
@@ -2315,25 +2315,22 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                                 </button>
                             </div>
                         )}
-
-                        {/* View Task button */}
-                        {/* View Task button */}
-                        {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
-                            <div className="mt-4 pt-3 border-t border-white/20">
-                                <Link
-                                    href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
-                                    className={cn(
-                                        "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                                        bgOverlayHover, textColor, 
-                                        useDarkText ? "hover:bg-black/30" : "hover:bg-white/30"
-                                    )}
-                                >
-                                    <Eye className="size-4" />
-                                    View Task
-                                </Link>
-                            </div>
-                        )}
                     </div>
+
+                    {/* View Task button - right aligned */}
+                    {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
+                        <Link
+                            href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
+                            className={cn(
+                                "shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                                bgOverlayHover, textColor, 
+                                useDarkText ? "hover:bg-black/30" : "hover:bg-white/30"
+                            )}
+                        >
+                            <Eye className="size-4" />
+                            View Task
+                        </Link>
+                    )}
                 </div>
             </div>
         )
@@ -2371,7 +2368,7 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                 )}
 
                 {/* Task card content */}
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-4">
                     {/* Checkbox */}
                     {ctx.interactive && (
                         <button
@@ -2445,20 +2442,18 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
                                 />
                             </div>
                         )}
-
-                        {/* View Task button */}
-                        {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
-                            <div className="mt-4 pt-3 border-t border-grey-100">
-                                <Link
-                                    href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
-                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors"
-                                >
-                                    <Eye className="size-4" />
-                                    View Task
-                                </Link>
-                            </div>
-                        )}
                     </div>
+
+                    {/* View Task button - right aligned */}
+                    {ctx.interactive && nextTask.pageSlug && ctx.spaceId && (
+                        <Link
+                            href={`/space/${ctx.spaceId}/shared/${nextTask.pageSlug}#block-${nextTask.blockId}`}
+                            className="shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-colors"
+                        >
+                            <Eye className="size-4" />
+                            View Task
+                        </Link>
+                    )}
                 </div>
             </div>
         </BlockContainer>
