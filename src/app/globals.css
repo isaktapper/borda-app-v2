@@ -451,4 +451,23 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  /* Mini confetti animation for task completion */
+  @keyframes confetti-burst {
+    0% {
+      transform: translate(-50%, -50%) rotate(0deg) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(
+        calc(-50% + cos(var(--confetti-angle)) * 30px),
+        calc(-50% + sin(var(--confetti-angle)) * 30px)
+      ) rotate(360deg) scale(0);
+      opacity: 0;
+    }
+  }
+
+  .animate-confetti-burst {
+    animation: confetti-burst 0.6s ease-out forwards;
+  }
 }

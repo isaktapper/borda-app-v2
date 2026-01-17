@@ -40,7 +40,7 @@ import {
 } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -91,6 +91,38 @@ interface BlockInteractionContext {
 }
 
 const BlockContext = createContext<BlockInteractionContext>({ interactive: false })
+
+// ============================================================================
+// Mini Confetti Component - Small celebration when task is completed
+// ============================================================================
+
+function MiniConfetti({ isActive }: { isActive: boolean }) {
+    if (!isActive) return null
+    
+    // Generate 12 particles with random directions for a fuller effect
+    const particles = Array.from({ length: 12 }, (_, i) => {
+        const angle = (i / 12) * 360
+        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
+        const color = colors[i % colors.length]
+        return { angle, color, delay: i * 15 }
+    })
+
+    return (
+        <div className="absolute inset-0 pointer-events-none overflow-visible">
+            {particles.map((particle, i) => (
+                <div
+                    key={i}
+                    className="absolute left-1/2 top-1/2 size-2 rounded-full animate-confetti-burst"
+                    style={{
+                        backgroundColor: particle.color,
+                        '--confetti-angle': `${particle.angle}deg`,
+                        animationDelay: `${particle.delay}ms`,
+                    } as React.CSSProperties}
+                />
+            ))}
+        </div>
+    )
+}
 
 // Next Task Block Types
 interface NextTaskBlockContent {
@@ -335,6 +367,18 @@ function ActionPlanBlock({ blockId, content }: { blockId: string; content: Actio
         return initial
     })
 
+    // Track confetti for recently completed tasks
+    const [confettiTaskId, setConfettiTaskId] = useState<string | null>(null)
+
+    const handleTaskToggle = useCallback((fullCompositeId: string, title: string, wasCompleted: boolean) => {
+        if (!wasCompleted) {
+            // Task is being completed - show confetti
+            setConfettiTaskId(fullCompositeId)
+            setTimeout(() => setConfettiTaskId(null), 600)
+        }
+        ctx.toggleTask?.(fullCompositeId, title)
+    }, [ctx])
+
     if (milestones.length === 0) {
         return (
             <BlockContainer 
@@ -459,22 +503,25 @@ function ActionPlanBlock({ blockId, content }: { blockId: string; content: Actio
                                                         canComplete && 'cursor-pointer hover:bg-muted/30'
                                                     )}
                                                     onClick={() =>
-                                                        canComplete && ctx.toggleTask?.(fullCompositeId, task.title)
+                                                        canComplete && handleTaskToggle(fullCompositeId, task.title, isCompleted)
                                                     }
                                                 >
-                                                    {/* Checkbox */}
-                                                    <div
-                                                        className={cn(
-                                                            'size-5 rounded border-2 flex items-center justify-center transition-colors shrink-0',
-                                                            isCompleted
-                                                                ? 'bg-emerald-500 border-emerald-500'
-                                                                : 'bg-white border-muted-foreground/30',
-                                                            !canComplete && 'opacity-50'
-                                                        )}
-                                                    >
-                                                        {isCompleted && (
-                                                            <Check className="size-3.5 text-white stroke-[3px]" />
-                                                        )}
+                                                    {/* Checkbox with confetti */}
+                                                    <div className="relative shrink-0">
+                                                        <div
+                                                            className={cn(
+                                                                'size-5 rounded border-2 flex items-center justify-center transition-colors',
+                                                                isCompleted
+                                                                    ? 'bg-emerald-500 border-emerald-500'
+                                                                    : 'bg-white border-muted-foreground/30',
+                                                                !canComplete && 'opacity-50'
+                                                            )}
+                                                        >
+                                                            {isCompleted && (
+                                                                <Check className="size-3.5 text-white stroke-[3px]" />
+                                                            )}
+                                                        </div>
+                                                        <MiniConfetti isActive={confettiTaskId === fullCompositeId} />
                                                     </div>
 
                                                     {/* Title + Info icon */}
@@ -563,6 +610,15 @@ function ActionPlanBlock({ blockId, content }: { blockId: string; content: Actio
 function TaskBlock({ blockId, content }: { blockId: string; content: any }) {
     const ctx = useContext(BlockContext)
     const tasks = content.tasks || []
+    const [confettiTaskId, setConfettiTaskId] = useState<string | null>(null)
+
+    const handleTaskToggle = useCallback((taskId: string, title: string, wasCompleted: boolean) => {
+        if (!wasCompleted) {
+            setConfettiTaskId(taskId)
+            setTimeout(() => setConfettiTaskId(null), 600)
+        }
+        ctx.toggleTask?.(taskId, title)
+    }, [ctx])
 
     if (tasks.length === 0) {
         return (
@@ -589,15 +645,16 @@ function TaskBlock({ blockId, content }: { blockId: string; content: any }) {
                                 canComplete && "cursor-pointer",
                                 isCompleted ? "bg-muted/20" : canComplete && "hover:bg-muted/30"
                             )}
-                            onClick={() => canComplete && ctx.toggleTask?.(taskId, task.title)}
+                            onClick={() => canComplete && handleTaskToggle(taskId, task.title, isCompleted)}
                         >
-                            <div className="pt-0.5">
+                            <div className="pt-0.5 relative">
                                 <div className={cn(
                                     "size-4 rounded border-2 flex items-center justify-center transition-colors",
                                     isCompleted ? "bg-primary border-primary" : "bg-white border-muted"
                                 )}>
                                     {isCompleted && <Check className="size-3 text-white stroke-[3px]" />}
                                 </div>
+                                <MiniConfetti isActive={confettiTaskId === taskId} />
                             </div>
                             <div className="flex-1 flex items-center justify-between gap-3 min-w-0">
                                 <span className={cn(
