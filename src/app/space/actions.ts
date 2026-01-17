@@ -593,3 +593,68 @@ export async function logTaskActivity(
         { taskTitle }
     )
 }
+
+/**
+ * Fetch action plan blocks for the portal view
+ * This is needed because client-side Supabase queries don't have portal RLS permissions
+ */
+export async function getActionPlanBlocksForPortal(
+    spaceId: string, 
+    blockIds?: string[]
+): Promise<{
+    id: string
+    type: string
+    content: unknown
+    sort_order: number
+    page_slug?: string
+}[]> {
+    const supabase = await getAuthPortalClient(spaceId)
+    if (!supabase) return []
+
+    // Get all pages for this space
+    const { data: pages } = await supabase
+        .from('pages')
+        .select('id')
+        .eq('space_id', spaceId)
+        .is('deleted_at', null)
+    
+    if (!pages || pages.length === 0) return []
+
+    const pageIds = pages.map(p => p.id)
+
+    // Build query for action plan blocks
+    let query = supabase
+        .from('blocks')
+        .select('id, type, content, sort_order, page:pages(slug)')
+        .eq('type', 'action_plan')
+        .in('page_id', pageIds)
+        .is('deleted_at', null)
+
+    // If specific block IDs are requested, filter by them
+    if (blockIds && blockIds.length > 0) {
+        query = query.in('id', blockIds)
+    }
+
+    const { data: blocks, error } = await query
+
+    if (error) {
+        console.error('[getActionPlanBlocksForPortal] Error:', error)
+        return []
+    }
+
+    // Transform blocks to include page_slug
+    return (blocks || []).map(b => {
+        const page = b.page as { slug: string } | { slug: string }[] | null
+        let pageSlug: string | undefined
+        if (page) {
+            pageSlug = Array.isArray(page) ? page[0]?.slug : page.slug
+        }
+        return {
+            id: b.id,
+            type: b.type,
+            content: b.content,
+            sort_order: b.sort_order,
+            page_slug: pageSlug
+        }
+    })
+}

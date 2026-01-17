@@ -44,6 +44,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { format } from 'date-fns'
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { getActionPlanBlocksForPortal } from '@/app/space/actions'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible'
@@ -1825,96 +1826,132 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
 
             // Fetch blocks from database (for blocks on other pages or in portal mode)
             try {
-                const supabase = createClient()
-                
-                // Helper to transform blocks with page slug
-                // Supabase returns page as object for singular relations
-                const getPageSlug = (page: any): string | undefined => {
-                    if (!page) return undefined
-                    if (Array.isArray(page)) return page[0]?.slug
-                    return page.slug
-                }
-                
-                const transformBlocks = (blocks: any[]): Block[] => 
-                    blocks.map(b => ({
-                        id: b.id,
-                        type: b.type,
-                        content: b.content,
-                        sort_order: b.sort_order,
-                        page_slug: getPageSlug(b.page)
-                    }))
-                
-                if (selectAll) {
-                    // Fetch all action plans for the space via pages
-                    if (ctx.spaceId) {
-                        const { data: pages } = await supabase
-                            .from('pages')
-                            .select('id')
-                            .eq('space_id', ctx.spaceId)
-                        
-                        if (pages && pages.length > 0) {
-                            const pageIds = pages.map(p => p.id)
-                            const { data: dbBlocks } = await supabase
-                                .from('blocks')
-                                .select('id, type, content, sort_order, page:pages(slug)')
-                                .eq('type', 'action_plan')
-                                .in('page_id', pageIds)
-                            
-                            // Use DB blocks (with page_slug) and merge content from context blocks
-                            // This ensures we have page_slug while keeping fresh content from context
-                            const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
-                            const mergedBlocks: Block[] = []
-                            
-                            // First, add context blocks with page_slug from DB
-                            for (const ctxBlock of foundBlocks) {
-                                const dbBlock = dbBlocksMap.get(ctxBlock.id)
-                                mergedBlocks.push({
-                                    ...ctxBlock,
-                                    page_slug: getPageSlug(dbBlock?.page)
-                                })
-                                dbBlocksMap.delete(ctxBlock.id) // Remove from map so we don't add it again
-                            }
-                            
-                            // Then add remaining DB blocks (not in context)
-                            for (const dbBlock of dbBlocksMap.values()) {
-                                mergedBlocks.push(transformBlocks([dbBlock])[0])
-                            }
-                            
-                            setFetchedBlocks(mergedBlocks)
-                        } else {
-                            setFetchedBlocks(foundBlocks)
-                        }
-                    } else {
-                        setFetchedBlocks(foundBlocks)
-                    }
-                } else {
-                    // Fetch specific IDs - also need to get page_slug for context blocks
-                    const allBlockIds = [...new Set([...foundBlocks.map(b => b.id), ...missingIds])]
-                    const { data: dbBlocks } = await supabase
-                        .from('blocks')
-                        .select('id, type, content, sort_order, page:pages(slug)')
-                        .eq('type', 'action_plan')
-                        .in('id', allBlockIds)
+                // In portal mode (interactive), use server action which has proper RLS bypass
+                // In editor mode, use client-side Supabase which uses authenticated user's permissions
+                if (ctx.interactive && ctx.spaceId) {
+                    // Use server action for portal - it handles RLS correctly
+                    const dbBlocks = await getActionPlanBlocksForPortal(
+                        ctx.spaceId, 
+                        selectAll ? undefined : blockIds
+                    )
                     
-                    // Merge: use context block content but add page_slug from DB
-                    const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
+                    // Transform and merge with context blocks
+                    const dbBlocksMap = new Map(dbBlocks.map(b => [b.id, b]))
                     const mergedBlocks: Block[] = []
                     
+                    // First, add context blocks with page_slug from DB
                     for (const ctxBlock of foundBlocks) {
                         const dbBlock = dbBlocksMap.get(ctxBlock.id)
                         mergedBlocks.push({
                             ...ctxBlock,
-                            page_slug: getPageSlug(dbBlock?.page)
+                            page_slug: dbBlock?.page_slug
                         })
                         dbBlocksMap.delete(ctxBlock.id)
                     }
                     
-                    // Add remaining DB blocks
+                    // Then add remaining DB blocks
                     for (const dbBlock of dbBlocksMap.values()) {
-                        mergedBlocks.push(transformBlocks([dbBlock])[0])
+                        mergedBlocks.push({
+                            id: dbBlock.id,
+                            type: dbBlock.type,
+                            content: dbBlock.content,
+                            sort_order: dbBlock.sort_order,
+                            page_slug: dbBlock.page_slug
+                        })
                     }
                     
                     setFetchedBlocks(mergedBlocks)
+                } else {
+                    // Editor mode - use client-side Supabase
+                    const supabase = createClient()
+                    
+                    // Helper to transform blocks with page slug
+                    const getPageSlug = (page: any): string | undefined => {
+                        if (!page) return undefined
+                        if (Array.isArray(page)) return page[0]?.slug
+                        return page.slug
+                    }
+                    
+                    const transformBlocks = (blocks: any[]): Block[] => 
+                        blocks.map(b => ({
+                            id: b.id,
+                            type: b.type,
+                            content: b.content,
+                            sort_order: b.sort_order,
+                            page_slug: getPageSlug(b.page)
+                        }))
+                    
+                    if (selectAll) {
+                        // Fetch all action plans for the space via pages
+                        if (ctx.spaceId) {
+                            const { data: pages } = await supabase
+                                .from('pages')
+                                .select('id')
+                                .eq('space_id', ctx.spaceId)
+                            
+                            if (pages && pages.length > 0) {
+                                const pageIds = pages.map(p => p.id)
+                                const { data: dbBlocks } = await supabase
+                                    .from('blocks')
+                                    .select('id, type, content, sort_order, page:pages(slug)')
+                                    .eq('type', 'action_plan')
+                                    .in('page_id', pageIds)
+                                
+                                // Use DB blocks (with page_slug) and merge content from context blocks
+                                const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
+                                const mergedBlocks: Block[] = []
+                                
+                                // First, add context blocks with page_slug from DB
+                                for (const ctxBlock of foundBlocks) {
+                                    const dbBlock = dbBlocksMap.get(ctxBlock.id)
+                                    mergedBlocks.push({
+                                        ...ctxBlock,
+                                        page_slug: getPageSlug(dbBlock?.page)
+                                    })
+                                    dbBlocksMap.delete(ctxBlock.id)
+                                }
+                                
+                                // Then add remaining DB blocks (not in context)
+                                for (const dbBlock of dbBlocksMap.values()) {
+                                    mergedBlocks.push(transformBlocks([dbBlock])[0])
+                                }
+                                
+                                setFetchedBlocks(mergedBlocks)
+                            } else {
+                                setFetchedBlocks(foundBlocks)
+                            }
+                        } else {
+                            setFetchedBlocks(foundBlocks)
+                        }
+                    } else {
+                        // Fetch specific IDs - also need to get page_slug for context blocks
+                        const allBlockIds = [...new Set([...foundBlocks.map(b => b.id), ...missingIds])]
+                        const { data: dbBlocks } = await supabase
+                            .from('blocks')
+                            .select('id, type, content, sort_order, page:pages(slug)')
+                            .eq('type', 'action_plan')
+                            .in('id', allBlockIds)
+                        
+                        // Merge: use context block content but add page_slug from DB
+                        const dbBlocksMap = new Map((dbBlocks || []).map(b => [b.id, b]))
+                        const mergedBlocks: Block[] = []
+                        
+                        for (const ctxBlock of foundBlocks) {
+                            const dbBlock = dbBlocksMap.get(ctxBlock.id)
+                            mergedBlocks.push({
+                                ...ctxBlock,
+                                page_slug: getPageSlug(dbBlock?.page)
+                            })
+                            dbBlocksMap.delete(ctxBlock.id)
+                        }
+                        
+                        // Add remaining DB blocks
+                        for (const dbBlock of dbBlocksMap.values()) {
+                            mergedBlocks.push(transformBlocks([dbBlock])[0])
+                        }
+                        
+                        setFetchedBlocks(mergedBlocks)
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch action plan blocks:', error)
@@ -1925,7 +1962,7 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
         }
 
         fetchActionPlans()
-    }, [ctx.spaceId, ctx.allBlocks, content.actionPlanBlockIds])
+    }, [ctx.spaceId, ctx.allBlocks, ctx.interactive, content.actionPlanBlockIds])
 
     // Use fetched blocks for all operations
     const allBlocks = fetchedBlocks
@@ -2506,8 +2543,8 @@ function ActionPlanProgressBlock({ blockId, content }: ActionPlanProgressBlockPr
                 }
             }
 
-            // If we have specific IDs and found all from context, we're done
-            if (!selectAll && missingIds.length === 0) {
+            // If we have specific IDs and found all from context, we're done (editor mode only)
+            if (!ctx.interactive && !selectAll && missingIds.length === 0) {
                 setFetchedBlocks(foundBlocks)
                 setIsLoading(false)
                 return
@@ -2515,44 +2552,58 @@ function ActionPlanProgressBlock({ blockId, content }: ActionPlanProgressBlockPr
 
             // Fetch blocks from database (for blocks on other pages or in portal mode)
             try {
-                const supabase = createClient()
-                
-                if (selectAll) {
-                    // Fetch all action plans for the space via pages
-                    if (ctx.spaceId) {
-                        const { data: pages } = await supabase
-                            .from('pages')
-                            .select('id')
-                            .eq('space_id', ctx.spaceId)
-                        
-                        if (pages && pages.length > 0) {
-                            const pageIds = pages.map(p => p.id)
-                            const { data: dbBlocks } = await supabase
-                                .from('blocks')
-                                .select('id, type, content, sort_order')
-                                .eq('type', 'action_plan')
-                                .in('page_id', pageIds)
+                // In portal mode (interactive), use server action which has proper RLS bypass
+                if (ctx.interactive && ctx.spaceId) {
+                    const dbBlocks = await getActionPlanBlocksForPortal(
+                        ctx.spaceId,
+                        selectAll ? undefined : blockIds
+                    )
+                    
+                    // Merge and dedupe with context blocks
+                    const contextIds = new Set(foundBlocks.map(b => b.id))
+                    const uniqueDbBlocks = dbBlocks.filter(b => !contextIds.has(b.id))
+                    setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                } else {
+                    // Editor mode - use client-side Supabase
+                    const supabase = createClient()
+                    
+                    if (selectAll) {
+                        // Fetch all action plans for the space via pages
+                        if (ctx.spaceId) {
+                            const { data: pages } = await supabase
+                                .from('pages')
+                                .select('id')
+                                .eq('space_id', ctx.spaceId)
                             
-                            // Merge and dedupe with context blocks
-                            const contextIds = new Set(foundBlocks.map(b => b.id))
-                            const uniqueDbBlocks = (dbBlocks || []).filter(b => !contextIds.has(b.id))
-                            setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                            if (pages && pages.length > 0) {
+                                const pageIds = pages.map(p => p.id)
+                                const { data: dbBlocks } = await supabase
+                                    .from('blocks')
+                                    .select('id, type, content, sort_order')
+                                    .eq('type', 'action_plan')
+                                    .in('page_id', pageIds)
+                                
+                                // Merge and dedupe with context blocks
+                                const contextIds = new Set(foundBlocks.map(b => b.id))
+                                const uniqueDbBlocks = (dbBlocks || []).filter(b => !contextIds.has(b.id))
+                                setFetchedBlocks([...foundBlocks, ...uniqueDbBlocks])
+                            } else {
+                                setFetchedBlocks(foundBlocks)
+                            }
                         } else {
                             setFetchedBlocks(foundBlocks)
                         }
                     } else {
-                        setFetchedBlocks(foundBlocks)
+                        // Fetch specific IDs
+                        const { data: dbBlocks } = await supabase
+                            .from('blocks')
+                            .select('id, type, content, sort_order')
+                            .eq('type', 'action_plan')
+                            .in('id', missingIds)
+                        
+                        const allFoundBlocks = [...foundBlocks, ...(dbBlocks || [])]
+                        setFetchedBlocks(allFoundBlocks)
                     }
-                } else {
-                    // Fetch specific IDs
-                    const { data: dbBlocks } = await supabase
-                        .from('blocks')
-                        .select('id, type, content, sort_order')
-                        .eq('type', 'action_plan')
-                        .in('id', missingIds)
-                    
-                    const allFoundBlocks = [...foundBlocks, ...(dbBlocks || [])]
-                    setFetchedBlocks(allFoundBlocks)
                 }
             } catch (error) {
                 console.error('Failed to fetch action plan blocks:', error)
@@ -2563,7 +2614,7 @@ function ActionPlanProgressBlock({ blockId, content }: ActionPlanProgressBlockPr
         }
 
         fetchActionPlans()
-    }, [ctx.spaceId, ctx.allBlocks, content.actionPlanBlockIds])
+    }, [ctx.spaceId, ctx.allBlocks, ctx.interactive, content.actionPlanBlockIds])
 
     // Use fetched blocks for all operations
     const allBlocks = fetchedBlocks
