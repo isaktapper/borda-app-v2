@@ -183,27 +183,76 @@ export async function getPortalPageWithBlocks(spaceId: string, pageSlug: string)
     return { ...page, blocks }
 }
 
+export async function getPortalActionPlanBlocks(spaceId: string) {
+    const supabase = await getAuthPortalClient(spaceId)
+    if (!supabase) return []
+
+    // Get all pages for this space
+    const { data: pages } = await supabase
+        .from('pages')
+        .select('id')
+        .eq('space_id', spaceId)
+        .is('deleted_at', null)
+
+    if (!pages || pages.length === 0) return []
+
+    // Get all action_plan blocks from all pages
+    const pageIds = pages.map(p => p.id)
+    const { data: blocks, error } = await supabase
+        .from('blocks')
+        .select('id, type, content, sort_order')
+        .eq('type', 'action_plan')
+        .in('page_id', pageIds)
+        .is('deleted_at', null)
+
+    if (error) {
+        console.error('Error fetching portal action plan blocks:', error)
+        return []
+    }
+
+    return blocks || []
+}
+
 export async function getPortalTasks(spaceId: string, pageId: string) {
     const supabase = await getAuthPortalClient(spaceId)
     if (!supabase) return {}
 
-    // 1. Get all task AND action_plan blocks for this page
-    const { data: blocks } = await supabase
+    // 1. Get task blocks for current page (for backward compatibility)
+    const { data: pageBlocks } = await supabase
         .from('blocks')
         .select('id, type')
         .eq('page_id', pageId)
         .in('type', ['task', 'action_plan'])
 
-    if (!blocks || blocks.length === 0) return {}
+    // 2. Get ALL action_plan blocks across the entire space (for ActionPlanProgressBlock and NextTaskBlock)
+    // These blocks can reference action_plans from other pages
+    const { data: allPages } = await supabase
+        .from('pages')
+        .select('id')
+        .eq('space_id', spaceId)
+    
+    const allPageIds = allPages?.map(p => p.id) || []
+    
+    const { data: allActionPlanBlocks } = await supabase
+        .from('blocks')
+        .select('id, type')
+        .in('page_id', allPageIds)
+        .eq('type', 'action_plan')
 
-    // 2. Get responses for those blocks (task statuses are stored in responses now)
-    const blockIds = blocks.map(b => b.id)
+    // 3. Combine and dedupe block IDs
+    const allBlockIds = new Set<string>()
+    pageBlocks?.forEach(b => allBlockIds.add(b.id))
+    allActionPlanBlocks?.forEach(b => allBlockIds.add(b.id))
+
+    if (allBlockIds.size === 0) return {}
+
+    // 4. Get responses for all those blocks (task statuses are stored in responses now)
     const { data: responses } = await supabase
         .from('responses')
         .select('block_id, value')
-        .in('block_id', blockIds)
+        .in('block_id', Array.from(allBlockIds))
 
-    // 3. Expand task statuses into composite keys
+    // 5. Expand task statuses into composite keys
     const taskMap: Record<string, 'pending' | 'completed'> = {}
     responses?.forEach(r => {
         if (r.value && r.value.tasks) {

@@ -29,8 +29,8 @@ export default async function TemplatesPage() {
         <div className="space-y-4">
             <div className="flex items-center justify-between border-b pb-3">
                 <div>
-                    <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
-                    <p className="text-sm text-muted-foreground mt-0.5">Manage your space templates.</p>
+                <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
+                <p className="text-sm text-muted-foreground mt-0.5">Manage your space templates.</p>
                 </div>
                 <CreateTemplateModal canUseAI={canUseAI} />
             </div>

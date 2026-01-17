@@ -299,6 +299,8 @@ function BlockEditorRouter({ block, spaceId, onChange, isTemplateMode = false }:
         case 'contact':
             return (
                 <ContactCardBlockEditor
+                    blockId={block.id}
+                    spaceId={spaceId}
                     content={block.content}
                     onChange={onChange}
                 />

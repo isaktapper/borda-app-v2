@@ -1101,16 +1101,55 @@ function EmbedBlock({ content }: { content: any }) {
 // Contact Block
 // ============================================================================
 
-function ContactBlock({ content }: { content: any }) {
+interface ContactBlockContent {
+    name?: string
+    title?: string
+    email?: string
+    phone?: string
+    avatarUrl?: string
+    avatarStoragePath?: string
+}
+
+function ContactBlock({ content }: { content: ContactBlockContent }) {
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(content.avatarUrl || null)
+    
     const initials = content.name
         ? content.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
         : '?'
+
+    // Fetch signed URL if we have a avatarStoragePath (same pattern as MediaBlock)
+    useEffect(() => {
+        async function fetchSignedUrl() {
+            if (!content.avatarStoragePath) return
+            
+            // If we already have an avatarUrl that works, use it
+            if (content.avatarUrl) {
+                setAvatarUrl(content.avatarUrl)
+                return
+            }
+
+            try {
+                const supabase = createClient()
+                const { data, error } = await supabase.storage
+                    .from('project-files')
+                    .createSignedUrl(content.avatarStoragePath, 3600) // 1 hour
+
+                if (!error && data) {
+                    setAvatarUrl(data.signedUrl)
+                }
+            } catch (error) {
+                console.error('Failed to fetch signed URL for avatar:', error)
+            }
+        }
+
+        fetchSignedUrl()
+    }, [content.avatarStoragePath, content.avatarUrl])
 
     return (
         <BlockContainer>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                 <Avatar className="size-16 border-2 border-background">
-                    <AvatarImage src={content.avatarUrl} className="object-cover" />
+                    <AvatarImage src={avatarUrl || undefined} className="object-cover" />
                     <AvatarFallback className="bg-primary/10 text-primary text-lg font-bold">
                         {initials}
                     </AvatarFallback>
@@ -1685,27 +1724,31 @@ function NextTaskBlock({ blockId, content }: NextTaskBlockProps) {
     const borderColorHover = useDarkText ? 'border-black/50' : 'border-white'
 
     // Get action plan blocks - combine context blocks (same page) with database fetch (other pages)
-    // If actionPlanBlockIds is empty, fetch ALL action plans for the space
+    // If actionPlanBlockIds is empty/undefined or is "all", fetch ALL action plans for the space
     useEffect(() => {
         async function fetchActionPlans() {
-            const selectAll = !content.actionPlanBlockIds?.length
+            // Handle both new format (actionPlanBlockIds) and legacy format (actionPlanIds)
+            // Legacy format used 'all' string, new format uses empty array
+            const rawBlockIds: unknown = content.actionPlanBlockIds || (content as any).actionPlanIds
+            const blockIds: string[] = rawBlockIds === 'all' ? [] : (Array.isArray(rawBlockIds) ? rawBlockIds : [])
+            const selectAll = !blockIds.length
             
             // Start with blocks from context (blocks on the same page in editor mode)
             let foundBlocks: Block[] = []
-            let missingIds: string[] = selectAll ? [] : [...content.actionPlanBlockIds]
+            let missingIds: string[] = selectAll ? [] : [...(Array.isArray(blockIds) ? blockIds : [])]
 
             if (ctx.allBlocks) {
                 const contextBlocks = selectAll
                     ? ctx.allBlocks.filter(b => b.type === 'action_plan')
                     : ctx.allBlocks.filter(
-                        b => b.type === 'action_plan' && content.actionPlanBlockIds.includes(b.id)
+                        b => b.type === 'action_plan' && Array.isArray(blockIds) && blockIds.includes(b.id)
                     )
                 foundBlocks = contextBlocks
                 
                 // Find which IDs are still missing (might be on other pages)
-                if (!selectAll) {
+                if (!selectAll && Array.isArray(blockIds)) {
                     const foundIds = new Set(contextBlocks.map(b => b.id))
-                    missingIds = content.actionPlanBlockIds.filter(id => !foundIds.has(id))
+                    missingIds = blockIds.filter((id: string) => !foundIds.has(id))
                 }
             }
 
@@ -2293,27 +2336,30 @@ function ActionPlanProgressBlock({ blockId, content }: ActionPlanProgressBlockPr
     const maxUpcomingTasks = content.maxUpcomingTasks ?? 3
 
     // Get action plan blocks - combine context blocks (same page) with database fetch (other pages)
-    // If actionPlanBlockIds is empty, fetch ALL action plans for the space
+    // If actionPlanBlockIds is empty/undefined or is "all", fetch ALL action plans for the space
     useEffect(() => {
         async function fetchActionPlans() {
-            const selectAll = !content.actionPlanBlockIds?.length
+            // Handle empty or undefined actionPlanBlockIds - means select all
+            const rawBlockIds = content.actionPlanBlockIds
+            const blockIds = Array.isArray(rawBlockIds) ? rawBlockIds : []
+            const selectAll = !blockIds.length
             
             // Start with blocks from context (blocks on the same page in editor mode)
             let foundBlocks: Block[] = []
-            let missingIds: string[] = selectAll ? [] : [...content.actionPlanBlockIds]
+            let missingIds: string[] = selectAll ? [] : [...(Array.isArray(blockIds) ? blockIds : [])]
 
             if (ctx.allBlocks) {
                 const contextBlocks = selectAll
                     ? ctx.allBlocks.filter(b => b.type === 'action_plan')
                     : ctx.allBlocks.filter(
-                        b => b.type === 'action_plan' && content.actionPlanBlockIds.includes(b.id)
+                        b => b.type === 'action_plan' && Array.isArray(blockIds) && blockIds.includes(b.id)
                     )
                 foundBlocks = contextBlocks
                 
                 // Find which IDs are still missing (might be on other pages)
-                if (!selectAll) {
+                if (!selectAll && Array.isArray(blockIds)) {
                     const foundIds = new Set(contextBlocks.map(b => b.id))
-                    missingIds = content.actionPlanBlockIds.filter(id => !foundIds.has(id))
+                    missingIds = blockIds.filter((id: string) => !foundIds.has(id))
                 }
             }
 

@@ -251,6 +251,8 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
                                         )}
                                         {block.type === 'contact' && (
                                             <ContactCardBlockEditor
+                                                blockId={block.id}
+                                                spaceId={spaceId}
                                                 content={block.content}
                                                 onChange={(newContent) => updateBlockContent(block.id, newContent)}
                                             />
@@ -325,6 +327,8 @@ export function BlockEditor({ pageId, spaceId, blocks, onBlocksChange, isLoading
                                     )}
                                     {blocks.find((b: Block) => b.id === activeId)?.type === 'contact' && (
                                         <ContactCardBlockEditor
+                                            blockId={activeId}
+                                            spaceId={spaceId}
                                             content={blocks.find((b: Block) => b.id === activeId)?.content}
                                             onChange={() => { }}
                                         />

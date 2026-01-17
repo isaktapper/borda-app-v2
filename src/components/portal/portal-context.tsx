@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useTransition, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { toggleTaskStatus, uploadFile, deleteFile, logTaskActivity, saveResponse } from '@/app/space/actions'
 import { toast } from 'sonner'
 
@@ -10,9 +11,17 @@ interface PortalState {
     files: Record<string, any[]>
 }
 
+interface Block {
+    id: string
+    type: string
+    content: any
+    sort_order?: number
+}
+
 interface PortalContextType {
     state: PortalState
     spaceId: string
+    allBlocks: Block[]
     toggleTask: (taskId: string, taskTitle?: string) => Promise<void>
     updateResponse: (blockId: string, value: any) => Promise<void>
     addFile: (blockId: string, file: any) => void
@@ -27,13 +36,15 @@ export function PortalProvider({
     spaceId,
     initialTasks = {},
     initialResponses = {},
-    initialFiles = {}
+    initialFiles = {},
+    allBlocks = []
 }: {
     children: React.ReactNode
     spaceId: string
     initialTasks?: Record<string, 'pending' | 'completed'>
     initialResponses?: Record<string, any>
     initialFiles?: Record<string, any[]>
+    allBlocks?: Block[]
 }) {
     const [state, setState] = useState<PortalState>({
         tasks: initialTasks,
@@ -42,6 +53,7 @@ export function PortalProvider({
     })
     const [isPending, startTransition] = useTransition()
     const saveTimeoutRef = useRef<Record<string, NodeJS.Timeout>>({})
+    const router = useRouter()
 
     const toggleTask = async (compositeId: string, taskTitle?: string) => {
         // compositeId format: "blockId-taskId"
@@ -96,6 +108,8 @@ export function PortalProvider({
             } else {
                 // Log task activity
                 await logTaskActivity(spaceId, blockId, taskId, taskTitle || 'Task', newStatus)
+                // Refresh server components (header progress indicator) with new data
+                router.refresh()
             }
         } catch (error) {
             setState(prev => ({
@@ -207,7 +221,7 @@ export function PortalProvider({
     }
 
     return (
-        <PortalContext.Provider value={{ state, spaceId, toggleTask, updateResponse, addFile, removeFile, isPending }}>
+        <PortalContext.Provider value={{ state, spaceId, allBlocks, toggleTask, updateResponse, addFile, removeFile, isPending }}>
             {children}
         </PortalContext.Provider>
     )

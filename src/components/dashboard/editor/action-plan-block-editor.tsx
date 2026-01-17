@@ -430,34 +430,34 @@ function MilestoneItem({
                 onChange={(value) => onUpdate(milestone.id, { relativeDueDate: value } as any)}
               />
             ) : (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      'h-7 px-2 text-xs gap-1 shrink-0',
-                      !milestone.dueDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="size-3" />
-                    {milestone.dueDate
-                      ? format(new Date(milestone.dueDate), 'd MMM')
-                      : 'Date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={
-                      milestone.dueDate ? new Date(milestone.dueDate) : undefined
-                    }
-                    onSelect={(date) =>
-                      onUpdate(milestone.id, { dueDate: date?.toISOString() })
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'h-7 px-2 text-xs gap-1 shrink-0',
+                    !milestone.dueDate && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="size-3" />
+                  {milestone.dueDate
+                    ? format(new Date(milestone.dueDate), 'd MMM')
+                    : 'Date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={
+                    milestone.dueDate ? new Date(milestone.dueDate) : undefined
+                  }
+                  onSelect={(date) =>
+                    onUpdate(milestone.id, { dueDate: date?.toISOString() })
+                  }
+                />
+              </PopoverContent>
+            </Popover>
             )}
 
             <Button
@@ -597,13 +597,13 @@ function TaskItem({
 
       {/* Assignee picker - hidden in template mode */}
       {!isTemplateMode && (
-        <AssigneePicker
-          assignee={task.assignee}
-          onSelect={(assignee) =>
-            onUpdate(milestoneId, task.id, { assignee })
-          }
-          spaceId={spaceId}
-        />
+      <AssigneePicker
+        assignee={task.assignee}
+        onSelect={(assignee) =>
+          onUpdate(milestoneId, task.id, { assignee })
+        }
+        spaceId={spaceId}
+      />
       )}
 
       {/* Due date picker - relative in template mode, absolute otherwise */}
@@ -613,30 +613,30 @@ function TaskItem({
           onChange={(value) => onUpdate(milestoneId, task.id, { relativeDueDate: value } as any)}
         />
       ) : (
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                'h-7 w-7 p-0',
-                task.dueDate ? 'text-foreground' : 'text-muted-foreground'
-              )}
-              title={task.dueDate ? format(new Date(task.dueDate), 'd MMM yyyy') : 'Add date'}
-            >
-              <CalendarIcon className="size-3.5" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={task.dueDate ? new Date(task.dueDate) : undefined}
-              onSelect={(date) =>
-                onUpdate(milestoneId, task.id, { dueDate: date?.toISOString() })
-              }
-            />
-          </PopoverContent>
-        </Popover>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'h-7 w-7 p-0',
+              task.dueDate ? 'text-foreground' : 'text-muted-foreground'
+            )}
+            title={task.dueDate ? format(new Date(task.dueDate), 'd MMM yyyy') : 'Add date'}
+          >
+            <CalendarIcon className="size-3.5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={task.dueDate ? new Date(task.dueDate) : undefined}
+            onSelect={(date) =>
+              onUpdate(milestoneId, task.id, { dueDate: date?.toISOString() })
+            }
+          />
+        </PopoverContent>
+      </Popover>
       )}
 
       {/* Quick Action */}

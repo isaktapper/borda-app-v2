@@ -2,7 +2,7 @@
 
 import posthog from 'posthog-js'
 import { PostHogProvider as PHProvider, usePostHog } from 'posthog-js/react'
-import { useEffect, Suspense } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 /**
@@ -114,10 +114,20 @@ interface PostHogProviderProps {
 /**
  * PostHog Provider for Borda
  * Wraps the application with PostHog context and page view tracking
+ * 
+ * Uses useEffect to avoid hydration mismatch - renders same structure
+ * on server and client initially, then enables PostHog after mount.
  */
 export function PostHogProvider({ children }: PostHogProviderProps) {
-    // Don't render provider if PostHog is not initialized
-    if (typeof window === 'undefined' || !process.env.NEXT_PUBLIC_POSTHOG_KEY) {
+    const [isClient, setIsClient] = useState(false)
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
+
+    // Always render the same structure to avoid hydration mismatch
+    // PostHog only activates after client-side mount
+    if (!isClient || !process.env.NEXT_PUBLIC_POSTHOG_KEY) {
         return <>{children}</>
     }
 

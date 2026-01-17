@@ -298,6 +298,8 @@ function BlockEditorContent({ block, spaceId, onChange }: BlockEditorContentProp
         case 'contact':
             return (
                 <ContactCardBlockEditor
+                    blockId={block.id}
+                    spaceId={spaceId}
                     content={block.content}
                     onChange={onChange}
                 />

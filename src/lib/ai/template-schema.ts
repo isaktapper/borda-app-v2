@@ -313,9 +313,9 @@ function repairTemplate(data: unknown): unknown {
         // Process next_task blocks - ensure default config
         if (b.type === 'next_task') {
           const content = b.content as Record<string, unknown>
-          // Default to showing tasks from all action plans
-          if (!content.actionPlanIds) {
-            content.actionPlanIds = 'all'
+          // Default to empty array - will show tasks from all action plans in the space
+          if (!Array.isArray(content.actionPlanBlockIds)) {
+            content.actionPlanBlockIds = []
           }
           // Ensure title
           if (!content.title) {

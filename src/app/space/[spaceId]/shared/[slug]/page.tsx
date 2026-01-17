@@ -1,4 +1,4 @@
-import { getPortalPageWithBlocks, getPortalPages, getResponses, getFilesForBlock, getPortalTasks } from '../../../actions'
+import { getPortalPageWithBlocks, getPortalPages, getResponses, getFilesForBlock, getPortalTasks, getPortalActionPlanBlocks } from '../../../actions'
 import { PortalBlockRenderer } from '@/components/portal/block-renderers'
 import { notFound } from 'next/navigation'
 import { PortalProvider } from '@/components/portal/portal-context'
@@ -22,10 +22,11 @@ export default async function PortalPage({
     }
 
     // Fetch hydration data and pages list for navigation
-    const [responses, taskMap, pages] = await Promise.all([
+    const [responses, taskMap, pages, actionPlanBlocks] = await Promise.all([
         getResponses(pageData.id),
         getPortalTasks(spaceId, pageData.id),
-        getPortalPages(spaceId)
+        getPortalPages(spaceId),
+        getPortalActionPlanBlocks(spaceId)
     ])
 
     // Fetch files for all file_upload blocks
@@ -58,6 +59,7 @@ export default async function PortalPage({
             initialTasks={taskMap}
             initialResponses={responseMap}
             initialFiles={filesPerBlock}
+            allBlocks={actionPlanBlocks}
         >
             {/* Log page view */}
             <PageViewLogger 

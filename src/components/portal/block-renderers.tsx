@@ -22,6 +22,7 @@ export function PortalBlockRenderer({ block }: { block: Block }) {
     const context: BlockInteractionContext = {
         interactive: true,
         spaceId: portal.spaceId,
+        allBlocks: portal.allBlocks,
         tasks: portal.state.tasks,
         responses: portal.state.responses,
         files: portal.state.files,

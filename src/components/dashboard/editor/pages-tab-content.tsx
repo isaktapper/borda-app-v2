@@ -173,15 +173,15 @@ export function PagesTabContent({
                             <Plus className="size-4" />
                         </Button>
                     ) : (
-                        <CreatePageModal 
-                            spaceId={spaceId} 
-                            onPageCreated={onPageCreated}
-                            trigger={
-                                <Button size="icon" className="size-8 rounded-lg absolute right-0">
-                                    <Plus className="size-4" />
-                                </Button>
-                            }
-                        />
+                    <CreatePageModal 
+                        spaceId={spaceId} 
+                        onPageCreated={onPageCreated}
+                        trigger={
+                            <Button size="icon" className="size-8 rounded-lg absolute right-0">
+                                <Plus className="size-4" />
+                            </Button>
+                        }
+                    />
                     )}
                 </div>
                 
@@ -227,38 +227,38 @@ export function PagesTabContent({
 
             {/* Welcome Pop-Up Section - not shown in template mode */}
             {!isTemplateMode && (
-                <div className="px-4 pt-4">
-                    <button
-                        onClick={() => setShowWelcomeEditor(true)}
-                        className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <span className="text-base">👋</span>
-                            <span className="text-sm font-medium text-foreground">Welcome Pop-Up</span>
-                            <Tooltip>
-                                <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <span className="text-muted-foreground hover:text-foreground transition-colors">
-                                        <Info className="size-4" />
-                                    </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[200px]">
-                                    <p className="text-xs">Show a welcome message when stakeholders first visit your space.</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className={cn(
-                                "text-xs px-2 py-0.5 rounded-full",
-                                welcomePopup?.enabled 
-                                    ? "bg-emerald-100 text-emerald-700" 
-                                    : "bg-muted text-muted-foreground"
-                            )}>
-                                {welcomePopup?.enabled ? 'Active' : 'Inactive'}
-                            </span>
-                            <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                        </div>
-                    </button>
-                </div>
+            <div className="px-4 pt-4">
+                <button
+                    onClick={() => setShowWelcomeEditor(true)}
+                    className="w-full flex items-center justify-between p-4 bg-muted/30 rounded-xl border border-border/50 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className="text-base">👋</span>
+                        <span className="text-sm font-medium text-foreground">Welcome Pop-Up</span>
+                        <Tooltip>
+                            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <span className="text-muted-foreground hover:text-foreground transition-colors">
+                                    <Info className="size-4" />
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[200px]">
+                                <p className="text-xs">Show a welcome message when stakeholders first visit your space.</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            welcomePopup?.enabled 
+                                ? "bg-emerald-100 text-emerald-700" 
+                                : "bg-muted text-muted-foreground"
+                        )}>
+                            {welcomePopup?.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                        <ChevronRight className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                    </div>
+                </button>
+            </div>
             )}
 
             {/* Pages List */}
@@ -292,16 +292,16 @@ export function PagesTabContent({
                                 Create first page
                             </Button>
                         ) : (
-                            <CreatePageModal
-                                spaceId={spaceId}
-                                onPageCreated={onPageCreated}
-                                trigger={
-                                    <Button size="sm" className="gap-1.5">
-                                        <Plus className="size-3.5" />
-                                        Create first page
-                                    </Button>
-                                }
-                            />
+                        <CreatePageModal
+                            spaceId={spaceId}
+                            onPageCreated={onPageCreated}
+                            trigger={
+                                <Button size="sm" className="gap-1.5">
+                                    <Plus className="size-3.5" />
+                                    Create first page
+                                </Button>
+                            }
+                        />
                         )}
                     </div>
                 ) : (
