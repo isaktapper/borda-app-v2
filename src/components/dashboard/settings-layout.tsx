@@ -1,15 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, Users, Building, Tag, CreditCard } from 'lucide-react'
+import { User, Building, Palette, Tag, CreditCard } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 interface SettingsLayoutProps {
   sections: {
     profile: React.ReactNode
-    team: React.ReactNode
     organization: React.ReactNode
+    branding: React.ReactNode
     tags: React.ReactNode
     billing?: React.ReactNode
   }
@@ -24,14 +24,14 @@ const navigationItems = [
     icon: User,
   },
   {
-    id: 'team',
-    label: 'Team',
-    icon: Users,
-  },
-  {
     id: 'organization',
     label: 'Organization',
     icon: Building,
+  },
+  {
+    id: 'branding',
+    label: 'Branding',
+    icon: Palette,
   },
   {
     id: 'tags',
@@ -96,8 +96,8 @@ export function SettingsLayout({ sections, defaultTab = 'profile', showBilling =
       {/* Content Area */}
       <div className="min-w-0">
         {currentTab === 'profile' && sections.profile}
-        {currentTab === 'team' && sections.team}
         {currentTab === 'organization' && sections.organization}
+        {currentTab === 'branding' && sections.branding}
         {currentTab === 'tags' && sections.tags}
         {currentTab === 'billing' && sections.billing}
       </div>

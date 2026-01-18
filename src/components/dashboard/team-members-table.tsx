@@ -51,7 +51,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
             result = result.filter(member => {
                 const name = member.users?.full_name || member.invited_email
                 const email = member.users?.email || member.invited_email
-                const role = member.user_id ? member.role : 'Inbjuden'
+                const role = member.user_id ? member.role : 'Invited'
 
                 return name.toLowerCase().includes(filter.toLowerCase()) ||
                     email.toLowerCase().includes(filter.toLowerCase()) ||
@@ -75,8 +75,8 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                         bVal = b.users?.email || b.invited_email
                         break
                     case 'role':
-                        aVal = a.user_id ? a.role : 'Inbjuden'
-                        bVal = b.user_id ? b.role : 'Inbjuden'
+                        aVal = a.user_id ? a.role : 'Invited'
+                        bVal = b.user_id ? b.role : 'Invited'
                         break
                     case 'invited_at':
                         aVal = a.invited_at
@@ -206,7 +206,7 @@ export function TeamMembersTable({ members, currentUserId, currentUserRole, canM
                         {sortedAndFilteredMembers.map((member) => {
                             const displayName = member.users?.full_name || member.invited_email
                             const displayEmail = member.users?.email || member.invited_email
-                            const displayRole = member.user_id ? member.role : 'Inbjuden'
+                            const displayRole = member.user_id ? member.role : 'Invited'
                             const isCurrentUser = member.user_id === currentUserId
                             const isPending = !member.user_id
 

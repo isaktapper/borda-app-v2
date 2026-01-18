@@ -172,3 +172,93 @@ export function taskReminderTemplate({
   `
   return baseLayout(content)
 }
+
+// ============================================================================
+// Access Request Notification Template (sent to org admins)
+// ============================================================================
+
+interface AccessRequestNotificationParams {
+  requesterEmail: string
+  requesterName: string | null
+  organizationName: string
+  approveLink: string
+  denyLink: string
+}
+
+export function accessRequestNotificationTemplate({
+  requesterEmail,
+  requesterName,
+  organizationName,
+  approveLink,
+  denyLink
+}: AccessRequestNotificationParams) {
+  const displayName = requesterName || requesterEmail
+  const content = `
+    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">New access request for ${organizationName}</h1>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi!</p>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;"><strong>${displayName}</strong> (${requesterEmail}) has requested to join your organization <strong>${organizationName}</strong> on Borda.</p>
+    <p style="margin:0 0 24px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Please review this request:</p>
+    <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
+      <tr>
+        <td align="center" style="padding-right:12px;">
+          <a href="${approveLink}" style="display:inline-block;padding:14px 28px;background:${EMAIL_STYLES.primaryBlue};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;">Approve</a>
+        </td>
+        <td align="center">
+          <a href="${denyLink}" style="display:inline-block;padding:14px 28px;background:#f3f4f6;color:${EMAIL_STYLES.text};text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;border:1px solid ${EMAIL_STYLES.border};">Deny</a>
+        </td>
+      </tr>
+    </table>
+    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">You can also manage access requests from your organization settings.</p>
+  `
+  return baseLayout(content)
+}
+
+// ============================================================================
+// Access Request Approved Template (sent to requester)
+// ============================================================================
+
+interface AccessRequestApprovedParams {
+  requesterName: string | null
+  organizationName: string
+  loginLink: string
+}
+
+export function accessRequestApprovedTemplate({
+  requesterName,
+  organizationName,
+  loginLink
+}: AccessRequestApprovedParams) {
+  const greeting = requesterName ? `Hi ${requesterName}` : 'Hi'
+  const content = `
+    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">You're now a member of ${organizationName}</h1>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">${greeting},</p>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Great news! Your request to join <strong>${organizationName}</strong> has been approved. You now have access to the workspace.</p>
+    ${emailButton('Sign in', loginLink)}
+    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">Welcome to the team!</p>
+  `
+  return baseLayout(content)
+}
+
+// ============================================================================
+// Access Request Denied Template (sent to requester)
+// ============================================================================
+
+interface AccessRequestDeniedParams {
+  requesterName: string | null
+  organizationName: string
+}
+
+export function accessRequestDeniedTemplate({
+  requesterName,
+  organizationName
+}: AccessRequestDeniedParams) {
+  const greeting = requesterName ? `Hi ${requesterName}` : 'Hi'
+  const content = `
+    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">Your request to join ${organizationName}</h1>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">${greeting},</p>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Unfortunately, your request to join <strong>${organizationName}</strong> on Borda was not approved at this time.</p>
+    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">If you believe this was a mistake, please contact the organization administrator directly.</p>
+    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">If you have any questions, feel free to reach out to us.</p>
+  `
+  return baseLayout(content)
+}

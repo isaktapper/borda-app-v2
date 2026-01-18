@@ -14,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { Building2, Palette, Users, Megaphone, Upload, X, Loader2, Check, ArrowRight, ArrowLeft } from 'lucide-react'
+import { Building2, Palette, Users, Megaphone, Upload, X, Loader2, Check, ArrowRight, ArrowLeft, Shield, UserPlus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { isValidHexColor, normalizeHexColor } from '@/lib/branding'
 import { createOrganizationWithOnboarding } from './actions'
@@ -100,6 +100,7 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
     const [companySize, setCompanySize] = useState('')
     const [referralSource, setReferralSource] = useState('')
     const [referralSourceOther, setReferralSourceOther] = useState('')
+    const [joinPolicy, setJoinPolicy] = useState<'invite_only' | 'domain_auto_join'>('invite_only')
 
     // Track step views
     useEffect(() => {
@@ -176,7 +177,10 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
 
         const formData = new FormData()
         formData.append('name', orgName)
-        if (domain) formData.append('domain', domain)
+        if (domain) {
+            formData.append('domain', domain)
+            formData.append('joinPolicy', joinPolicy)
+        }
         formData.append('brandColor', brandColor)
         formData.append('industry', industry)
         formData.append('companySize', companySize)
@@ -293,9 +297,66 @@ export function OnboardingWizard({ domain, userEmail }: OnboardingWizardProps) {
                                         />
                                     </div>
                                     {domain && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Your workspace will be associated with <strong>@{domain}</strong>
-                                        </p>
+                                        <>
+                                            <p className="text-sm text-muted-foreground">
+                                                Your workspace will be associated with <strong>@{domain}</strong>
+                                            </p>
+                                            
+                                            {/* Join Policy Selection */}
+                                            <div className="space-y-3 pt-2">
+                                                <Label>Team Access Policy</Label>
+                                                <p className="text-sm text-muted-foreground">
+                                                    How should colleagues with @{domain} emails join your workspace?
+                                                </p>
+                                                <RadioGroup 
+                                                    value={joinPolicy} 
+                                                    onValueChange={(v) => setJoinPolicy(v as 'invite_only' | 'domain_auto_join')}
+                                                    className="grid gap-3"
+                                                >
+                                                    <Label
+                                                        htmlFor="policy_invite_only"
+                                                        className={cn(
+                                                            'flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-colors',
+                                                            joinPolicy === 'invite_only' 
+                                                                ? 'border-primary bg-primary/5' 
+                                                                : 'border-muted hover:border-muted-foreground/20'
+                                                        )}
+                                                    >
+                                                        <RadioGroupItem value="invite_only" id="policy_invite_only" className="mt-0.5" />
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <Shield className="size-4 text-primary" />
+                                                                <span className="font-medium">Require approval</span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                New users must request access and be approved by an admin
+                                                            </p>
+                                                        </div>
+                                                    </Label>
+                                                    
+                                                    <Label
+                                                        htmlFor="policy_auto_join"
+                                                        className={cn(
+                                                            'flex items-start gap-3 rounded-lg border-2 p-4 cursor-pointer transition-colors',
+                                                            joinPolicy === 'domain_auto_join' 
+                                                                ? 'border-primary bg-primary/5' 
+                                                                : 'border-muted hover:border-muted-foreground/20'
+                                                        )}
+                                                    >
+                                                        <RadioGroupItem value="domain_auto_join" id="policy_auto_join" className="mt-0.5" />
+                                                        <div className="space-y-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <UserPlus className="size-4 text-primary" />
+                                                                <span className="font-medium">Auto-join</span>
+                                                            </div>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                Anyone with @{domain} can join automatically
+                                                            </p>
+                                                        </div>
+                                                    </Label>
+                                                </RadioGroup>
+                                            </div>
+                                        </>
                                     )}
                                 </CardContent>
                             </>

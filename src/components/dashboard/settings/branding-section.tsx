@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { BrandingSection } from '@/components/dashboard/branding-section'
-import { canRemoveBranding } from '@/lib/permissions'
+import { OrganizationBrandingForm } from './organization-branding-form'
 
-export default async function OrganizationSettingsPage() {
+export async function BrandingSection() {
   const supabase = await createClient()
 
   // Get current user
@@ -14,7 +13,7 @@ export default async function OrganizationSettingsPage() {
   // Get user's organization with branding
   const { data: membership } = await supabase
     .from('organization_members')
-    .select('organization_id, role, organizations(name, logo_path, brand_color, show_borda_branding)')
+    .select('organization_id, role, organizations(name, logo_path, brand_color, background_gradient)')
     .eq('user_id', user.id)
     .single()
 
@@ -27,25 +26,33 @@ export default async function OrganizationSettingsPage() {
     : membership.organizations
 
   const canManageOrg = ['owner', 'admin'].includes(membership.role)
-  
-  // Check if plan allows removing Borda branding
-  const canRemove = await canRemoveBranding(membership.organization_id)
+
+  // Generate signed URL for logo if exists
+  let logoUrl = null
+  if (organization?.logo_path) {
+    const { data } = await supabase.storage
+      .from('branding')
+      .createSignedUrl(organization.logo_path, 60 * 60)
+    logoUrl = data?.signedUrl || null
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Organization</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Organization logo and color (used as default for all projects)</p>
+        <h2 className="text-2xl font-semibold tracking-tight">Branding</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Customize your organization&apos;s logo and colors
+        </p>
       </div>
 
-      <BrandingSection
+      <OrganizationBrandingForm
         organizationId={membership.organization_id}
         organizationName={organization?.name || 'Organization'}
         initialLogoPath={organization?.logo_path || null}
+        initialLogoUrl={logoUrl}
         initialBrandColor={organization?.brand_color || '#000000'}
+        initialBackgroundGradient={organization?.background_gradient || null}
         canManage={canManageOrg}
-        canRemoveBranding={canRemove}
-        showBordaBranding={organization?.show_borda_branding ?? true}
       />
     </div>
   )

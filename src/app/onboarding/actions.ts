@@ -20,6 +20,7 @@ export async function createOrganizationWithOnboarding(formData: FormData) {
     }
 
     const domain = formData.get('domain') as string | null
+    const joinPolicy = formData.get('joinPolicy') as 'invite_only' | 'domain_auto_join' | null
     const brandColor = formData.get('brandColor') as string | null
     const industry = formData.get('industry') as string | null
     const companySize = formData.get('companySize') as string | null
@@ -89,6 +90,14 @@ export async function createOrganizationWithOnboarding(formData: FormData) {
 
     if (rpcError) {
         return { error: rpcError.message }
+    }
+
+    // Update join_policy if provided (RPC doesn't support it directly)
+    if (orgData?.id && joinPolicy) {
+        await supabase
+            .from('organizations')
+            .update({ join_policy: joinPolicy })
+            .eq('id', orgData.id)
     }
 
     // Create Stripe customer with 14-day trial
@@ -207,4 +216,102 @@ export async function joinOrganization(formData: FormData) {
 
     revalidatePath('/', 'layout')
     redirect('/spaces')
+}
+
+interface RequestAccessParams {
+    email: string
+    name: string | null
+    organizationId: string
+}
+
+export async function requestAccessToOrganization({
+    email,
+    name,
+    organizationId
+}: RequestAccessParams): Promise<{ success?: boolean; error?: string }> {
+    const adminClient = await createAdminClient()
+
+    // Check if there's already a pending request
+    const { data: existingRequest } = await adminClient
+        .from('access_requests')
+        .select('id')
+        .eq('email', email)
+        .eq('organization_id', organizationId)
+        .eq('status', 'pending')
+        .single()
+
+    if (existingRequest) {
+        return { error: 'You have already requested access to this organization' }
+    }
+
+    // Check if user is already invited
+    const { data: existingInvite } = await adminClient
+        .from('organization_members')
+        .select('id')
+        .eq('invited_email', email)
+        .eq('organization_id', organizationId)
+        .is('deleted_at', null)
+        .single()
+
+    if (existingInvite) {
+        return { error: 'You have already been invited to this organization' }
+    }
+
+    // Get organization name for email
+    const { data: org } = await adminClient
+        .from('organizations')
+        .select('name')
+        .eq('id', organizationId)
+        .single()
+
+    // Create the access request
+    const { error: insertError } = await adminClient
+        .from('access_requests')
+        .insert({
+            email,
+            name,
+            organization_id: organizationId,
+            status: 'pending'
+        })
+
+    if (insertError) {
+        console.error('Error creating access request:', insertError)
+        return { error: 'Failed to submit request. Please try again.' }
+    }
+
+    // Get admins to notify
+    const { data: admins } = await adminClient
+        .from('organization_members')
+        .select('invited_email')
+        .eq('organization_id', organizationId)
+        .in('role', ['owner', 'admin'])
+        .is('deleted_at', null)
+
+    // Import sendEmail dynamically to avoid circular deps
+    const { sendEmail } = await import('@/lib/email')
+    const { accessRequestNotificationTemplate } = await import('@/lib/email/templates')
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.borda.work'
+    const settingsUrl = `${appUrl}/settings?tab=organization`
+
+    // Send notification emails to all admins
+    if (admins && org) {
+        for (const admin of admins) {
+            await sendEmail({
+                to: admin.invited_email,
+                subject: `${name || email} wants to join ${org.name}`,
+                html: accessRequestNotificationTemplate({
+                    requesterEmail: email,
+                    requesterName: name,
+                    organizationName: org.name,
+                    approveLink: settingsUrl,
+                    denyLink: settingsUrl
+                }),
+                type: 'access_request_notification',
+                metadata: { organizationId, requesterEmail: email }
+            })
+        }
+    }
+
+    return { success: true }
 }

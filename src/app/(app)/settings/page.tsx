@@ -1,8 +1,8 @@
 import { Suspense } from 'react'
 import { SettingsLayout } from '@/components/dashboard/settings-layout'
 import { ProfileSection } from '@/components/dashboard/settings/profile-section'
-import { TeamSection } from '@/components/dashboard/settings/team-section'
 import { OrganizationSection } from '@/components/dashboard/settings/organization-section'
+import { BrandingSection } from '@/components/dashboard/settings/branding-section'
 import { TagsSection } from '@/components/dashboard/settings/tags-section'
 import { BillingSection } from '@/components/dashboard/settings/billing-section'
 import { Loader2 } from 'lucide-react'
@@ -77,15 +77,6 @@ export default async function SettingsPage({
         defaultTab="profile"
         sections={{
           profile: <ProfileSection user={userProfile} />,
-          team: (
-            <Suspense fallback={
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="size-8 animate-spin text-muted-foreground" />
-              </div>
-            }>
-              <TeamSection />
-            </Suspense>
-          ),
           organization: (
             <Suspense fallback={
               <div className="flex items-center justify-center py-12">
@@ -93,6 +84,15 @@ export default async function SettingsPage({
               </div>
             }>
               <OrganizationSection />
+            </Suspense>
+          ),
+          branding: (
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            }>
+              <BrandingSection />
             </Suspense>
           ),
           tags: (
