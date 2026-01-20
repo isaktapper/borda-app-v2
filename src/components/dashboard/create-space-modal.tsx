@@ -58,9 +58,6 @@ export function CreateSpaceModal({ trigger }: CreateSpaceModalProps = {}) {
 
     const loadingStates = [
         { text: "Creating space..." },
-        { text: "Setting up workspace..." },
-        { text: "Configuring permissions..." },
-        { text: "Uploading assets..." },
         { text: "Finalizing setup..." },
         { text: "Space ready!" },
     ]

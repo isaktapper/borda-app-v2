@@ -2,11 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Mail, ArrowRight, Loader2, Sparkles, CheckCircle2, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Mail, ArrowRight, Loader2, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import {
     validatePortalToken,
     getPortalAccessSettings,
@@ -82,7 +81,10 @@ function AccessContent() {
                 result.data.projectStatus !== 'draft' &&
                 result.data.projectStatus !== 'archived'
             ) {
-                handlePublicAccess()
+                // Add a delay to show the logo and "Entering space..." message
+                setTimeout(() => {
+                    handlePublicAccess()
+                }, 1500) // 1.5 second delay
             }
         } else {
             setError(result.error)
@@ -174,15 +176,39 @@ function AccessContent() {
 
     // Show error if project not found or unavailable
     if (!settings || settings.projectStatus === 'draft') {
+        // If we have settings with branding, show logo even in error state
+        const effectiveLogoUrl = settings?.logoUrl || settings?.orgLogoUrl
+        const effectiveBrandColor = settings?.brandColor || settings?.orgBrandColor
+
         return (
             <div className="flex flex-col items-center justify-center py-12 space-y-6">
+                {settings && (
+                    <div className="flex items-center justify-center mb-4">
+                        {effectiveLogoUrl ? (
+                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
+                                <img
+                                    src={effectiveLogoUrl}
+                                    alt="Organization logo"
+                                    className="w-full h-full object-contain p-2"
+                                />
+                            </div>
+                        ) : (
+                            <div
+                                className="w-16 h-16 rounded-lg flex items-center justify-center text-xl font-bold text-white"
+                                style={{ backgroundColor: effectiveBrandColor || '#6366f1' }}
+                            >
+                                {settings.clientName.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div className="size-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
                     <AlertCircle className="size-8 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-xl font-bold tracking-tight">Portal Not Available</h2>
+                    <h2 className="text-xl font-bold tracking-tight">Space Not Available</h2>
                     <p className="text-sm text-muted-foreground">
-                        {error || 'This portal is not ready yet. Please contact your team for more information.'}
+                        {error || 'This space is not ready yet. Please contact your team for more information.'}
                     </p>
                 </div>
             </div>
@@ -190,15 +216,36 @@ function AccessContent() {
     }
 
     if (settings.projectStatus === 'archived') {
+        const effectiveLogoUrl = settings.logoUrl || settings.orgLogoUrl
+        const effectiveBrandColor = settings.brandColor || settings.orgBrandColor
+
         return (
             <div className="flex flex-col items-center justify-center py-12 space-y-6">
+                <div className="flex items-center justify-center mb-4">
+                    {effectiveLogoUrl ? (
+                        <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
+                            <img
+                                src={effectiveLogoUrl}
+                                alt="Organization logo"
+                                className="w-full h-full object-contain p-2"
+                            />
+                        </div>
+                    ) : (
+                        <div
+                            className="w-16 h-16 rounded-lg flex items-center justify-center text-xl font-bold text-white"
+                            style={{ backgroundColor: effectiveBrandColor || '#6366f1' }}
+                        >
+                            {settings.clientName.charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                </div>
                 <div className="size-16 rounded-full bg-muted flex items-center justify-center">
                     <AlertCircle className="size-8 text-muted-foreground" />
                 </div>
                 <div className="text-center space-y-2">
-                    <h2 className="text-xl font-bold tracking-tight">Portal Archived</h2>
+                    <h2 className="text-xl font-bold tracking-tight">Space Archived</h2>
                     <p className="text-sm text-muted-foreground">
-                        This portal is no longer available.
+                        This space is no longer available.
                     </p>
                 </div>
             </div>
@@ -210,31 +257,61 @@ function AccessContent() {
         (settings.accessMode === 'public' && settings.requireEmailForAnalytics)
     const showPasswordField = settings.hasPassword
 
-    // If public, no password, no email required - show "Entering portal..."
+    const handleSubmit = settings.accessMode === 'public' ? handlePublicAccess : handleRestrictedAccess
+
+    // Determine effective logo URL (space overrides org)
+    const effectiveLogoUrl = settings.logoUrl || settings.orgLogoUrl
+    // Determine effective brand color (space overrides org)
+    const effectiveBrandColor = settings.brandColor || settings.orgBrandColor
+
+    // Logo component to reuse across all states
+    const LogoDisplay = () => (
+        <div className="flex items-center justify-center mb-6">
+            {effectiveLogoUrl ? (
+                <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted/30 flex items-center justify-center">
+                    <img
+                        src={effectiveLogoUrl}
+                        alt="Organization logo"
+                        className="w-full h-full object-contain p-2"
+                    />
+                </div>
+            ) : (
+                <div
+                    className="w-20 h-20 rounded-lg flex items-center justify-center text-2xl font-bold text-white"
+                    style={{ backgroundColor: effectiveBrandColor || '#6366f1' }}
+                >
+                    {settings.clientName.charAt(0).toUpperCase()}
+                </div>
+            )}
+        </div>
+    )
+
+    // If public, no password, no email required - show "Entering space..."
     if (settings.accessMode === 'public' && !showPasswordField && !showEmailField) {
         return (
             <div className="flex flex-col items-center justify-center py-12 space-y-6">
-                <Loader2 className="size-12 text-primary animate-spin" />
+                <LogoDisplay />
+                <Loader2 className="size-12 animate-spin" style={{ color: effectiveBrandColor || undefined }} />
                 <div className="text-center space-y-2">
-                    <h2 className="text-xl font-bold tracking-tight">Entering portal...</h2>
+                    <h2 className="text-xl font-bold tracking-tight">Entering space...</h2>
                 </div>
             </div>
         )
     }
 
-    const handleSubmit = settings.accessMode === 'public' ? handlePublicAccess : handleRestrictedAccess
-
     return (
         <div className="space-y-8 animate-in fade-in duration-700">
+            <LogoDisplay />
+
             <div className="space-y-3">
-                <h2 className="text-xl font-bold tracking-tight leading-tight">
+                <h2 className="text-xl font-bold tracking-tight leading-tight text-center">
                     Welcome to {settings.clientName}
                 </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-muted-foreground leading-relaxed text-center">
                     {settings.accessMode === 'restricted'
-                        ? 'Enter your email to access this portal.'
+                        ? 'Enter your email to access this space.'
                         : settings.hasPassword
-                            ? 'Enter the password to access this portal.'
+                            ? 'Enter the password to access this space.'
                             : 'Enter your email to continue.'}
                 </p>
             </div>
@@ -254,7 +331,7 @@ function AccessContent() {
                                 placeholder="you@company.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="h-14 pl-12 rounded-2xl border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
+                                className="h-14 pl-12 rounded-lg border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
                             />
                         </div>
                     </div>
@@ -274,7 +351,7 @@ function AccessContent() {
                                 placeholder="Enter password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="h-14 pl-12 pr-12 rounded-2xl border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
+                                className="h-14 pl-12 pr-12 rounded-lg border-2 focus-visible:ring-primary/20 bg-muted/5 font-medium"
                             />
                             <button
                                 type="button"
@@ -293,20 +370,24 @@ function AccessContent() {
                     </div>
                 )}
 
-                <Button
+                <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-14 rounded-2xl text-base font-black shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-98 transition-all gap-3"
+                    className="w-full h-14 rounded-lg text-base font-black shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-98 transition-all gap-3 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                    style={{
+                        backgroundColor: effectiveBrandColor || '#6366f1',
+                        color: 'white'
+                    }}
                 >
                     {loading ? (
                         <Loader2 className="size-5 animate-spin" />
                     ) : (
                         <>
-                            Access Portal
-                            <ArrowRight className="size-5" />
+                            Access Space
+                            <ArrowRight className="size-5 ml-2" />
                         </>
                     )}
-                </Button>
+                </button>
             </form>
         </div>
     )
@@ -315,16 +396,7 @@ function AccessContent() {
 export default function AccessPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50/30 via-background to-emerald-50/30 p-6">
-            <Card className="w-full max-w-md p-10 border-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] rounded-[2.5rem] relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                    <Sparkles className="size-24" />
-                </div>
-
-                <div className="space-y-2 mb-10 relative">
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary pb-1">Space Portal</p>
-                    <h1 className="text-3xl font-black tracking-tight leading-tight">Access Portal</h1>
-                </div>
-
+            <Card className="w-full max-w-md p-10 border-2 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.1)] rounded-xl relative overflow-hidden">
                 <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="size-8 text-primary animate-spin" /></div>}>
                     <AccessContent />
                 </Suspense>

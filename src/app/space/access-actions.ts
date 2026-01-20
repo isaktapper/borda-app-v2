@@ -12,6 +12,10 @@ export interface PortalAccessSettings {
     requireEmailForAnalytics: boolean
     projectStatus: string
     clientName: string
+    logoUrl: string | null
+    brandColor: string | null
+    orgLogoUrl: string | null
+    orgBrandColor: string | null
 }
 
 export async function validatePortalToken(spaceId: string, token: string) {
@@ -126,12 +130,41 @@ export async function getPortalAccessSettings(spaceId: string): Promise<
 
     const { data: project, error } = await supabase
         .from('spaces')
-        .select('access_mode, access_password_hash, require_email_for_analytics, status, client_name')
+        .select(`
+            access_mode,
+            access_password_hash,
+            require_email_for_analytics,
+            status,
+            client_name,
+            logo_path,
+            brand_color,
+            organization_id,
+            organizations!inner(logo_path, brand_color)
+        `)
         .eq('id', spaceId)
         .single()
 
     if (error || !project) {
         return { success: false, error: 'Project not found' }
+    }
+
+    const org = project.organizations as any
+
+    // Generate signed URLs for logos
+    let logoUrl = null
+    if (project.logo_path) {
+        const { data } = await supabase.storage
+            .from('branding')
+            .createSignedUrl(project.logo_path, 60 * 60 * 24) // 24 hour expiry
+        logoUrl = data?.signedUrl || null
+    }
+
+    let orgLogoUrl = null
+    if (org?.logo_path) {
+        const { data } = await supabase.storage
+            .from('branding')
+            .createSignedUrl(org.logo_path, 60 * 60 * 24)
+        orgLogoUrl = data?.signedUrl || null
     }
 
     return {
@@ -141,7 +174,11 @@ export async function getPortalAccessSettings(spaceId: string): Promise<
             hasPassword: !!project.access_password_hash,
             requireEmailForAnalytics: project.require_email_for_analytics || false,
             projectStatus: project.status,
-            clientName: project.client_name
+            clientName: project.client_name,
+            logoUrl,
+            brandColor: project.brand_color || null,
+            orgLogoUrl,
+            orgBrandColor: org?.brand_color || null
         }
     }
 }
