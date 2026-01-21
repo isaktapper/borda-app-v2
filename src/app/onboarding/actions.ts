@@ -288,27 +288,23 @@ export async function requestAccessToOrganization({
         .is('deleted_at', null)
 
     // Import sendEmail dynamically to avoid circular deps
-    const { sendEmail } = await import('@/lib/email')
-    const { accessRequestNotificationTemplate } = await import('@/lib/email/templates')
+    const { sendAccessRequestNotificationEmail } = await import('@/lib/email')
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.borda.work'
     const settingsUrl = `${appUrl}/settings?tab=organization`
 
-    // Send notification emails to all admins
+    // Send notification emails to all admins/owners
     if (admins && org) {
         for (const admin of admins) {
-            await sendEmail({
+            await sendAccessRequestNotificationEmail({
                 to: admin.invited_email,
-                subject: `${name || email} wants to join ${org.name}`,
-                html: accessRequestNotificationTemplate({
-                    requesterEmail: email,
-                    requesterName: name,
-                    organizationName: org.name,
-                    approveLink: settingsUrl,
-                    denyLink: settingsUrl
-                }),
-                type: 'access_request_notification',
-                metadata: { organizationId, requesterEmail: email }
+                organizationId,
+                organizationName: org.name,
+                requesterEmail: email,
+                requesterName: name,
+                requestId: '',
+                approveLink: settingsUrl,
+                denyLink: settingsUrl,
             })
         }
     }
