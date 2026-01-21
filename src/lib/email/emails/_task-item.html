@@ -1,0 +1,28 @@
+<!--
+  Task Item Partial
+  Used in: task-reminder.html
+  Variables: {{title}}, {{description}}, {{dueDate}}
+-->
+
+<table cellpadding="0" cellspacing="0" style="width:100%;border-bottom:1px solid #e5e7eb;">
+  <tr>
+    <td style="width:24px;vertical-align:top;padding:12px 0;padding-top:14px;">
+      <div style="width:18px;height:18px;border:2px solid #d1d5db;border-radius:4px;"></div>
+    </td>
+    <td style="padding:12px 0 12px 12px;">
+      <div style="font-weight:500;color:#1B1B1B;font-size:15px;line-height:1.4;">
+        {{title}}
+      </div>
+      {{#if description}}
+      <div style="color:#6b7280;font-size:14px;margin-top:2px;">
+        {{description}}
+      </div>
+      {{/if}}
+      {{#if dueDate}}
+      <div style="color:#6b7280;font-size:13px;margin-top:4px;">
+        📅 {{dueDate}}
+      </div>
+      {{/if}}
+    </td>
+  </tr>
+</table>

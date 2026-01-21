@@ -1,0 +1,32 @@
+<!--
+  Access Request Approved Email
+  Sent to: Users whose access request was approved
+  Variables: {{greeting}}, {{organizationName}}, {{loginLink}}
+-->
+
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:#1B1B1B;">
+  You're now a member of {{organizationName}}
+</h1>
+
+<p style="margin:0 0 16px;color:#1B1B1B;line-height:1.6;font-size:15px;">
+  {{greeting}},
+</p>
+
+<p style="margin:0 0 16px;color:#1B1B1B;line-height:1.6;font-size:15px;">
+  Great news! Your request to join <strong>{{organizationName}}</strong> has been approved. You now have access to the workspace.
+</p>
+
+<!-- Button -->
+<table cellpadding="0" cellspacing="0" style="margin:24px 0;">
+  <tr>
+    <td align="center" style="width:100%;">
+      <a href="{{loginLink}}" style="display:inline-block;padding:14px 28px;background:#0c41ff;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;">
+        Sign in
+      </a>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:0;color:#59595B;font-size:14px;line-height:1.5;">
+  Welcome to the team!
+</p>

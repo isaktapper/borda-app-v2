@@ -2,12 +2,11 @@
 
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { sendEmail } from '@/lib/email'
 import {
-  accessRequestNotificationTemplate,
-  accessRequestApprovedTemplate,
-  accessRequestDeniedTemplate
-} from '@/lib/email/templates'
+  sendAccessRequestNotificationEmail,
+  sendAccessRequestApprovedEmail,
+  sendAccessRequestDeniedEmail,
+} from '@/lib/email'
 
 export interface AccessRequest {
   id: string
@@ -133,18 +132,15 @@ export async function createAccessRequest(
 
   if (admins && org) {
     for (const admin of admins) {
-      await sendEmail({
+      await sendAccessRequestNotificationEmail({
         to: admin.invited_email,
-        subject: `${name || email} wants to join ${org.name}`,
-        html: accessRequestNotificationTemplate({
-          requesterEmail: email,
-          requesterName: name,
-          organizationName: org.name,
-          approveLink: settingsUrl,
-          denyLink: settingsUrl
-        }),
-        type: 'access_request_notification',
-        metadata: { organizationId, requesterEmail: email }
+        organizationId,
+        organizationName: org.name,
+        requesterEmail: email,
+        requesterName: name,
+        requestId: '', // We don't have the request ID here
+        approveLink: settingsUrl,
+        denyLink: settingsUrl,
       })
     }
   }
@@ -255,16 +251,13 @@ export async function approveAccessRequest(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.borda.work'
   const org = request.organizations as { name: string } | null
 
-  await sendEmail({
+  await sendAccessRequestApprovedEmail({
     to: request.email,
-    subject: `You've been approved to join ${org?.name || 'the organization'}`,
-    html: accessRequestApprovedTemplate({
-      requesterName: request.name,
-      organizationName: org?.name || 'the organization',
-      loginLink: `${appUrl}/login`
-    }),
-    type: 'access_request_approved',
-    metadata: { requestId, organizationId: request.organization_id }
+    organizationId: request.organization_id,
+    organizationName: org?.name || 'the organization',
+    requesterName: request.name,
+    loginLink: `${appUrl}/login`,
+    userId: requesterUser?.id,
   })
 
   revalidatePath('/settings')
@@ -329,15 +322,11 @@ export async function denyAccessRequest(
   // Send denial email
   const org = request.organizations as { name: string } | null
 
-  await sendEmail({
+  await sendAccessRequestDeniedEmail({
     to: request.email,
-    subject: `Your request to join ${org?.name || 'the organization'}`,
-    html: accessRequestDeniedTemplate({
-      requesterName: request.name,
-      organizationName: org?.name || 'the organization'
-    }),
-    type: 'access_request_denied',
-    metadata: { requestId, organizationId: request.organization_id }
+    organizationId: request.organization_id,
+    organizationName: org?.name || 'the organization',
+    requesterName: request.name,
   })
 
   revalidatePath('/settings')

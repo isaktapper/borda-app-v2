@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { sendEmail } from '@/lib/email'
-import { taskReminderTemplate } from '@/lib/email/templates'
-import type { ActionPlanContent, Task } from '@/types/action-plan'
+import { sendTaskReminderEmail, wasTaskReminderSentToday } from '@/lib/email'
+import type { ActionPlanContent } from '@/types/action-plan'
 
 interface TaskWithEmail {
   email: string
   task: {
+    id: string
     title: string
     description?: string
-    due_date?: string
+    dueDate?: string
   }
   spaceName: string
   spaceId: string
+  organizationId: string
+  recipientUserId?: string
+  recipientMemberId?: string
 }
 
 export async function GET(request: NextRequest) {
@@ -27,18 +30,14 @@ export async function GET(request: NextRequest) {
   // Optional: Test mode parameters
   const { searchParams } = new URL(request.url)
   const testSpaceId = searchParams.get('spaceId')
-  const forceAll = searchParams.get('force') === 'true' // Ignore date filter for testing
+  const forceAll = searchParams.get('force') === 'true'
 
   try {
     const supabase = await createAdminClient()
 
-    // Calculate today and tomorrow dates
+    // Only tasks due TODAY
     const today = new Date()
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    
     const todayStr = today.toISOString().split('T')[0]
-    const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
     // 1. Fetch all action_plan blocks from active spaces
     let query = supabase
@@ -52,14 +51,14 @@ export async function GET(request: NextRequest) {
           spaces!inner (
             id,
             name,
-            status
+            status,
+            organization_id
           )
         )
       `)
       .eq('type', 'action_plan')
       .eq('pages.spaces.status', 'active')
 
-    // Filter by specific space if testing
     if (testSpaceId) {
       query = query.eq('pages.space_id', testSpaceId)
     }
@@ -76,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. Fetch task responses to check completion status
-    const blockIds = blocks.map(b => b.id)
+    const blockIds = blocks.map((b) => b.id)
     const { data: responses } = await supabase
       .from('responses')
       .select('block_id, value')
@@ -89,10 +88,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 3. Fetch staff emails for staff assignees
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, email')
+    // 3. Fetch staff emails
+    const { data: users } = await supabase.from('users').select('id, email')
 
     const userEmailMap = new Map<string, string>()
     for (const user of users || []) {
@@ -114,24 +111,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. Extract tasks due today or tomorrow with email assignees
+    // 5. Extract tasks due today with email assignees
     const tasksWithEmails: TaskWithEmail[] = []
 
     for (const block of blocks) {
       const content = block.content as ActionPlanContent
-      const page = block.pages as any
+      const page = block.pages as unknown as {
+        id: string
+        space_id: string
+        spaces: { id: string; name: string; status: string; organization_id: string }
+      }
       const space = page.spaces
       const spaceId = space.id
       const spaceName = space.name
+      const organizationId = space.organization_id
 
       const taskStatuses = responseMap.get(block.id) || {}
 
       for (const milestone of content.milestones || []) {
         for (const task of milestone.tasks || []) {
-          // Check if task has a due date for today or tomorrow (skip check if force mode)
+          // Check if task has a due date for today (skip check if force mode)
           if (!forceAll) {
             if (!task.dueDate) continue
-            if (task.dueDate !== todayStr && task.dueDate !== tomorrowStr) continue
+            if (task.dueDate !== todayStr) continue
           }
 
           // Check if task is not completed
@@ -143,13 +145,16 @@ export async function GET(request: NextRequest) {
           if (!task.assignee) continue
 
           let email: string | undefined
+          let recipientUserId: string | undefined
+          let recipientMemberId: string | undefined
 
           if (task.assignee.type === 'staff' && task.assignee.staffId) {
             email = userEmailMap.get(task.assignee.staffId)
+            recipientUserId = task.assignee.staffId
           } else if (task.assignee.type === 'stakeholder' && task.assignee.stakeholderId) {
             email = stakeholderEmailMap.get(task.assignee.stakeholderId)
+            recipientMemberId = task.assignee.stakeholderId
           } else if (task.assignee.email) {
-            // Fallback to email stored directly on assignee
             email = task.assignee.email
           }
 
@@ -158,27 +163,40 @@ export async function GET(request: NextRequest) {
           tasksWithEmails.push({
             email,
             task: {
+              id: compositeId,
               title: task.title,
               description: task.description,
-              due_date: task.dueDate
+              dueDate: task.dueDate,
             },
             spaceName,
-            spaceId
+            spaceId,
+            organizationId,
+            recipientUserId,
+            recipientMemberId,
           })
         }
       }
     }
 
     if (tasksWithEmails.length === 0) {
-      return NextResponse.json({ message: 'No tasks due today or tomorrow', sent: 0 })
+      return NextResponse.json({ message: 'No tasks due today', sent: 0 })
     }
 
     // 6. Group tasks by email and space
-    const tasksByEmailAndSpace = new Map<string, Map<string, {
-      spaceName: string
-      spaceId: string
-      tasks: TaskWithEmail['task'][]
-    }>>()
+    const tasksByEmailAndSpace = new Map<
+      string,
+      Map<
+        string,
+        {
+          spaceName: string
+          spaceId: string
+          organizationId: string
+          recipientUserId?: string
+          recipientMemberId?: string
+          tasks: TaskWithEmail['task'][]
+        }
+      >
+    >()
 
     for (const taskWithEmail of tasksWithEmails) {
       if (!tasksByEmailAndSpace.has(taskWithEmail.email)) {
@@ -191,34 +209,43 @@ export async function GET(request: NextRequest) {
         spaceMap.set(taskWithEmail.spaceId, {
           spaceName: taskWithEmail.spaceName,
           spaceId: taskWithEmail.spaceId,
-          tasks: []
+          organizationId: taskWithEmail.organizationId,
+          recipientUserId: taskWithEmail.recipientUserId,
+          recipientMemberId: taskWithEmail.recipientMemberId,
+          tasks: [],
         })
       }
 
       spaceMap.get(taskWithEmail.spaceId)!.tasks.push(taskWithEmail.task)
     }
 
-    // 7. Send emails
+    // 7. Send emails (with deduplication)
     let emailsSent = 0
+    let emailsSkipped = 0
 
     for (const [email, spaceMap] of tasksByEmailAndSpace) {
       for (const [spaceId, spaceData] of spaceMap) {
+        // Check if we already sent a reminder today for this email + space + dueDate
+        const alreadySent = await wasTaskReminderSentToday(email, spaceId, todayStr)
+
+        if (alreadySent) {
+          emailsSkipped++
+          continue
+        }
+
         const portalLink = `${process.env.NEXT_PUBLIC_APP_URL}/space/${spaceId}/shared`
 
         try {
-          await sendEmail({
+          await sendTaskReminderEmail({
             to: email,
-            subject: `Reminder: ${spaceData.tasks.length} task${spaceData.tasks.length > 1 ? 's' : ''} due soon`,
-            html: taskReminderTemplate({
-              tasks: spaceData.tasks,
-              projectName: spaceData.spaceName,
-              portalLink
-            }),
-            type: 'task_reminder',
-            metadata: {
-              spaceId,
-              taskCount: spaceData.tasks.length
-            }
+            spaceId,
+            spaceName: spaceData.spaceName,
+            organizationId: spaceData.organizationId,
+            recipientUserId: spaceData.recipientUserId,
+            recipientMemberId: spaceData.recipientMemberId,
+            tasks: spaceData.tasks,
+            portalLink,
+            dueDate: todayStr,
           })
 
           emailsSent++
@@ -229,9 +256,11 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: 'Task reminders sent',
+      message: 'Task reminders processed',
       sent: emailsSent,
-      tasksProcessed: tasksWithEmails.length
+      skipped: emailsSkipped,
+      tasksProcessed: tasksWithEmails.length,
+      dueDate: todayStr,
     })
   } catch (error) {
     console.error('Error in task reminders cron:', error)

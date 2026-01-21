@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sendEmail } from '@/lib/email'
-import { welcomeTemplate } from '@/lib/email/templates'
+import { sendWelcomeEmail } from '@/lib/email'
 import { createAdminClient } from '@/lib/supabase/server'
 
 /**
@@ -65,14 +64,10 @@ export async function POST(request: NextRequest) {
       }
 
       // Send welcome email
-      const result = await sendEmail({
+      const result = await sendWelcomeEmail({
         to: email,
-        subject: 'Welcome to Borda!',
-        html: welcomeTemplate({ firstName }),
-        from: 'Isak från Borda <isak@borda.work>',
-        replyTo: 'isak@borda.work',
-        type: 'welcome',
-        metadata: { userId }
+        firstName,
+        userId,
       })
 
       if (result.success) {

@@ -1,264 +1,232 @@
-// Email Design System
-// Colors: Primary Blue #0c41ff, Text #1B1B1B, Muted #59595B, Border #E4E4E6
-// Font: Geist with system fallbacks
+/**
+ * Email Templates
+ *
+ * Loads HTML templates from /emails folder and renders them with variables.
+ * Templates use {{variable}} syntax for replacements.
+ */
 
-const EMAIL_STYLES = {
-  primaryBlue: '#0c41ff',
-  text: '#1B1B1B',
-  muted: '#59595B',
-  border: '#E4E4E6',
-  background: '#f8f9fa',
-  white: '#ffffff',
-  fontFamily: "'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+import { readFileSync } from 'fs'
+import { join } from 'path'
+
+// ============================================================================
+// Template Loading
+// ============================================================================
+
+const EMAILS_DIR = join(process.cwd(), 'src/lib/email/emails')
+
+function loadTemplate(name: string): string {
+  const path = join(EMAILS_DIR, `${name}.html`)
+  return readFileSync(path, 'utf-8')
 }
 
-// Base email layout - clean, minimal design with Borda branding
-function baseLayout(content: string, options?: { showLogo?: boolean }) {
-  const showLogo = options?.showLogo ?? true
-  
-  return `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:${EMAIL_STYLES.background};font-family:${EMAIL_STYLES.fontFamily};">
-  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 20px;">
-    <tr>
-      <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0" style="background:${EMAIL_STYLES.white};border:1px solid ${EMAIL_STYLES.border};border-radius:12px;">
-          <tr>
-            <td style="padding:40px;">
-              ${content}
-            </td>
-          </tr>
-          ${showLogo ? `
-          <tr>
-            <td style="padding:24px 40px;border-top:1px solid ${EMAIL_STYLES.border};text-align:center;">
-              <img src="https://borda.work/borda_logo.png" height="24" alt="Borda" style="height:24px;" />
-            </td>
-          </tr>
-          ` : ''}
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-  `.trim()
-}
+// Cache templates in production
+const templateCache = new Map<string, string>()
 
-// Reusable button component
-function emailButton(text: string, href: string) {
-  return `
-    <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
-      <tr>
-        <td align="center" style="width:100%;">
-          <a href="${href}" style="display:inline-block;padding:14px 28px;background:${EMAIL_STYLES.primaryBlue};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;">${text}</a>
-        </td>
-      </tr>
-    </table>
-  `
+function getTemplate(name: string): string {
+  if (process.env.NODE_ENV === 'production') {
+    if (!templateCache.has(name)) {
+      templateCache.set(name, loadTemplate(name))
+    }
+    return templateCache.get(name)!
+  }
+  // Always reload in development for easy editing
+  return loadTemplate(name)
 }
 
 // ============================================================================
-// Stakeholder Invite Template
+// Template Rendering
 // ============================================================================
 
-interface StakeholderInviteParams {
-  projectName: string
-  clientName: string
-  accessLink: string
+function render(template: string, variables: Record<string, string | undefined>): string {
+  // Strip HTML comments first (they may contain template syntax)
+  let result = template.replace(/<!--[\s\S]*?-->/g, '')
+
+  // Replace {{variable}} with values
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g')
+    result = result.replace(regex, value ?? '')
+  }
+
+  // Handle {{#if variable}}...{{/if}} blocks
+  result = result.replace(
+    /\{\{#if (\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g,
+    (_, varName, content) => {
+      const value = variables[varName]
+      return value ? content : ''
+    }
+  )
+
+  return result
 }
 
-export function stakeholderInviteTemplate({
-  projectName,
-  clientName,
-  accessLink
-}: StakeholderInviteParams) {
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">You've been granted access to ${projectName}</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi ${clientName},</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">You've been granted access to the space <strong>"${projectName}"</strong> on Borda. Here you can track progress, upload files, and answer questions.</p>
-    ${emailButton('Open space', accessLink)}
-    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">This link is personal and requires no password. Save it somewhere safe.</p>
-  `
-  return baseLayout(content)
+function wrapInBaseLayout(content: string, showLogo: boolean = true): string {
+  const base = getTemplate('_base')
+  return render(base, {
+    content,
+    showLogo: showLogo ? 'true' : '',
+  })
 }
 
 // ============================================================================
-// Organization/Team Invite Template
+// Public Template Functions
 // ============================================================================
 
-interface OrgInviteParams {
-  organizationName: string
-  invitedByName: string
-  inviteLink: string
+/**
+ * Welcome email template
+ */
+export function welcomeTemplate({ firstName }: { firstName: string }): string {
+  const content = render(getTemplate('welcome'), { firstName })
+  return wrapInBaseLayout(content)
 }
 
+/**
+ * Organization invite template
+ */
 export function orgInviteTemplate({
   organizationName,
   invitedByName,
-  inviteLink
-}: OrgInviteParams) {
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">You've been invited to ${organizationName}</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi!</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">${invitedByName} has invited you to join <strong>${organizationName}</strong> on Borda.</p>
-    ${emailButton('Accept invitation', inviteLink)}
-    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">If you don't recognize this invitation, you can ignore this email.</p>
-  `
-  return baseLayout(content)
+  inviteLink,
+}: {
+  organizationName: string
+  invitedByName: string
+  inviteLink: string
+}): string {
+  const content = render(getTemplate('org-invite'), {
+    organizationName,
+    invitedByName,
+    inviteLink,
+  })
+  return wrapInBaseLayout(content)
 }
 
-// ============================================================================
-// Welcome Email Template (Personal from Isak)
-// ============================================================================
-
-interface WelcomeParams {
-  firstName: string
-}
-
-export function welcomeTemplate({
-  firstName
-}: WelcomeParams) {
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">Welcome to Borda!</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi ${firstName},</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Thanks for choosing Borda! I'm Isak, founder of Borda, and I just wanted to say welcome.</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">If you have any questions or feedback – don't hesitate to reply to this email. I read every response personally.</p>
-    <p style="margin:0 0 24px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Good luck with your first project!</p>
-    <p style="margin:0;color:${EMAIL_STYLES.text};font-size:15px;font-weight:500;">Isak</p>
-  `
-  return baseLayout(content)
-}
-
-// ============================================================================
-// Task Reminder Template (kept for cron jobs)
-// ============================================================================
-
-interface Task {
-  title: string
-  description?: string
-  due_date?: string
-}
-
-interface TaskReminderParams {
-  tasks: Task[]
+/**
+ * Stakeholder invite template
+ */
+export function stakeholderInviteTemplate({
+  projectName,
+  clientName,
+  accessLink,
+}: {
   projectName: string
-  portalLink: string
+  clientName: string
+  accessLink: string
+}): string {
+  const content = render(getTemplate('stakeholder-invite'), {
+    spaceName: projectName,
+    clientName,
+    accessLink,
+  })
+  return wrapInBaseLayout(content)
 }
 
+/**
+ * Task reminder template
+ */
 export function taskReminderTemplate({
   tasks,
   projectName,
-  portalLink
-}: TaskReminderParams) {
-  const tasksList = tasks.map(task => `
-    <div style="background:#f9fafb;padding:16px;margin:12px 0;border-radius:8px;border-left:4px solid ${EMAIL_STYLES.primaryBlue};">
-      <div style="font-weight:600;color:${EMAIL_STYLES.text};margin-bottom:4px;font-size:15px;">${task.title}</div>
-      ${task.description ? `<div style="color:${EMAIL_STYLES.muted};font-size:14px;">${task.description}</div>` : ''}
-      ${task.due_date ? `<div style="color:#f59e0b;font-size:13px;margin-top:6px;">Due: ${new Date(task.due_date).toLocaleDateString('en-US')}</div>` : ''}
-    </div>
-  `).join('')
+  portalLink,
+}: {
+  tasks: Array<{ title: string; description?: string; due_date?: string }>
+  projectName: string
+  portalLink: string
+}): string {
+  // Render task items
+  const taskItemTemplate = getTemplate('_task-item')
+  const tasksList = tasks
+    .map((task) =>
+      render(taskItemTemplate, {
+        title: task.title,
+        description: task.description,
+        dueDate: task.due_date
+          ? new Date(task.due_date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            })
+          : undefined,
+      })
+    )
+    .join('')
 
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">Reminder: Tasks to complete</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi!</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">You have ${tasks.length} task${tasks.length > 1 ? 's' : ''} due soon in project <strong>${projectName}</strong>:</p>
-    ${tasksList}
-    ${emailButton('Go to portal', portalLink)}
-  `
-  return baseLayout(content)
+  const content = render(getTemplate('task-reminder'), {
+    taskCount: String(tasks.length),
+    taskPlural: tasks.length > 1 ? 's' : '',
+    spaceName: projectName,
+    portalLink,
+    tasksList,
+  })
+
+  return wrapInBaseLayout(content)
 }
 
-// ============================================================================
-// Access Request Notification Template (sent to org admins)
-// ============================================================================
-
-interface AccessRequestNotificationParams {
-  requesterEmail: string
-  requesterName: string | null
-  organizationName: string
-  approveLink: string
-  denyLink: string
-}
-
+/**
+ * Access request notification template (sent to admins)
+ */
 export function accessRequestNotificationTemplate({
   requesterEmail,
   requesterName,
   organizationName,
   approveLink,
-  denyLink
-}: AccessRequestNotificationParams) {
-  const displayName = requesterName || requesterEmail
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">New access request for ${organizationName}</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Hi!</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;"><strong>${displayName}</strong> (${requesterEmail}) has requested to join your organization <strong>${organizationName}</strong> on Borda.</p>
-    <p style="margin:0 0 24px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Please review this request:</p>
-    <table cellpadding="0" cellspacing="0" style="margin:24px 0;">
-      <tr>
-        <td align="center" style="padding-right:12px;">
-          <a href="${approveLink}" style="display:inline-block;padding:14px 28px;background:${EMAIL_STYLES.primaryBlue};color:#ffffff;text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;">Approve</a>
-        </td>
-        <td align="center">
-          <a href="${denyLink}" style="display:inline-block;padding:14px 28px;background:#f3f4f6;color:${EMAIL_STYLES.text};text-decoration:none;border-radius:8px;font-weight:500;font-size:15px;border:1px solid ${EMAIL_STYLES.border};">Deny</a>
-        </td>
-      </tr>
-    </table>
-    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">You can also manage access requests from your organization settings.</p>
-  `
-  return baseLayout(content)
-}
-
-// ============================================================================
-// Access Request Approved Template (sent to requester)
-// ============================================================================
-
-interface AccessRequestApprovedParams {
+  denyLink,
+}: {
+  requesterEmail: string
   requesterName: string | null
   organizationName: string
-  loginLink: string
+  approveLink: string
+  denyLink: string
+}): string {
+  const displayName = requesterName || requesterEmail
+
+  const content = render(getTemplate('access-request-notification'), {
+    organizationName,
+    displayName,
+    requesterEmail,
+    approveLink,
+    denyLink,
+  })
+
+  return wrapInBaseLayout(content)
 }
 
+/**
+ * Access request approved template
+ */
 export function accessRequestApprovedTemplate({
   requesterName,
   organizationName,
-  loginLink
-}: AccessRequestApprovedParams) {
-  const greeting = requesterName ? `Hi ${requesterName}` : 'Hi'
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">You're now a member of ${organizationName}</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">${greeting},</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Great news! Your request to join <strong>${organizationName}</strong> has been approved. You now have access to the workspace.</p>
-    ${emailButton('Sign in', loginLink)}
-    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">Welcome to the team!</p>
-  `
-  return baseLayout(content)
-}
-
-// ============================================================================
-// Access Request Denied Template (sent to requester)
-// ============================================================================
-
-interface AccessRequestDeniedParams {
+  loginLink,
+}: {
   requesterName: string | null
   organizationName: string
+  loginLink: string
+}): string {
+  const greeting = requesterName ? `Hi ${requesterName}` : 'Hi'
+
+  const content = render(getTemplate('access-request-approved'), {
+    greeting,
+    organizationName,
+    loginLink,
+  })
+
+  return wrapInBaseLayout(content)
 }
 
+/**
+ * Access request denied template
+ */
 export function accessRequestDeniedTemplate({
   requesterName,
-  organizationName
-}: AccessRequestDeniedParams) {
+  organizationName,
+}: {
+  requesterName: string | null
+  organizationName: string
+}): string {
   const greeting = requesterName ? `Hi ${requesterName}` : 'Hi'
-  const content = `
-    <h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${EMAIL_STYLES.text};">Your request to join ${organizationName}</h1>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">${greeting},</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">Unfortunately, your request to join <strong>${organizationName}</strong> on Borda was not approved at this time.</p>
-    <p style="margin:0 0 16px;color:${EMAIL_STYLES.text};line-height:1.6;font-size:15px;">If you believe this was a mistake, please contact the organization administrator directly.</p>
-    <p style="margin:0;color:${EMAIL_STYLES.muted};font-size:14px;line-height:1.5;">If you have any questions, feel free to reach out to us.</p>
-  `
-  return baseLayout(content)
+
+  const content = render(getTemplate('access-request-denied'), {
+    greeting,
+    organizationName,
+  })
+
+  return wrapInBaseLayout(content)
 }

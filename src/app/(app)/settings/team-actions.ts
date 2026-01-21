@@ -2,9 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { randomUUID } from 'crypto'
-import { sendEmail } from '@/lib/email'
-import { orgInviteTemplate } from '@/lib/email/templates'
+import { sendOrgInviteEmail } from '@/lib/email'
 
 export interface OrgMember {
   id: string
@@ -130,16 +128,13 @@ export async function inviteToOrganization(
   // Send invitation email
   const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/signup?email=${encodeURIComponent(email)}`
 
-  await sendEmail({
+  await sendOrgInviteEmail({
     to: email,
-    subject: `You've been invited to ${organization?.name || 'an organization'}`,
-    html: orgInviteTemplate({
-      organizationName: organization?.name || 'the organization',
-      invitedByName: inviter?.full_name || inviter?.email || 'en kollega',
-      inviteLink
-    }),
-    type: 'org_invite',
-    metadata: { organizationId, email, role }
+    organizationName: organization?.name || 'the organization',
+    organizationId,
+    invitedByName: inviter?.full_name || inviter?.email || 'a colleague',
+    inviteLink,
+    inviteToken: data.id, // Use member ID as reference
   })
 
   revalidatePath('/dashboard/settings/team')
@@ -302,16 +297,13 @@ export async function resendInvitation(memberId: string) {
   // Resend invitation email
   const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL}/signup?email=${encodeURIComponent(member.invited_email)}`
 
-  await sendEmail({
+  await sendOrgInviteEmail({
     to: member.invited_email,
-    subject: `Reminder: You've been invited to ${organization?.name || 'an organization'}`,
-    html: orgInviteTemplate({
-      organizationName: organization?.name || 'the organization',
-      invitedByName: inviter?.full_name || inviter?.email || 'en kollega',
-      inviteLink
-    }),
-    type: 'org_invite_resend',
-    metadata: { organizationId: member.organization_id, email: member.invited_email }
+    organizationName: organization?.name || 'the organization',
+    organizationId: member.organization_id,
+    invitedByName: inviter?.full_name || inviter?.email || 'a colleague',
+    inviteLink,
+    inviteToken: memberId,
   })
 
   return { success: true }

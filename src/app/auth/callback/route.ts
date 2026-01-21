@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { type EmailOtpType } from '@supabase/supabase-js'
-import { sendEmail } from '@/lib/email'
-import { welcomeTemplate } from '@/lib/email/templates'
+import { sendWelcomeEmail } from '@/lib/email'
 
 // Allowlist of trusted hosts
 const ALLOWED_HOSTS = [
@@ -47,7 +46,7 @@ function getRedirectUrl(request: Request, path: string): string {
 async function sendWelcomeEmailIfNew(userId: string, email: string, fullName: string | undefined) {
     try {
         const adminSupabase = await createAdminClient()
-        
+
         // Check if welcome email was already sent
         const { data: user } = await adminSupabase
             .from('users')
@@ -61,14 +60,10 @@ async function sendWelcomeEmailIfNew(userId: string, email: string, fullName: st
 
         const firstName = fullName?.split(' ')[0] || 'there'
 
-        await sendEmail({
+        await sendWelcomeEmail({
             to: email,
-            subject: 'Welcome to Borda!',
-            html: welcomeTemplate({ firstName }),
-            from: 'Isak from Borda <isak@borda.work>',
-            replyTo: 'isak@borda.work',
-            type: 'welcome',
-            metadata: { userId }
+            firstName,
+            userId,
         })
 
         // Mark as sent
