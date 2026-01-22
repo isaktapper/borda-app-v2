@@ -32,8 +32,15 @@ interface GoogleButtonProps {
     mode?: 'signin' | 'signup'
 }
 
+// Export flag so parent components can conditionally render dividers
+export const isGoogleAuthEnabled = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === 'true'
+
 export function GoogleButton({ mode = 'signin' }: GoogleButtonProps) {
     const [loading, setLoading] = useState(false)
+
+    // Hide Google auth until custom domain is set up
+    const isEnabled = process.env.NEXT_PUBLIC_ENABLE_GOOGLE_AUTH === 'true'
+    if (!isEnabled) return null
 
     const handleClick = async () => {
         setLoading(true)

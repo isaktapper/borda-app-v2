@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Loader2, Lock } from 'lucide-react'
 import { signup, signupWithInvitation } from '@/app/auth/actions'
 import Link from 'next/link'
-import { GoogleButton } from '@/components/ui/google-button'
+import { GoogleButton, isGoogleAuthEnabled } from '@/components/ui/google-button'
 import { trackSignupStarted } from '@/lib/posthog'
 
 interface Invitation {
@@ -68,8 +68,8 @@ export function SignupForm({ invitation, invitedEmail }: SignupFormProps) {
             </div>
 
             <div className="space-y-4">
-                {/* Only show Google signup for non-invited users */}
-                {!isInvited && (
+                {/* Only show Google signup for non-invited users when enabled */}
+                {!isInvited && isGoogleAuthEnabled && (
                     <>
                         <GoogleButton mode="signup" />
 
