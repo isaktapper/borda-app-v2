@@ -2,7 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
+
+async function emailExists(email: string): Promise<boolean> {
+    const adminClient = await createAdminClient()
+
+    // Query auth.users directly using raw SQL via RPC
+    const { data } = await adminClient.rpc('check_email_exists', {
+        p_email: email.toLowerCase()
+    })
+
+    return !!data
+}
 
 export async function login(formData: FormData) {
     const supabase = await createClient()
@@ -40,6 +51,11 @@ export async function signup(formData: FormData) {
 
     if (password.length < 8) {
         return { error: 'Password must be at least 8 characters.' }
+    }
+
+    // Check if email already exists
+    if (await emailExists(email)) {
+        return { error: 'An account with this email already exists. Please sign in instead.' }
     }
 
     const { error } = await supabase.auth.signUp({
@@ -80,6 +96,11 @@ export async function signupWithInvitation(formData: FormData) {
 
     if (password.length < 8) {
         return { error: 'Password must be at least 8 characters.' }
+    }
+
+    // Check if email already exists
+    if (await emailExists(email)) {
+        return { error: 'An account with this email already exists. Please sign in instead.' }
     }
 
     // Create user with invitation metadata
