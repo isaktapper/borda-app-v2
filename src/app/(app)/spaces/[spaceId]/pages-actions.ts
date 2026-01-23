@@ -73,7 +73,7 @@ export async function createPage(spaceId: string, title: string) {
         return { error: error.message }
     }
 
-    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    revalidatePath(`/spaces/${spaceId}`)
     return { success: true, page: page }
 }
 
@@ -88,7 +88,7 @@ export async function deletePage(pageId: string, spaceId: string) {
         return { error: error.message }
     }
 
-    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    revalidatePath(`/spaces/${spaceId}`)
     return { success: true }
 }
 
@@ -126,7 +126,7 @@ export async function renamePage(pageId: string, spaceId: string, newTitle: stri
         return { error: error.message }
     }
 
-    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    revalidatePath(`/spaces/${spaceId}`)
     return { success: true, slug }
 }
 
@@ -151,6 +151,6 @@ export async function reorderPages(spaceId: string, pageIds: string[]) {
         return { error: 'Failed to update some pages' }
     }
 
-    revalidatePath(`/dashboard/spaces/${spaceId}`)
+    revalidatePath(`/spaces/${spaceId}`)
     return { success: true }
 }

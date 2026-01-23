@@ -196,6 +196,7 @@ export async function getSpaceProgress(spaceId: string, useAdminClient: boolean 
     .from('blocks')
     .select('id, type, content')
     .in('page_id', pageIds)
+    .is('deleted_at', null)
 
   if (!blocks) return null
 

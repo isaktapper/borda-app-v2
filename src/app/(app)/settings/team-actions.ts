@@ -88,7 +88,7 @@ export async function inviteToOrganization(
 
   // Check if user exists with this email
   const { data: existingUser } = await supabase
-    .from('auth.users')
+    .from('users')
     .select('id')
     .eq('email', email)
     .single()
@@ -137,7 +137,7 @@ export async function inviteToOrganization(
     inviteToken: data.id, // Use member ID as reference
   })
 
-  revalidatePath('/dashboard/settings/team')
+  revalidatePath('/settings/team')
   return { success: true, member: data }
 }
 
@@ -205,7 +205,7 @@ export async function updateOrgMemberRole(
     return { error: error.message }
   }
 
-  revalidatePath('/dashboard/settings/team')
+  revalidatePath('/settings/team')
   return { success: true }
 }
 
@@ -262,7 +262,7 @@ export async function removeOrgMember(memberId: string) {
     return { error: error.message }
   }
 
-  revalidatePath('/dashboard/settings/team')
+  revalidatePath('/settings/team')
   return { success: true }
 }
 

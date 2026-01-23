@@ -1,9 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 
-const SECRET_KEY = new TextEncoder().encode(
-    process.env.PORTAL_SESSION_SECRET || 'fallback-secret-at-least-32-chars-long'
-)
+if (!process.env.PORTAL_SESSION_SECRET) {
+    throw new Error('PORTAL_SESSION_SECRET environment variable is required')
+}
+
+const SECRET_KEY = new TextEncoder().encode(process.env.PORTAL_SESSION_SECRET)
 
 export interface PortalSession {
     email: string

@@ -346,7 +346,7 @@ export async function saveResponse(blockId: string, spaceId: string, value: any)
         if (user) {
             responseData.user_id = user.id
             const { data: userData } = await supabase
-                .from('auth.users')
+                .from('users')
                 .select('email')
                 .eq('id', user.id)
                 .single()
