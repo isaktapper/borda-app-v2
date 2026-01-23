@@ -52,12 +52,14 @@ export async function GET(request: NextRequest) {
             id,
             name,
             status,
-            organization_id
+            organization_id,
+            deleted_at
           )
         )
       `)
       .eq('type', 'action_plan')
       .eq('pages.spaces.status', 'active')
+      .is('pages.spaces.deleted_at', null)
 
     if (testSpaceId) {
       query = query.eq('pages.space_id', testSpaceId)
