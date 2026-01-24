@@ -28,6 +28,7 @@ const segmentNames: Record<string, string> = {
     'activity': 'Activity',
     'tasks': 'Tasks',
     'integrations': 'Integrations',
+    'ai': 'Borda AI',
 }
 
 interface DashboardHeaderProps {
@@ -110,7 +111,7 @@ export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: 
                     alt="Borda"
                     width={100}
                     height={30}
-                    className="h-8 w-auto"
+                    className="h-5 w-auto"
                     priority
                 />
             </div>
