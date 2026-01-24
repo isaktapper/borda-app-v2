@@ -41,7 +41,7 @@ async function IntegrationsContent() {
     .maybeSingle()
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 sm:grid-cols-2">
       <SlackConnectionCard
         organizationId={membership.organization_id}
         integration={slackIntegration}
@@ -61,17 +61,17 @@ async function IntegrationsContent() {
 
 export default function IntegrationsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Track integration events from URL params */}
       <Suspense fallback={null}>
         <IntegrationEventTracker />
       </Suspense>
-      
+
       {/* Header */}
-      <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold tracking-tight">Integrations</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
         <p className="text-muted-foreground mt-1">
-          Connect third-party services to enhance your workflow
+          Connect the tools you and your team use every day.
         </p>
       </div>
 
@@ -85,4 +85,3 @@ export default function IntegrationsPage() {
     </div>
   )
 }
-

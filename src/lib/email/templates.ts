@@ -42,7 +42,7 @@ function baseLayout(content: string, showLogo: boolean = true): string {
           ${showLogo ? `
           <tr>
             <td style="padding:24px 40px;border-top:1px solid ${STYLES.border};text-align:center;">
-              <img src="https://borda.work/borda_logo.png" height="24" alt="Borda" style="height:24px;" />
+              <img src="https://borda.work/borda_logo_colour.png" height="24" alt="Borda" style="height:24px;" />
             </td>
           </tr>
           ` : ''}

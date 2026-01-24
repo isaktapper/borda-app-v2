@@ -39,7 +39,16 @@ export const metadata: Metadata = {
   title: "Borda",
   description: "Customer onboarding platform",
   icons: {
-    icon: "/favicon_borda.png",
+    icon: [
+      {
+        url: "/borda_favicon_light.png",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/borda_favicon_dark.png",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
   },
 };
 

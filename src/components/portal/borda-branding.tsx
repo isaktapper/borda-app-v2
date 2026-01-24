@@ -29,7 +29,7 @@ export function BordaBranding({ show = true, className = '' }: BordaBrandingProp
       >
         <span>Powered by</span>
         <Image
-          src="/borda_logo.png"
+          src="/borda_logo_colour.png"
           alt="Borda"
           width={60}
           height={20}

@@ -1,7 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter
+} from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,7 +20,8 @@ import {
   updateTeamsSettings,
   disconnectTeams
 } from '@/app/(app)/settings/teams-actions'
-import { Loader2, Trash2, Save, Check, AlertCircle } from 'lucide-react'
+import { TeamsIcon } from './teams-icon'
+import { Loader2, Trash2, Check, AlertCircle } from 'lucide-react'
 
 const EVENT_OPTIONS = [
   { id: 'task.completed', label: 'Task completions', description: 'When stakeholders complete tasks' },
@@ -23,13 +31,14 @@ const EVENT_OPTIONS = [
   { id: 'space.status_changed', label: 'Status changes', description: 'When space status is updated' }
 ]
 
-interface TeamsSettingsDialogProps {
+interface TeamsSettingsSheetProps {
   organizationId: string
   integration: any | null
-  onClose: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function TeamsSettingsDialog({ organizationId, integration, onClose }: TeamsSettingsDialogProps) {
+export function TeamsSettingsSheet({ organizationId, integration, open, onOpenChange }: TeamsSettingsSheetProps) {
   const isNewIntegration = !integration
 
   const [webhookUrl, setWebhookUrl] = useState(integration?.webhook_url || '')
@@ -77,10 +86,8 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
     let result
 
     if (isNewIntegration) {
-      // Create new integration
       result = await createTeamsIntegration(organizationId, webhookUrl, channelName || undefined)
     } else {
-      // Update existing integration
       result = await updateTeamsSettings(integration.id, {
         webhookUrl,
         channelName: channelName || undefined,
@@ -93,7 +100,7 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
     if (result.error) {
       setError(result.error)
     } else {
-      onClose()
+      onOpenChange(false)
       window.location.reload()
     }
   }
@@ -110,7 +117,7 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
     if (result.error) {
       setError(result.error)
     } else {
-      onClose()
+      onOpenChange(false)
       window.location.reload()
     }
   }
@@ -124,32 +131,39 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
   }
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isNewIntegration ? 'Connect Microsoft Teams' : 'Teams Settings'}
-          </DialogTitle>
-          <DialogDescription>
-            {isNewIntegration
-              ? 'Enter your Teams incoming webhook URL to receive notifications'
-              : 'Configure which events trigger Teams notifications'}
-          </DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="sm:max-w-md overflow-y-auto">
+        <SheetHeader className="border-b pb-3 px-6">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-muted/50 flex items-center justify-center">
+              <TeamsIcon className="size-5" />
+            </div>
+            <div>
+              <SheetTitle className="text-sm">
+                {isNewIntegration ? 'Connect Microsoft Teams' : 'Teams Settings'}
+              </SheetTitle>
+              <SheetDescription className="text-xs">
+                {isNewIntegration
+                  ? 'Enter your webhook URL to receive notifications'
+                  : 'Configure your Teams notifications'}
+              </SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-5 py-5 px-6">
           {/* Webhook URL Input */}
-          <div className="space-y-2">
-            <Label htmlFor="webhook-url">Webhook URL</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="webhook-url" className="text-xs font-medium">Webhook URL</Label>
             <Input
               id="webhook-url"
               type="url"
               placeholder="https://[tenant].webhook.office.com/..."
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              className="font-mono text-sm"
+              className="font-mono text-xs h-8"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               Create an Incoming Webhook in your Teams channel and paste the URL here
             </p>
 
@@ -159,16 +173,16 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
               size="sm"
               onClick={handleTest}
               disabled={isTesting || !webhookUrl}
-              className="w-full"
+              className="w-full h-8 text-xs"
             >
               {isTesting ? (
                 <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
+                  <Loader2 className="size-3 animate-spin mr-1.5" />
                   Testing...
                 </>
               ) : testStatus === 'success' ? (
                 <>
-                  <Check className="size-4 mr-2 text-green-500" />
+                  <Check className="size-3 mr-1.5 text-green-500" />
                   Test Successful!
                 </>
               ) : (
@@ -177,107 +191,113 @@ export function TeamsSettingsDialog({ organizationId, integration, onClose }: Te
             </Button>
 
             {testStatus === 'error' && testError && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertDescription className="text-xs">{testError}</AlertDescription>
+              <Alert variant="destructive" className="py-2">
+                <AlertCircle className="size-3" />
+                <AlertDescription className="text-[11px]">{testError}</AlertDescription>
               </Alert>
             )}
           </div>
 
           {/* Channel Name Input (Optional) */}
-          <div className="space-y-2">
-            <Label htmlFor="channel-name">Channel Name (optional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="channel-name" className="text-xs font-medium">Channel Name (optional)</Label>
             <Input
               id="channel-name"
               type="text"
               placeholder="e.g. Marketing Team"
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
+              className="text-xs h-8"
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               A friendly name to identify this channel
             </p>
           </div>
 
           {/* Event Selection */}
           <div className="space-y-3">
-            <Label>Notify when:</Label>
-            {EVENT_OPTIONS.map(event => (
-              <div key={event.id} className="flex items-start gap-3">
-                <Checkbox
-                  id={event.id}
-                  checked={enabledEvents.includes(event.id)}
-                  onCheckedChange={() => toggleEvent(event.id)}
-                />
-                <div className="flex-1">
-                  <label
-                    htmlFor={event.id}
-                    className="text-sm font-medium cursor-pointer"
-                  >
-                    {event.label}
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {event.description}
-                  </p>
+            <Label className="text-xs font-medium">Notify when:</Label>
+            <div className="space-y-2.5">
+              {EVENT_OPTIONS.map(event => (
+                <div key={event.id} className="flex items-start gap-2.5">
+                  <Checkbox
+                    id={`teams-${event.id}`}
+                    checked={enabledEvents.includes(event.id)}
+                    onCheckedChange={() => toggleEvent(event.id)}
+                    className="mt-0.5 size-3.5"
+                  />
+                  <div className="flex-1 space-y-0">
+                    <label
+                      htmlFor={`teams-${event.id}`}
+                      className="text-xs font-medium cursor-pointer leading-none"
+                    >
+                      {event.label}
+                    </label>
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                      {event.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+            <Alert variant="destructive" className="py-2">
+              <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t">
-          {!isNewIntegration ? (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDisconnect}
-              disabled={isDisconnecting || isSaving}
-            >
-              {isDisconnecting ? (
-                <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                  Disconnecting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="size-4 mr-2" />
-                  Disconnect
-                </>
-              )}
-            </Button>
-          ) : (
-            <div />
-          )}
+        <SheetFooter className="border-t pt-3 px-6 pb-4">
+          <div className="flex w-full items-center justify-between">
+            {!isNewIntegration ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDisconnect}
+                disabled={isDisconnecting || isSaving}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 text-xs"
+              >
+                {isDisconnecting ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin mr-1.5" />
+                    Disconnecting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="size-3 mr-1.5" />
+                    Disconnect
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div />
+            )}
 
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={isSaving || !webhookUrl || enabledEvents.length === 0}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="size-4 animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="size-4 mr-2" />
-                  Save
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="h-8 text-xs">
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || !webhookUrl || enabledEvents.length === 0}
+                className="h-8 text-xs"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="size-3 animate-spin mr-1.5" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save'
+                )}
+              </Button>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   )
 }

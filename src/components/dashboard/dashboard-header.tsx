@@ -106,7 +106,7 @@ export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: 
                 )}
 
                 <Image
-                    src="/borda_logo.png"
+                    src="/borda_logo_colour.png"
                     alt="Borda"
                     width={100}
                     height={30}

@@ -14,7 +14,7 @@ export default function AuthLayout({
                 <div className="p-6 lg:p-8">
                     <Link href="/" className="inline-block">
                         <Image
-                            src="/borda_logo.png"
+                            src="/borda_logo_colour.png"
                             alt="Borda"
                             width={100}
                             height={28}
