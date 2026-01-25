@@ -2,7 +2,7 @@ import { getTemplates } from "./actions"
 import { TemplatesTable } from "@/components/dashboard/templates-table"
 import { getCachedUser } from "@/lib/queries/user"
 import { redirect } from "next/navigation"
-import { CreateTemplateModal } from "@/components/dashboard/create-template-modal"
+import { CreateTemplateDropdown } from "@/components/dashboard/create-template-dropdown"
 import { createClient } from "@/lib/supabase/server"
 import { canUseAITemplates } from "@/lib/permissions"
 
@@ -32,7 +32,7 @@ export default async function TemplatesPage() {
                 <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
                 <p className="text-sm text-muted-foreground mt-0.5">Manage your space templates.</p>
                 </div>
-                <CreateTemplateModal canUseAI={canUseAI} />
+                <CreateTemplateDropdown canUseAI={canUseAI} />
             </div>
 
             {templates.length === 0 ? (
@@ -41,7 +41,7 @@ export default async function TemplatesPage() {
                     <p className="text-xs text-muted-foreground mb-4">
                         Create a template to quickly set up new spaces with predefined pages and blocks.
                     </p>
-                    <CreateTemplateModal canUseAI={canUseAI} />
+                    <CreateTemplateDropdown canUseAI={canUseAI} />
                 </div>
             ) : (
                 <TemplatesTable templates={templates} />

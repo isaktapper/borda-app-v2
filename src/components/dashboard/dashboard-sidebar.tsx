@@ -17,6 +17,7 @@ import {
     BarChart3,
     Plug,
     ArrowUpRight,
+    HelpCircle,
 } from "lucide-react"
 
 import {
@@ -288,6 +289,17 @@ export function DashboardSidebar({ orgName, user, isSlackConnected, spaceLimitRe
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    asChild
+                                    tooltip="Need help?"
+                                >
+                                    <a href="mailto:isak@borda.work">
+                                        <HelpCircle className="size-4" />
+                                        <span>Need help?</span>
+                                    </a>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
                             {bottomNavItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton

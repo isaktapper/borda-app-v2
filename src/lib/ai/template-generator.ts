@@ -1,9 +1,14 @@
 import OpenAI from 'openai'
-import { 
-  validateAndRepairTemplate, 
+import {
+  validateAndRepairTemplate,
   generateTemplateIds,
-  type AIGeneratedTemplate 
+  type AIGeneratedTemplate
 } from './template-schema'
+import {
+  analyzeDocuments,
+  formatAnalysisForPrompt,
+  type DocumentAnalysis,
+} from './document-analyzer'
 
 // Lazy initialize OpenAI client to avoid issues during build
 let openaiClient: OpenAI | null = null
@@ -18,6 +23,8 @@ function getOpenAI(): OpenAI {
 }
 
 const SYSTEM_PROMPT = `You are an expert implementation consultant who creates structured customer onboarding templates. Your task is to analyze the user's description or uploaded documents and generate a comprehensive, well-organized template.
+
+IMPORTANT: All output MUST be in English. This includes page titles, block content, task names, milestone names, and all text. Even if the source documents or description are in another language, translate everything to English.
 
 ## MANDATORY STRUCTURE
 
@@ -184,53 +191,122 @@ export interface GenerateTemplateResult {
     completionTokens: number
     totalTokens: number
   }
+  analysis?: {
+    phasesIdentified: string[]
+    criticalTasks: string[]
+    overallProcess: string
+  }
 }
 
 /**
- * Build the user prompt from description and documents
+ * Build the user prompt from description only (no document analysis)
  */
 function buildUserPrompt(options: GenerateTemplateOptions): string {
-  const { description, documentTexts = [] } = options
-  
+  const { description } = options
+
   let prompt = 'Create a customer implementation template based on:\n\n'
 
   if (description) {
     prompt += `## User Description\n${description}\n\n`
   }
 
-  if (documentTexts.length > 0) {
-    prompt += `## Uploaded Documents\n`
-    documentTexts.forEach((doc, i) => {
-      prompt += `### Document ${i + 1}\n${doc}\n\n`
-    })
-  }
-
-  if (!description && documentTexts.length === 0) {
+  if (!description) {
     prompt += `## Request\nCreate a generic customer onboarding template with typical implementation phases: kickoff, setup, training, and go-live.\n\n`
   }
 
   prompt += `Generate a complete template following the structure rules above. Return ONLY valid JSON.`
-  
+
   return prompt
 }
 
 /**
- * Generate a template using OpenAI
+ * Build the user prompt incorporating document analysis results
+ */
+function buildPromptWithAnalysis(
+  analysis: DocumentAnalysis,
+  description?: string
+): string {
+  let prompt = 'Create a customer implementation template based on the following document analysis:\n\n'
+
+  // Include formatted analysis
+  prompt += formatAnalysisForPrompt(analysis)
+  prompt += '\n'
+
+  if (description) {
+    prompt += `## Additional User Instructions\n${description}\n\n`
+  }
+
+  prompt += `## Template Generation Instructions
+
+Based on the document analysis above, create a template that:
+
+1. **Reflects the actual process**: Use the phase names, tasks, and timeline from the analysis - NOT generic placeholders
+2. **Matches the identified phases**: Create pages/milestones that correspond to the major phases identified
+3. **Includes specific tasks**: Use the critical tasks from the analysis as action items
+4. **Respects the timeline**: Set relativeDueDates based on the suggested timeline
+
+IMPORTANT:
+- ALL OUTPUT MUST BE IN ENGLISH - translate any non-English phase names, task names, and content
+- Do NOT use generic phase names like "Kickoff", "Configuration", "Go-Live" unless those exact terms appear in the analysis
+- Do NOT invent tasks that weren't mentioned in the documents
+- DO use the specific terminology and process flow from the documents (translated to English)
+- If the analysis mentions specific stakeholders, include contact blocks for them
+- If the analysis mentions deliverables or documents to collect, include file_upload blocks
+
+Generate a complete template following the structure rules in the system prompt. Return ONLY valid JSON in English.`
+
+  return prompt
+}
+
+/**
+ * Generate a template using OpenAI with two-step pipeline:
+ * 1. Analyze documents (if provided) to understand the implementation process
+ * 2. Generate template based on the analysis
  */
 export async function generateTemplate(
   options: GenerateTemplateOptions
 ): Promise<GenerateTemplateResult> {
-  const userPrompt = buildUserPrompt(options)
+  const { description, documentTexts = [] } = options
   const openai = getOpenAI()
 
   try {
+    // Step 1: Analyze documents if provided
+    let analysis: DocumentAnalysis | null = null
+    if (documentTexts.length > 0) {
+      console.log('[TemplateGenerator] Step 1: Analyzing documents...')
+      try {
+        analysis = await analyzeDocuments(
+          documentTexts.map((text, i) => ({
+            fileName: `Document ${i + 1}`,
+            text,
+          })),
+          description
+        )
+        console.log('[TemplateGenerator] Document analysis complete')
+        console.log(`  - Identified ${analysis.synthesis.majorPhases.length} major phases`)
+        console.log(`  - Found ${analysis.synthesis.criticalTasks.length} critical tasks`)
+      } catch (analysisError) {
+        console.error('[TemplateGenerator] Document analysis failed, falling back to direct generation:', analysisError)
+        // Continue without analysis - fall back to old behavior
+        analysis = null
+      }
+    }
+
+    // Step 2: Generate template
+    console.log('[TemplateGenerator] Step 2: Generating template...')
+
+    // Build prompt based on whether we have analysis
+    const userPrompt = analysis
+      ? buildPromptWithAnalysis(analysis, description)
+      : buildUserPrompt(options)
+
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.7,
+      temperature: 0.35, // Lower temperature for more consistent output
       max_tokens: 8000,
       response_format: { type: 'json_object' },
     })
@@ -280,6 +356,14 @@ export async function generateTemplate(
         completionTokens: response.usage?.completion_tokens || 0,
         totalTokens: response.usage?.total_tokens || 0,
       },
+      // Include analysis summary for debugging/logging
+      ...(analysis && {
+        analysis: {
+          phasesIdentified: analysis.synthesis.majorPhases.map(p => p.name),
+          criticalTasks: analysis.synthesis.criticalTasks,
+          overallProcess: analysis.synthesis.overallProcess,
+        },
+      }),
     }
   } catch (error) {
     console.error('Error generating template:', error)

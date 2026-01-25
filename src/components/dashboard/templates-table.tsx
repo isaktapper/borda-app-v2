@@ -166,7 +166,7 @@ export function TemplatesTable({ templates }: TemplatesTableProps) {
                                 <TableCell className="font-medium text-sm py-3 px-3">
                                     {template.name}
                                 </TableCell>
-                                <TableCell className="text-muted-foreground text-sm py-3 px-3">
+                                <TableCell className="text-muted-foreground text-sm py-3 px-3 max-w-[300px] truncate">
                                     {template.description || '-'}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground text-xs py-3 px-3">

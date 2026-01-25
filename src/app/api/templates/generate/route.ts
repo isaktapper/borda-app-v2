@@ -50,14 +50,7 @@ export async function POST(request: NextRequest) {
       documentTexts?: string[]
     }
 
-    // Validate input - need name and at least description or documents
-    if (!name) {
-      return NextResponse.json(
-        { error: 'Template name is required' },
-        { status: 400 }
-      )
-    }
-
+    // Validate input - need at least description or documents
     if (!description && (!documentTexts || documentTexts.length === 0)) {
       return NextResponse.json(
         { error: 'Please provide a description or upload documents' },
