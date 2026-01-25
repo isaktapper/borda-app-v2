@@ -4,15 +4,32 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { AlertCircle, Mail, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { PLANS, BillingInterval } from '@/lib/stripe'
+import { PLANS, BillingInterval, AllPrices } from '@/lib/stripe'
 
 interface TrialExpiredBlockerProps {
   organizationId: string
+  prices: AllPrices
 }
 
-export function TrialExpiredBlocker({ organizationId }: TrialExpiredBlockerProps) {
+export function TrialExpiredBlocker({ organizationId, prices }: TrialExpiredBlockerProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month')
+
+  // Calculate dynamic prices
+  const growthMonthly = Math.round(prices.growth.month.amount / 100)
+  const growthYearlyPerMonth = Math.round(prices.growth.year.amount / 100 / 12)
+
+  const scaleMonthly = Math.round(prices.scale.month.amount / 100)
+  const scaleYearlyPerMonth = Math.round(prices.scale.year.amount / 100 / 12)
+
+  // Calculate average discount percentage
+  const growthYearlyTotal = Math.round(prices.growth.year.amount / 100)
+  const scaleYearlyTotal = Math.round(prices.scale.year.amount / 100)
+  const growthYearlySavings = (growthMonthly * 12) - growthYearlyTotal
+  const scaleYearlySavings = (scaleMonthly * 12) - scaleYearlyTotal
+  const avgDiscountPercent = Math.round(
+    ((growthYearlySavings / (growthMonthly * 12) + scaleYearlySavings / (scaleMonthly * 12)) / 2) * 100
+  )
 
   async function handleUpgrade(plan: 'growth' | 'scale') {
     setLoading(plan)
@@ -79,7 +96,7 @@ export function TrialExpiredBlocker({ organizationId }: TrialExpiredBlockerProps
               }`}
             >
               Yearly
-              <span className="ml-1.5 text-xs text-primary font-semibold">-17%</span>
+              <span className="ml-1.5 text-xs text-primary font-semibold">-{avgDiscountPercent}%</span>
             </button>
           </div>
         </div>
@@ -94,7 +111,7 @@ export function TrialExpiredBlocker({ organizationId }: TrialExpiredBlockerProps
           >
             <div className="font-semibold mb-1">{PLANS.growth.name}</div>
             <div className="text-2xl font-bold">
-              ${billingInterval === 'month' ? '49' : '41'}
+              ${billingInterval === 'month' ? growthMonthly : growthYearlyPerMonth}
               <span className="text-sm font-normal text-muted-foreground">/mo</span>
             </div>
             {loading === 'growth' && (
@@ -113,7 +130,7 @@ export function TrialExpiredBlocker({ organizationId }: TrialExpiredBlockerProps
             </span>
             <div className="font-semibold mb-1">{PLANS.scale.name}</div>
             <div className="text-2xl font-bold">
-              ${billingInterval === 'month' ? '99' : '82'}
+              ${billingInterval === 'month' ? scaleMonthly : scaleYearlyPerMonth}
               <span className="text-sm font-normal text-muted-foreground">/mo</span>
             </div>
             {loading === 'scale' && (

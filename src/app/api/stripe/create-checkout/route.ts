@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get price ID
-    const priceId = getPriceId(plan, interval)
+    // Get price ID (async now to support lookup keys)
+    const priceId = await getPriceId(plan, interval)
 
     // Create checkout session - no trial, pay immediately
     const session = await stripe.checkout.sessions.create({

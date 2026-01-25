@@ -1,29 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
-import { getStripe, stripe, PLANS, PlanType } from '@/lib/stripe'
+import { getStripe, stripe, getStripePrices, getPlanFromPriceId, getIntervalFromPriceId } from '@/lib/stripe'
 import { createAdminClient } from '@/lib/supabase/server'
 import Stripe from 'stripe'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!
-
-// Map Stripe price IDs to plan names
-function getPlanFromPriceId(priceId: string): PlanType | null {
-  for (const [plan, config] of Object.entries(PLANS)) {
-    if (config.prices.month.id === priceId || config.prices.year.id === priceId) {
-      return plan as PlanType
-    }
-  }
-  return null
-}
-
-// Get billing interval from price ID
-function getIntervalFromPriceId(priceId: string): 'month' | 'year' | null {
-  for (const config of Object.values(PLANS)) {
-    if (config.prices.month.id === priceId) return 'month'
-    if (config.prices.year.id === priceId) return 'year'
-  }
-  return null
-}
 
 export async function POST(request: NextRequest) {
   const body = await request.text()
@@ -46,24 +27,27 @@ export async function POST(request: NextRequest) {
   const supabase = await createAdminClient()
 
   try {
+    // Fetch current prices for plan matching
+    const prices = await getStripePrices()
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
         console.log('Checkout completed for customer:', session.customer)
-        
+
         if (session.mode === 'subscription' && session.subscription) {
           // Get the subscription details
           const subscriptionResponse = await stripe.subscriptions.retrieve(
             session.subscription as string
           )
           // Handle both Response wrapper and direct Subscription types
-          const subscription = 'lastResponse' in subscriptionResponse 
-            ? subscriptionResponse 
+          const subscription = 'lastResponse' in subscriptionResponse
+            ? subscriptionResponse
             : subscriptionResponse as unknown as Stripe.Subscription
-          
+
           const priceId = subscription.items.data[0]?.price.id
-          const plan = getPlanFromPriceId(priceId)
-          const interval = getIntervalFromPriceId(priceId)
+          const plan = getPlanFromPriceId(priceId, prices)
+          const interval = getIntervalFromPriceId(priceId, prices)
           
           console.log('Checkout - Price ID:', priceId, 'Plan:', plan, 'Interval:', interval)
           
@@ -99,10 +83,10 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
-        
+
         const priceId = subscription.items.data[0]?.price.id
-        const plan = getPlanFromPriceId(priceId)
-        const interval = getIntervalFromPriceId(priceId)
+        const plan = getPlanFromPriceId(priceId, prices)
+        const interval = getIntervalFromPriceId(priceId, prices)
         
         // Get period timestamps
         const periodStart = (subscription as any).current_period_start

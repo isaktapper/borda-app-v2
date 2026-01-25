@@ -13,6 +13,7 @@ import {
 } from '@/lib/queries/user'
 import { getTrialDaysRemaining, isTrialExpired, getOrganizationSubscription } from '@/lib/stripe/subscription'
 import { canCreateSpace } from '@/lib/permissions'
+import { getAllPriceData } from '@/lib/stripe'
 
 export default async function DashboardLayout({
     children,
@@ -76,6 +77,9 @@ export default async function DashboardLayout({
         }
     }
 
+    // Fetch Stripe prices for trial blocker display
+    const prices = await getAllPriceData()
+
     // Generate signed URL for avatar if it exists
     const avatarUrl = profileData.data?.avatar_url
         ? await getAvatarSignedUrl(profileData.data.avatar_url)
@@ -107,7 +111,7 @@ export default async function DashboardLayout({
             
             {/* Show blocker modal if trial has expired */}
             {trialExpired && memberData.data?.organization_id && (
-                <TrialExpiredBlocker organizationId={memberData.data.organization_id} />
+                <TrialExpiredBlocker organizationId={memberData.data.organization_id} prices={prices} />
             )}
             
             <DashboardSidebar orgName={orgName} user={userData} isSlackConnected={isSlackConnected} spaceLimitReached={spaceLimitReached} />

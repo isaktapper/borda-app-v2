@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react'
 import { getCachedUser, getCachedProfile, getCachedOrgMember } from '@/lib/queries/user'
 import { getAvatarSignedUrl } from './profile/avatar-actions'
 import { getOrganizationSubscription, getTrialDaysRemaining } from '@/lib/stripe/subscription'
+import { getAllPriceData } from '@/lib/stripe'
+import { getOrganizationUsage, getOrganizationLimits } from '@/lib/permissions'
 
 export default async function SettingsPage({
   searchParams,
@@ -45,16 +47,29 @@ export default async function SettingsPage({
   let subscription = null
   let trialDaysRemaining = 0
   let organizationName = 'Organization'
-  
+  let usage = { activeSpaces: 0, templates: 0 }
+  let limits = { maxActiveSpaces: 5, maxTemplates: 2, hasAnalytics: false, canRemoveBranding: false, canUseAITemplates: false }
+
   if (memberData?.organization_id) {
     const orgData = memberData.organizations && !Array.isArray(memberData.organizations)
       ? memberData.organizations as { name: string }
       : null
     organizationName = orgData?.name || 'Organization'
-    
-    subscription = await getOrganizationSubscription(memberData.organization_id)
-    trialDaysRemaining = await getTrialDaysRemaining(memberData.organization_id)
+
+    const [sub, days, usageData, limitsData] = await Promise.all([
+      getOrganizationSubscription(memberData.organization_id),
+      getTrialDaysRemaining(memberData.organization_id),
+      getOrganizationUsage(memberData.organization_id),
+      getOrganizationLimits(memberData.organization_id),
+    ])
+    subscription = sub
+    trialDaysRemaining = days
+    usage = usageData
+    limits = limitsData
   }
+
+  // Fetch Stripe prices for billing display
+  const prices = await getAllPriceData()
 
   const canManageBilling = memberData?.role === 'owner'
 
@@ -105,13 +120,16 @@ export default async function SettingsPage({
             </Suspense>
           ),
           billing: memberData?.organization_id ? (
-            <BillingSection 
+            <BillingSection
               organizationId={memberData.organization_id}
               organizationName={organizationName}
               subscription={subscription}
               trialDaysRemaining={trialDaysRemaining}
               canManageBilling={canManageBilling}
               userRole={memberData.role || 'member'}
+              prices={prices}
+              usage={usage}
+              limits={limits}
             />
           ) : null,
         }}
