@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { toggleTaskStatus, uploadFile, deleteFile, logTaskActivity, saveResponse } from '@/app/space/actions'
+import { deleteFile, logTaskActivity, saveResponse } from '@/app/space/actions'
 import { toast } from 'sonner'
 
 interface PortalState {
@@ -16,6 +16,7 @@ interface Block {
     type: string
     content: any
     sort_order?: number
+    page_slug?: string
 }
 
 interface PortalContextType {
@@ -97,7 +98,7 @@ export function PortalProvider({
                 body: JSON.stringify({ blockId, spaceId, value: { tasks: blockTasks } })
             })
             const result = await apiResponse.json()
-            
+
             if (!apiResponse.ok || result.error) {
                 // Rollback
                 setState(prev => ({
@@ -221,7 +222,16 @@ export function PortalProvider({
     }
 
     return (
-        <PortalContext.Provider value={{ state, spaceId, allBlocks, toggleTask, updateResponse, addFile, removeFile, isPending }}>
+        <PortalContext.Provider value={{
+            state,
+            spaceId,
+            allBlocks,
+            toggleTask,
+            updateResponse,
+            addFile,
+            removeFile,
+            isPending,
+        }}>
             {children}
         </PortalContext.Provider>
     )

@@ -12,6 +12,9 @@ import { ResponsesTabContent } from '@/components/dashboard/responses-tab-conten
 import { getBlocks, bulkUpdateBlocks, deleteTaskBlock, duplicateBlock, moveBlockToPage } from '@/app/(app)/spaces/[spaceId]/block-actions'
 import { reorderPages, deletePage, renamePage } from '@/app/(app)/spaces/[spaceId]/pages-actions'
 import { getWelcomePopup, updateWelcomePopup } from '@/app/(app)/spaces/[spaceId]/welcome-popup-actions'
+import { getMessages, sendMessage, getSpaceMembers, getBlocksForMention } from '@/app/(app)/spaces/[spaceId]/chat-actions'
+import { markSpaceNotificationsAsRead } from '@/app/(app)/notifications/actions'
+import { ChatPanel } from '@/components/chat'
 import type { WelcomePopupContent } from '@/components/dashboard/editor/welcome-popup-editor'
 import type { EngagementScoreResult } from '@/lib/engagement-score'
 
@@ -45,9 +48,11 @@ interface ProjectV2ClientProps {
     initialPages: Page[]
     engagement: EngagementScoreResult | null
     progress: Progress | null
-    initialTab: 'editor' | 'activity' | 'responses' | 'settings'
+    initialTab: 'editor' | 'activity' | 'responses' | 'chat' | 'settings'
     initialPageId?: string
     canRemoveBranding?: boolean
+    currentUserEmail?: string
+    chatUnreadCount?: number
 }
 
 export function ProjectV2Client({
@@ -59,12 +64,14 @@ export function ProjectV2Client({
     initialTab,
     initialPageId,
     canRemoveBranding = false,
+    currentUserEmail,
+    chatUnreadCount = 0,
 }: ProjectV2ClientProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
     // Main state
-    const [activeTab, setActiveTab] = useState<'editor' | 'activity' | 'responses' | 'settings'>(initialTab)
+    const [activeTab, setActiveTab] = useState<'editor' | 'activity' | 'responses' | 'chat' | 'settings'>(initialTab)
     const [pages, setPages] = useState<Page[]>(initialPages)
     const [selectedPageId, setSelectedPageId] = useState<string | null>(initialPageId || null)
     const [pageBlocks, setPageBlocks] = useState<Record<string, Block[]>>({})
@@ -135,13 +142,24 @@ export function ProjectV2Client({
     }, [activeTab, selectedPageId])
 
     // Handle tab change
-    const handleTabChange = (tab: 'editor' | 'activity' | 'responses' | 'settings') => {
+    const handleTabChange = (tab: 'editor' | 'activity' | 'responses' | 'chat' | 'settings') => {
         setActiveTab(tab)
         if (tab !== 'editor') {
             setSelectedBlockId(null)
             setEditingBlock(null)
         }
+        // Mark chat notifications as read when opening chat tab
+        if (tab === 'chat') {
+            markSpaceNotificationsAsRead(spaceId)
+        }
     }
+
+    // Chat action handlers
+    const handleGetMessages = async () => getMessages(spaceId)
+    const handleSendMessage = async (content: string, mentions: string[], mentionedBlocks: string[]) =>
+        sendMessage(spaceId, content, mentions, mentionedBlocks)
+    const handleGetMembers = async () => getSpaceMembers(spaceId)
+    const handleGetBlocks = async () => getBlocksForMention(spaceId)
 
     // Handle sidebar view change
     const handleSidebarViewChange = (view: 'pages' | 'blocks' | 'editor') => {
@@ -446,6 +464,7 @@ export function ProjectV2Client({
                 isDirty={isDirty}
                 isSaving={isPending}
                 onSave={handleSave}
+                chatUnreadCount={chatUnreadCount}
             />
 
             {/* Content Area - Fixed height with overflow */}
@@ -527,6 +546,36 @@ export function ProjectV2Client({
                     <div className="flex-1 overflow-hidden">
                         <ResponsesTabContent spaceId={spaceId} />
                     </div>
+                )}
+
+                {activeTab === 'chat' && currentUserEmail && (
+                    <>
+                        {/* Chat Sidebar */}
+                        <div className="w-[400px] border-r bg-background flex flex-col overflow-hidden">
+                            <ChatPanel
+                                currentUserEmail={currentUserEmail}
+                                getMessages={handleGetMessages}
+                                sendMessage={handleSendMessage}
+                                getMembers={handleGetMembers}
+                                getBlocks={handleGetBlocks}
+                            />
+                        </div>
+
+                        {/* Main Content - Show pages preview */}
+                        <div className="flex-1 overflow-auto bg-muted/30">
+                            {selectedPageId ? (
+                                <WYSIWYGContent
+                                    blocks={currentBlocks}
+                                    selectedBlockId={selectedBlockId}
+                                    isLoading={isLoadingBlocks}
+                                    onBlockSelect={handleBlockSelect}
+                                    onBlockDelete={handleDeleteBlock}
+                                />
+                            ) : (
+                                <EditorEmptyState hasPages={pages.length > 0} />
+                            )}
+                        </div>
+                    </>
                 )}
 
                 {activeTab === 'settings' && (

@@ -7,17 +7,18 @@ interface Block {
     id: string
     type: string
     content: any
+    page_slug?: string
 }
 
 /**
  * PortalBlockRenderer - Wrapper that connects SharedBlockRenderer to the portal context
- * 
+ *
  * This component bridges the SharedBlockRenderer with the PortalProvider,
  * enabling interactive features like task toggling, form responses, and file uploads.
  */
 export function PortalBlockRenderer({ block }: { block: Block }) {
     const portal = usePortal()
-    
+
     // Build the context object for SharedBlockRenderer
     const context: BlockInteractionContext = {
         interactive: true,
@@ -31,6 +32,6 @@ export function PortalBlockRenderer({ block }: { block: Block }) {
         addFile: portal.addFile,
         removeFile: portal.removeFile,
     }
-    
+
     return <SharedBlockRenderer block={block} context={context} />
 }

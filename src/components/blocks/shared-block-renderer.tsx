@@ -13,20 +13,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-import { 
-    Mail, 
-    Phone, 
-    Calendar as CalendarIcon, 
-    FileUp, 
-    Check, 
-    Loader2, 
-    Download, 
-    Trash2, 
-    FileText, 
-    FileSpreadsheet, 
-    Image as ImageIcon, 
-    File, 
-    Info, 
+import {
+    Mail,
+    Phone,
+    Calendar as CalendarIcon,
+    FileUp,
+    Check,
+    Loader2,
+    Download,
+    Trash2,
+    FileText,
+    FileSpreadsheet,
+    Image as ImageIcon,
+    File,
+    Info,
     ChevronRight,
     ChevronDown,
     Play,
@@ -38,11 +38,13 @@ import {
     Clock,
     AlertCircle,
     Eye,
+    MessageCircle,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { format } from 'date-fns'
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getActionPlanBlocksForPortal } from '@/app/space/actions'
 import { Progress } from '@/components/ui/progress'
@@ -189,20 +191,132 @@ interface SharedBlockRendererProps {
 
 /**
  * SharedBlockRenderer - Unified block renderer for both Editor Preview and Portal
- * 
+ *
  * Usage:
  * - Editor Preview: <SharedBlockRenderer block={block} />
  * - Portal: <SharedBlockRenderer block={block} context={portalContext} />
  */
 export function SharedBlockRenderer({ block, context }: SharedBlockRendererProps) {
     const ctx = context || { interactive: false }
-    
+
     return (
         <BlockContext.Provider value={ctx}>
-            <div className="mb-4">
+            <BlockWithChatHover block={block} context={ctx}>
                 {renderBlock(block)}
-            </div>
+            </BlockWithChatHover>
         </BlockContext.Provider>
+    )
+}
+
+/**
+ * Wrapper that adds a chat button on hover for portal (interactive) mode
+ */
+function BlockWithChatHover({
+    block,
+    context,
+    children
+}: {
+    block: Block
+    context: BlockInteractionContext
+    children: React.ReactNode
+}) {
+    const [isHovered, setIsHovered] = useState(false)
+    const router = useRouter()
+    const pathname = usePathname()
+
+    // Only show chat button in interactive (portal) mode
+    const showChatButton = context.interactive
+
+    // Get block title for the mention
+    const getBlockTitle = () => {
+        const content = block.content
+        if (!content) return block.type
+
+        switch (block.type) {
+            case 'text':
+                if (content.html) {
+                    const text = content.html.replace(/<[^>]*>/g, '').trim()
+                    return text.slice(0, 40) || 'Text block'
+                }
+                return content.text?.slice(0, 40) || 'Text block'
+            case 'action_plan':
+                return content.title || 'Action plan'
+            case 'form':
+                return content.title || 'Form'
+            case 'file_upload':
+                return content.label || 'File upload'
+            case 'file_download':
+                return content.title || 'File download'
+            case 'embed':
+                return content.title || 'Embed'
+            case 'contact':
+                return content.name || 'Contact'
+            case 'accordion':
+                return content.title || 'Accordion'
+            case 'timeline':
+                return content.title || 'Timeline'
+            case 'media':
+                return content.caption || 'Media'
+            case 'next_task':
+                return content.title || 'Next task'
+            case 'action_plan_progress':
+                return content.title || 'Progress'
+            case 'divider':
+                return 'Divider'
+            case 'task':
+                return content.title || 'Task'
+            default:
+                return block.type
+        }
+    }
+
+    const handleChatClick = () => {
+        // Use URL params to communicate with ChatDrawer in the layout
+        // Encode block info in params: chatBlock=id&chatBlockType=type&chatBlockTitle=title
+        const params = new URLSearchParams()
+        params.set('chat', 'open')
+        params.set('chatBlock', block.id)
+        params.set('chatBlockType', block.type)
+        params.set('chatBlockTitle', getBlockTitle())
+        router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    }
+
+    if (!showChatButton) {
+        return <div className="mb-4" id={`block-${block.id}`}>{children}</div>
+    }
+
+    return (
+        <div
+            className="mb-4 relative group"
+            id={`block-${block.id}`}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {children}
+
+            {/* Chat button - appears on hover */}
+            <div
+                className={cn(
+                    'absolute top-2 right-2 transition-opacity duration-150',
+                    isHovered ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                )}
+            >
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            onClick={handleChatClick}
+                            className="size-7 flex items-center justify-center rounded bg-white/90 hover:bg-white shadow-sm border border-border/50 transition-colors"
+                        >
+                            <MessageCircle className="size-3.5 text-muted-foreground" />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">
+                        <p>Ask about this block</p>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
+        </div>
     )
 }
 
