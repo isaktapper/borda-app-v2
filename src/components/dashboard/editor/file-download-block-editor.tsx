@@ -183,7 +183,7 @@ export function FileDownloadBlockEditor({ blockId, spaceId, content, onChange }:
                 <div className="space-y-4">
                 <div className="space-y-2">
                     <Label htmlFor="title" className="text-xs uppercase tracking-widest text-muted-foreground">
-                        Rubrik (valfri)
+                        Title (optional)
                     </Label>
                     <Input
                         id="title"

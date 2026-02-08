@@ -28,4 +28,7 @@ export const EMAIL_SUBJECTS = {
 
   // Access request - denied
   accessRequestDenied: (orgName: string) => `Your request to join ${orgName}`,
+
+  // Chat message
+  chatMessage: (spaceName: string) => `New message in ${spaceName}`,
 }

@@ -195,7 +195,7 @@ export function ContactCardBlockEditor({ blockId, spaceId, content, onChange }: 
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md border border-input bg-background hover:bg-muted transition-colors disabled:opacity-50"
                             >
                                 <Upload className="size-4" />
                                 {content.avatarUrl ? 'Byt bild' : 'Ladda upp'}

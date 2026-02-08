@@ -155,21 +155,21 @@ export function RichTextEditor({ content, onChange, placeholder = 'Write somethi
                     <ToolbarButton
                         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
                         isActive={editor.isActive('heading', { level: 1 })}
-                        title="Rubrik 1"
+                        title="Heading 1"
                     >
                         <Heading1 className="size-4" />
                     </ToolbarButton>
                     <ToolbarButton
                         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
                         isActive={editor.isActive('heading', { level: 2 })}
-                        title="Rubrik 2"
+                        title="Heading 2"
                     >
                         <Heading2 className="size-4" />
                     </ToolbarButton>
                     <ToolbarButton
                         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
                         isActive={editor.isActive('heading', { level: 3 })}
-                        title="Rubrik 3"
+                        title="Heading 3"
                     >
                         <Heading3 className="size-4" />
                     </ToolbarButton>

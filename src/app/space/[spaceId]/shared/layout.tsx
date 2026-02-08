@@ -15,6 +15,8 @@ import { WelcomePopupWrapper } from '@/components/portal/welcome-popup-wrapper'
 import { cookies } from 'next/headers'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { BordaBrandingServer } from '@/components/portal/borda-branding'
+import { PortalChatButton } from '@/components/portal/portal-chat-button'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 export default async function PortalLayout({
     children,
@@ -141,8 +143,8 @@ export default async function PortalLayout({
                                 <PortalNavigation pages={pages} spaceId={spaceId} />
                             </div>
 
-                            {/* Right: Progress + Contact */}
-                            <div className="flex items-center justify-end gap-4">
+                            {/* Right: Progress + Chat + Contact */}
+                            <div className="flex items-center justify-end gap-3">
                                 {progress && (
                                     <PortalProgressIndicator
                                         percentage={progress.progressPercentage}
@@ -151,6 +153,14 @@ export default async function PortalLayout({
                                         spaceId={spaceId}
                                         pageProgress={pageProgress}
                                     />
+                                )}
+                                {visitorEmail !== 'unknown' && (
+                                    <TooltipProvider>
+                                        <PortalChatButton
+                                            spaceId={spaceId}
+                                            visitorEmail={visitorEmail}
+                                        />
+                                    </TooltipProvider>
                                 )}
                                 <a
                                     href="mailto:support@example.com"

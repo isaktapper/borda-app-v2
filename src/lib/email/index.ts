@@ -11,6 +11,7 @@ import {
   type AccessRequestNotificationEmailParams,
   type AccessRequestApprovedEmailParams,
   type AccessRequestDeniedEmailParams,
+  type ChatMessageEmailParams,
 } from './types'
 import { EMAIL_SUBJECTS } from './subjects'
 import {
@@ -21,6 +22,7 @@ import {
   accessRequestNotificationTemplate,
   accessRequestApprovedTemplate,
   accessRequestDeniedTemplate,
+  chatMessageTemplate,
 } from './templates'
 
 // Re-export types for convenience
@@ -344,6 +346,66 @@ export async function sendAccessRequestDeniedEmail(params: AccessRequestDeniedEm
       metadata: {},
     },
   })
+}
+
+/**
+ * Send chat message notification email
+ */
+export async function sendChatMessageEmail(params: ChatMessageEmailParams) {
+  const subject = EMAIL_SUBJECTS.chatMessage(params.spaceName)
+
+  return sendEmailInternal({
+    to: params.to,
+    subject,
+    html: chatMessageTemplate({
+      spaceName: params.spaceName,
+      senderName: params.senderName,
+      messagePreview: params.messagePreview,
+      portalLink: params.portalLink,
+    }),
+    logEntry: {
+      to_email: params.to,
+      from_email: DEFAULT_FROM,
+      subject,
+      type: EMAIL_TYPES.CHAT_MESSAGE,
+      organization_id: params.organizationId,
+      space_id: params.spaceId,
+      recipient_user_id: params.recipientUserId,
+      recipient_member_id: params.recipientMemberId,
+      metadata: {
+        sender_email: params.senderEmail,
+      },
+    },
+  })
+}
+
+/**
+ * Check if a chat message email was sent recently (rate limiting)
+ * Returns true if an email was sent in the last 5 minutes
+ */
+export async function wasChatEmailSentRecently(
+  email: string,
+  spaceId: string
+): Promise<boolean> {
+  try {
+    const supabase = await createAdminClient()
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+
+    const { data } = await supabase
+      .from('email_log')
+      .select('id')
+      .eq('type', EMAIL_TYPES.CHAT_MESSAGE)
+      .eq('to_email', email)
+      .eq('space_id', spaceId)
+      .eq('status', 'sent')
+      .gte('sent_at', fiveMinutesAgo.toISOString())
+      .limit(1)
+      .single()
+
+    return !!data
+  } catch {
+    return false
+  }
 }
 
 // ============================================================================

@@ -33,7 +33,7 @@ export function BordaBranding({ show = true, className = '' }: BordaBrandingProp
           alt="Borda"
           width={60}
           height={20}
-          className="h-4 w-auto opacity-50 group-hover:opacity-80 transition-opacity"
+          className="h-3 w-auto opacity-50 group-hover:opacity-80 transition-opacity"
         />
       </Link>
     </div>

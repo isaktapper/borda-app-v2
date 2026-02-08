@@ -31,6 +31,9 @@ export const EMAIL_TYPES = {
   ACCESS_REQUEST_NOTIFICATION: 'access_request_notification',
   ACCESS_REQUEST_APPROVED: 'access_request_approved',
   ACCESS_REQUEST_DENIED: 'access_request_denied',
+
+  // Chat
+  CHAT_MESSAGE: 'chat_message',
 } as const
 
 export type EmailType = typeof EMAIL_TYPES[keyof typeof EMAIL_TYPES]
@@ -135,6 +138,20 @@ export interface AccessRequestDeniedEmailParams {
   requesterName: string | null
 }
 
+/** Chat message - sent when someone sends a message or @mentions */
+export interface ChatMessageEmailParams {
+  to: string
+  spaceName: string
+  spaceId: string
+  organizationId: string
+  senderName: string
+  senderEmail: string
+  messagePreview: string
+  portalLink: string
+  recipientUserId?: string
+  recipientMemberId?: string
+}
+
 // ============================================================================
 // Email Params Map - Maps email type to its params interface
 // ============================================================================
@@ -147,4 +164,5 @@ export interface EmailParamsMap {
   [EMAIL_TYPES.ACCESS_REQUEST_NOTIFICATION]: AccessRequestNotificationEmailParams
   [EMAIL_TYPES.ACCESS_REQUEST_APPROVED]: AccessRequestApprovedEmailParams
   [EMAIL_TYPES.ACCESS_REQUEST_DENIED]: AccessRequestDeniedEmailParams
+  [EMAIL_TYPES.CHAT_MESSAGE]: ChatMessageEmailParams
 }

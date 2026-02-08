@@ -107,11 +107,17 @@ export async function createOrganizationWithOnboarding(formData: FormData) {
             organizationName: name,
             email: user.email!,
         })
-        
+
         if (stripeError) {
             console.error('Failed to create Stripe customer:', stripeError)
             // Continue anyway - billing can be set up later
         }
+    }
+
+    // Create demo space for new organization
+    if (orgData?.id) {
+        const { createDemoSpace } = await import('@/lib/demo-space')
+        await createDemoSpace(orgData.id, user.id)
     }
 
     revalidatePath('/', 'layout')

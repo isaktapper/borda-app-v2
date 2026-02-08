@@ -362,3 +362,41 @@ export function accessRequestDeniedTemplate({
 
   return baseLayout(content)
 }
+
+/**
+ * Chat message - sent when someone sends a message or @mentions
+ */
+export function chatMessageTemplate({
+  spaceName,
+  senderName,
+  messagePreview,
+  portalLink,
+}: {
+  spaceName: string
+  senderName: string
+  messagePreview: string
+  portalLink: string
+}): string {
+  const content = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${STYLES.text};">
+  New message in ${spaceName}
+</h1>
+
+<p style="margin:0 0 16px;color:${STYLES.text};line-height:1.6;font-size:15px;">
+  <strong>${senderName}</strong> sent you a message:
+</p>
+
+<div style="margin:16px 0;padding:16px;background:${STYLES.background};border-radius:8px;border-left:4px solid ${STYLES.primaryBlue};">
+  <p style="margin:0;color:${STYLES.text};line-height:1.6;font-size:15px;font-style:italic;">
+    "${messagePreview}"
+  </p>
+</div>
+
+${button('View message', portalLink)}
+
+<p style="margin:0;color:${STYLES.muted};font-size:14px;line-height:1.5;">
+  Reply in the space to continue the conversation.
+</p>`
+
+  return baseLayout(content)
+}

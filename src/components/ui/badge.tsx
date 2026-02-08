@@ -20,7 +20,7 @@ const badgeVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive [a&]:hover:bg-destructive/20",
         outline:
-          "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
+          "text-foreground [a&]:hover:bg-muted",
       },
     },
     defaultVariants: {

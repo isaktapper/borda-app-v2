@@ -64,6 +64,7 @@ type Space = {
     client_logo_url: string | null
     name: string
     status: string
+    is_demo?: boolean
     target_go_live_date: string | null
     created_at: string
     assigned_to: string | null
@@ -396,7 +397,16 @@ export const SpacesTable = forwardRef<SpacesTableRef, SpacesTableProps>(({ space
                     </div>
                 )
             case 'name':
-                return <span className="text-sm">{space.name}</span>
+                return (
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-sm">{space.name}</span>
+                        {space.is_demo && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                Demo
+                            </Badge>
+                        )}
+                    </div>
+                )
             case 'status':
                 return <StatusBadge status={space.status as SpaceStatus} />
             case 'tags':
