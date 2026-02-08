@@ -31,9 +31,9 @@ export default async function SpacesPage() {
     const userName = profile?.full_name || user.email?.split('@')[0] || 'User'
 
     return (
-        <SpacesPageClient 
-            spaces={spaces} 
-            stats={stats} 
+        <SpacesPageClient
+            spaces={spaces}
+            stats={stats}
             userName={userName}
             spaceLimitReached={!spacePermission.allowed}
             spaceLimit={spacePermission.limit}

@@ -472,6 +472,7 @@ export function ProjectV2Client({
                 {activeTab === 'editor' && (
                     <>
                         {/* Unified Sidebar */}
+                        <div id="tour-editor-sidebar" className="h-full shrink-0">
                         <UnifiedEditorSidebar
                             spaceId={spaceId}
                             activeView={sidebarView}
@@ -498,9 +499,10 @@ export function ProjectV2Client({
                             welcomePopup={welcomePopup}
                             onWelcomePopupSave={handleWelcomePopupSave}
                         />
+                        </div>
 
                         {/* Main Content */}
-                        <div className="flex-1 overflow-auto bg-muted/30">
+                        <div id="tour-content-preview" className="flex-1 overflow-auto bg-muted/30">
                             {selectedPageId ? (
                                 <WYSIWYGContent
                                     blocks={currentBlocks}

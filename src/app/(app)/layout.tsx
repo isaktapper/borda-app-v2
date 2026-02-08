@@ -14,6 +14,7 @@ import {
 import { getTrialDaysRemaining, isTrialExpired, getOrganizationSubscription } from '@/lib/stripe/subscription'
 import { canCreateSpace } from '@/lib/permissions'
 import { getAllPriceData } from '@/lib/stripe'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({
     children,
@@ -59,6 +60,21 @@ export default async function DashboardLayout({
         trialExpired = expired
         isTrialing = subscription?.status === 'trialing' && !expired
         spaceLimitReached = !spacePermission.allowed
+    }
+
+    // Fetch demo space ID for getting started checklist
+    let demoSpaceId: string | null = null
+    if (memberData.data?.organization_id) {
+        const supabase = await createClient()
+        const { data: demoSpace } = await supabase
+            .from('spaces')
+            .select('id')
+            .eq('organization_id', memberData.data.organization_id)
+            .eq('is_demo', true)
+            .is('deleted_at', null)
+            .limit(1)
+            .single()
+        demoSpaceId = demoSpace?.id ?? null
     }
 
     // Get organization details
@@ -116,9 +132,10 @@ export default async function DashboardLayout({
             
             <DashboardSidebar orgName={orgName} user={userData} isSlackConnected={isSlackConnected} spaceLimitReached={spaceLimitReached} />
             <SidebarInset className="h-screen flex flex-col overflow-hidden">
-                <DashboardHeader 
+                <DashboardHeader
                     trialDaysRemaining={trialDaysRemaining}
                     isTrialing={isTrialing}
+                    demoSpaceId={demoSpaceId}
                 />
                 <div className="flex-1 overflow-y-auto">
                     <main className="p-6">

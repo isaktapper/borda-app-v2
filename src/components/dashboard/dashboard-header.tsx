@@ -14,6 +14,8 @@ import { usePathname } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Clock } from "lucide-react"
+import { NotificationCenter } from "@/components/notifications"
+import { GettingStartedChecklist } from "@/components/dashboard/getting-started-checklist"
 
 // Map route segments to display names
 const segmentNames: Record<string, string> = {
@@ -34,9 +36,10 @@ const segmentNames: Record<string, string> = {
 interface DashboardHeaderProps {
     trialDaysRemaining?: number
     isTrialing?: boolean
+    demoSpaceId?: string | null
 }
 
-export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: DashboardHeaderProps) {
+export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false, demoSpaceId }: DashboardHeaderProps) {
     const pathname = usePathname()
 
     // Build breadcrumb segments from pathname
@@ -86,17 +89,20 @@ export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: 
                 </Breadcrumb>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+                {/* Getting Started Checklist */}
+                <GettingStartedChecklist demoSpaceId={demoSpaceId} />
+
                 {/* Trial Countdown */}
                 {isTrialing && trialDaysRemaining > 0 && (
-                    <Link 
+                    <Link
                         href="/settings?tab=billing"
                         className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm font-medium hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
                     >
                         <Clock className="w-3.5 h-3.5" />
                         <span>
-                            {trialDaysRemaining === 1 
-                                ? '1 day left' 
+                            {trialDaysRemaining === 1
+                                ? '1 day left'
                                 : `${trialDaysRemaining} days left`
                             }
                         </span>
@@ -105,6 +111,9 @@ export function DashboardHeader({ trialDaysRemaining = 0, isTrialing = false }: 
                         </span>
                     </Link>
                 )}
+
+                {/* Notification Center */}
+                <NotificationCenter />
 
                 <Image
                     src="/borda_logo_colour.png"

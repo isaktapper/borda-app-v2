@@ -187,7 +187,7 @@ export function DashboardSidebar({ orgName, user, isSlackConnected, spaceLimitRe
                 <SidebarSeparator className="my-2 w-16 mx-auto" />
 
                 {/* Main Navigation */}
-                <SidebarGroup>
+                <SidebarGroup id="tour-sidebar-nav">
                     <SidebarGroupContent>
                         <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
                             {mainNavItems.map((item) => (

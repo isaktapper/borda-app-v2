@@ -181,12 +181,12 @@ export function GeneralSettingsSection({
 
                 {/* Status */}
                 <div className="grid grid-cols-[300px_1fr] p-4 items-center">
-                    <Label htmlFor="status" className="text-sm font-medium">
+                    <Label htmlFor="tour-status-select" className="text-sm font-medium">
                         Status
                     </Label>
                     <div className="flex justify-end">
                         <Select value={status} onValueChange={setStatus}>
-                            <SelectTrigger id="status" className="w-96">
+                            <SelectTrigger id="tour-status-select" className="w-96">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>

@@ -80,27 +80,29 @@ export function SpacesPageClient({ spaces, stats, userName = 'User', spaceLimitR
                             <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                                 Limit reached ({spaceLimit}/{spaceLimit})
                             </span>
-                            <Link 
-                                href="/settings?tab=billing" 
+                            <Link
+                                href="/settings?tab=billing"
                                 className="text-xs font-medium text-primary hover:underline inline-flex items-center gap-1"
                             >
                                 Upgrade <ArrowRight className="size-3" />
                             </Link>
                         </div>
                     )}
-                    {spaceLimitReached ? (
-                        <Button variant="outline" disabled className="gap-2 opacity-60">
-                            <Lock className="size-4" />
-                            New Space
-                        </Button>
-                    ) : (
-                        <CreateSpaceModal />
-                    )}
+                    <div id="tour-new-space-button">
+                        {spaceLimitReached ? (
+                            <Button variant="outline" disabled className="gap-2 opacity-60">
+                                <Lock className="size-4" />
+                                New Space
+                            </Button>
+                        ) : (
+                            <CreateSpaceModal />
+                        )}
+                    </div>
                 </div>
             </div>
 
             {/* Stats Strip */}
-            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x bg-card/50 rounded-xl overflow-hidden">
+            <div id="tour-stats-strip" className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x bg-card/50 rounded-xl overflow-hidden">
                 <div
                     onClick={() => tableRef.current?.setStatusFilter(['active'])}
                     className="p-4 group cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between gap-4"
@@ -160,6 +162,7 @@ export function SpacesPageClient({ spaces, stats, userName = 'User', spaceLimitR
             </div>
 
             {/* Spaces Table */}
+            <div id="tour-spaces-table">
             {spaces.length === 0 ? (
                 <div className="flex flex-col items-center justify-center border border-dashed rounded py-8 text-center">
                     <FolderKanban className="size-8 mx-auto text-muted-foreground/40 mb-2" />
@@ -179,6 +182,7 @@ export function SpacesPageClient({ spaces, stats, userName = 'User', spaceLimitR
             ) : (
                 <SpacesTable ref={tableRef} spaces={spaces} />
             )}
+            </div>
         </div>
     )
 }

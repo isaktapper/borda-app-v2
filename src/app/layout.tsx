@@ -3,6 +3,7 @@ import { Geist, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { PostHogProvider } from "@/lib/posthog";
+import { TourProvider } from "@/lib/tour/tour-provider";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -64,7 +65,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <PostHogProvider>
-          {children}
+          <TourProvider>
+            {children}
+          </TourProvider>
         </PostHogProvider>
       </body>
     </html>
