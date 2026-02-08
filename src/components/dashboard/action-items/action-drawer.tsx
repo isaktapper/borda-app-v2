@@ -56,8 +56,8 @@ export function ActionDrawer({ isOpen, onClose, type, item, spaceId }: ActionDra
 
   return (
     <Drawer
-      isOpen={isOpen}
-      onOpenChange={(open) => !open && onClose()}
+      {...{ isOpen } as any}
+      onOpenChange={(open: boolean) => !open && onClose()}
       size="md"
       placement="right"
       backdrop="blur"
