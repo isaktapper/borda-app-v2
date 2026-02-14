@@ -18,18 +18,25 @@ import {
   Image as ImageIcon
 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useRouter } from 'next/navigation'
 import { getProjectActionItems, type ActionItemsData, type TaskItem, type FormFieldItem, type FileUploadItem } from '@/app/(app)/spaces/[spaceId]/action-items-actions'
+import { updateSpaceStatus } from '@/app/(app)/spaces/[spaceId]/status-actions'
+import { toast } from 'sonner'
 
 interface ResponsesTabContentProps {
   spaceId: string
+  projectStatus?: string
+  progressPercentage?: number
 }
 
 type FilterType = 'all' | 'tasks' | 'forms' | 'files'
 
-export function ResponsesTabContent({ spaceId }: ResponsesTabContentProps) {
+export function ResponsesTabContent({ spaceId, projectStatus = 'active', progressPercentage: propProgress }: ResponsesTabContentProps) {
+  const router = useRouter()
   const [data, setData] = useState<ActionItemsData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<FilterType>('all')
+  const [isSettingComplete, setIsSettingComplete] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,9 +65,23 @@ export function ResponsesTabContent({ spaceId }: ResponsesTabContentProps) {
   }
 
   const { byPage, totals } = data
-  const progressPercentage = totals.overall.total > 0 
+  const progressPercentage = propProgress ?? (totals.overall.total > 0 
     ? Math.round((totals.overall.done / totals.overall.total) * 100)
-    : 0
+    : 0)
+
+  const showSetCompleteBanner = progressPercentage === 100 && projectStatus === 'active'
+
+  const handleSetComplete = async () => {
+    setIsSettingComplete(true)
+    const result = await updateSpaceStatus(spaceId, 'completed')
+    setIsSettingComplete(false)
+    if (result.success) {
+      toast.success('Space marked as completed')
+      router.refresh()
+    } else {
+      toast.error(result.error || 'Kunde inte uppdatera status')
+    }
+  }
 
   // Filter pages based on selected filter
   const filteredPages = byPage.map(page => {
@@ -78,6 +99,34 @@ export function ResponsesTabContent({ spaceId }: ResponsesTabContentProps) {
   return (
     <div className="h-full overflow-auto">
       <div className="max-w-4xl mx-auto p-6 space-y-6">
+        {/* Set as Complete banner */}
+        {showSetCompleteBanner && (
+          <Card className="p-4 border-primary/50 bg-primary/5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="font-medium">All tasks and forms are complete</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  Review the responses below and set this space as completed when you&apos;re ready.
+                </p>
+              </div>
+              <Button
+                onClick={handleSetComplete}
+                disabled={isSettingComplete}
+                className="shrink-0"
+              >
+                {isSettingComplete ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin mr-2" />
+                    Updating...
+                  </>
+                ) : (
+                  'Set as Complete'
+                )}
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>

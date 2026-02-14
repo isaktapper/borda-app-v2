@@ -235,6 +235,34 @@ ${button('Go to space', portalLink)}`
 }
 
 /**
+ * Progress complete - sent to admins when space reaches 100% progress
+ */
+export function progressCompleteTemplate({
+  spaceName,
+  spaceLink,
+}: {
+  spaceName: string
+  spaceLink: string
+}): string {
+  const content = `
+<h1 style="margin:0 0 24px;font-size:24px;font-weight:600;color:${STYLES.text};">
+  Progress complete: ${spaceName}
+</h1>
+
+<p style="margin:0 0 16px;color:${STYLES.text};line-height:1.6;font-size:15px;">
+  All tasks, forms, and file uploads in <strong>${spaceName}</strong> have been completed.
+</p>
+
+<p style="margin:0 0 16px;color:${STYLES.text};line-height:1.6;font-size:15px;">
+  Open the space to review and set it as completed when you're ready.
+</p>
+
+${button('Open space', spaceLink)}`
+
+  return baseLayout(content)
+}
+
+/**
  * Access request notification - sent to admins when someone requests access
  */
 export function accessRequestNotificationTemplate({

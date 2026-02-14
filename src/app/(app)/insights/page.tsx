@@ -1,10 +1,7 @@
-import { getInsightsData } from './actions'
-import { InsightsPageClient } from './insights-page-client'
+import { redirect } from 'next/navigation'
 
-export default async function InsightsPage() {
-  const data = await getInsightsData()
-
-  return <InsightsPageClient data={data} />
+export default function InsightsPage() {
+  redirect('/analytics')
 }
 
 

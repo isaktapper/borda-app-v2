@@ -312,6 +312,11 @@ export async function toggleTaskStatus(blockId: string, spaceId: string, taskTit
     )
 
     revalidatePath(`/space/${spaceId}/shared`, 'layout')
+
+    // Notify admins if progress reaches 100% (no auto-complete)
+    const { autoUpdateSpaceStatus } = await import('@/app/(app)/spaces/auto-status-actions')
+    await autoUpdateSpaceStatus(spaceId)
+
     return { success: true, status: newStatus }
 }
 
@@ -392,6 +397,10 @@ export async function saveResponse(blockId: string, spaceId: string, value: any)
         )
     }
 
+    // Notify admins if progress reaches 100% (no auto-complete)
+    const { autoUpdateSpaceStatus } = await import('@/app/(app)/spaces/auto-status-actions')
+    await autoUpdateSpaceStatus(spaceId)
+
     return { success: true }
 }
 
@@ -470,6 +479,11 @@ export async function uploadFile(
     )
 
     revalidatePath(`/space/${spaceId}/shared`, 'layout')
+
+    // Notify admins if progress reaches 100% (no auto-complete)
+    const { autoUpdateSpaceStatus } = await import('@/app/(app)/spaces/auto-status-actions')
+    await autoUpdateSpaceStatus(spaceId)
+
     return { success: true, file: data }
 }
 

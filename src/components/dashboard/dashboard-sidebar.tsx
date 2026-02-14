@@ -96,10 +96,9 @@ export function DashboardSidebar({ orgName, user, isSlackConnected, spaceLimitRe
         },
         {
             title: "Analytics",
-            url: "#",
+            url: "/analytics",
             icon: BarChart3,
-            isActive: false,
-            comingSoon: true,
+            isActive: pathname?.startsWith("/analytics"),
         },
     ]
 
@@ -216,30 +215,16 @@ export function DashboardSidebar({ orgName, user, isSlackConnected, spaceLimitRe
                         <SidebarMenu className="px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:items-center">
                             {secondaryNavItems.map((item) => (
                                 <SidebarMenuItem key={item.title}>
-                                    {item.comingSoon ? (
-                                        <SidebarMenuButton
-                                            isActive={false}
-                                            tooltip={`${item.title} - Coming soon`}
-                                            className="cursor-not-allowed opacity-60"
-                                        >
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={item.isActive}
+                                        tooltip={item.title}
+                                    >
+                                        <Link href={item.url}>
                                             <item.icon className="size-4" />
                                             <span>{item.title}</span>
-                                            <span className="ml-auto text-[10px] font-medium bg-muted text-muted-foreground px-1.5 py-0.5 rounded group-data-[collapsible=icon]:hidden">
-                                                Soon
-                                            </span>
-                                        </SidebarMenuButton>
-                                    ) : (
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={item.isActive}
-                                            tooltip={item.title}
-                                        >
-                                            <Link href={item.url}>
-                                                <item.icon className="size-4" />
-                                                <span>{item.title}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    )}
+                                        </Link>
+                                    </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
                         </SidebarMenu>

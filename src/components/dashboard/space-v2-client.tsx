@@ -546,7 +546,11 @@ export function ProjectV2Client({
 
                 {activeTab === 'responses' && (
                     <div className="flex-1 overflow-hidden">
-                        <ResponsesTabContent spaceId={spaceId} />
+                        <ResponsesTabContent
+                            spaceId={spaceId}
+                            projectStatus={project.status}
+                            progressPercentage={progress?.progressPercentage ?? 0}
+                        />
                     </div>
                 )}
 

@@ -34,6 +34,9 @@ export const EMAIL_TYPES = {
 
   // Chat
   CHAT_MESSAGE: 'chat_message',
+
+  // Space progress
+  PROGRESS_COMPLETE: 'progress_complete',
 } as const
 
 export type EmailType = typeof EMAIL_TYPES[keyof typeof EMAIL_TYPES]
@@ -138,6 +141,15 @@ export interface AccessRequestDeniedEmailParams {
   requesterName: string | null
 }
 
+/** Progress complete - sent to admins when space reaches 100% progress */
+export interface ProgressCompleteEmailParams {
+  to: string
+  spaceName: string
+  spaceId: string
+  organizationId: string
+  spaceLink: string
+}
+
 /** Chat message - sent when someone sends a message or @mentions */
 export interface ChatMessageEmailParams {
   to: string
@@ -165,4 +177,5 @@ export interface EmailParamsMap {
   [EMAIL_TYPES.ACCESS_REQUEST_APPROVED]: AccessRequestApprovedEmailParams
   [EMAIL_TYPES.ACCESS_REQUEST_DENIED]: AccessRequestDeniedEmailParams
   [EMAIL_TYPES.CHAT_MESSAGE]: ChatMessageEmailParams
+  [EMAIL_TYPES.PROGRESS_COMPLETE]: ProgressCompleteEmailParams
 }

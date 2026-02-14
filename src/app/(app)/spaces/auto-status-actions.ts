@@ -1,178 +1,82 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { sendProgressCompleteEmail, EMAIL_TYPES } from '@/lib/email'
 
 /**
- * Automatically update space status based on progress
- * - If progress reaches 100% and status is 'active', set to 'completed'
- * - If progress drops below 100% and status is 'completed', revert to 'active'
+ * When progress reaches 100% and space is 'active', notify admins via email.
+ * Space status is never auto-updated – admins must set it to "completed" manually.
  */
 export async function autoUpdateSpaceStatus(spaceId: string) {
   const supabase = await createClient()
 
-  // Get current space status
+  // Get current space status and org
   const { data: space } = await supabase
     .from('spaces')
-    .select('id, status')
+    .select('id, status, name, client_name, organization_id')
     .eq('id', spaceId)
     .single()
 
-  if (!space || (space.status !== 'active' && space.status !== 'completed')) {
-    // Only auto-update between active and completed states
+  if (!space || space.status !== 'active') {
     return
   }
 
-  // Calculate progress
-  const progress = await calculateSpaceProgress(spaceId)
+  // Calculate progress (use getSpaceProgress for consistency)
+  const { getSpaceProgress } = await import('./progress-actions')
+  const progressData = await getSpaceProgress(spaceId)
 
-  // Determine if status should change
-  let newStatus: string | null = null
-
-  if (progress === 100 && space.status === 'active') {
-    newStatus = 'completed'
-  } else if (progress < 100 && space.status === 'completed') {
-    newStatus = 'active'
+  if (!progressData || progressData.progressPercentage < 100) {
+    return
   }
 
-  // Update status if needed
-  if (newStatus) {
-    await supabase
-      .from('spaces')
-      .update({
-        status: newStatus,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', spaceId)
+  // Check if we've already sent this notification in the last 24 hours
+  const adminClient = await createAdminClient()
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
-    // Revalidate paths
-    revalidatePath(`/spaces/${spaceId}`)
-    revalidatePath('/spaces')
-  }
-}
-
-/**
- * Calculate progress percentage for a space
- * Based on tasks, forms, and file uploads
- */
-async function calculateSpaceProgress(spaceId: string): Promise<number> {
-  const supabase = await createClient()
-
-  // Get all pages for this space
-  const { data: pages } = await supabase
-    .from('pages')
+  const { data: recentEmail } = await adminClient
+    .from('email_log')
     .select('id')
+    .eq('type', EMAIL_TYPES.PROGRESS_COMPLETE)
     .eq('space_id', spaceId)
-    .is('deleted_at', null)
+    .eq('status', 'sent')
+    .gte('sent_at', oneDayAgo.toISOString())
+    .limit(1)
+    .maybeSingle()
 
-  if (!pages || pages.length === 0) {
-    return 0
+  if (recentEmail) {
+    return
   }
 
-  const pageIds = pages.map(p => p.id)
-
-  // Get all blocks for these pages
-  const { data: blocks } = await supabase
-    .from('blocks')
-    .select('id, type, content, page_id')
-    .in('page_id', pageIds)
+  // Get org admins (owner + admin)
+  const { data: admins } = await adminClient
+    .from('organization_members')
+    .select('invited_email, users:user_id(email)')
+    .eq('organization_id', space.organization_id)
+    .in('role', ['owner', 'admin'])
     .is('deleted_at', null)
 
-  if (!blocks || blocks.length === 0) {
-    return 0
+  if (!admins || admins.length === 0) {
+    return
   }
 
-  const blockIds = blocks.map(b => b.id)
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.borda.work'
+  const spaceLink = `${appUrl}/spaces/${spaceId}?tab=responses`
+  const spaceName = space.client_name || space.name || 'Space'
 
-  // Get all responses
-  const { data: responses } = await supabase
-    .from('responses')
-    .select('block_id, value')
-    .in('block_id', blockIds)
+  for (const admin of admins) {
+    const email = (admin.users as { email?: string } | null)?.email ?? admin.invited_email
+    if (!email) continue
 
-  // Get all files
-  const { data: files } = await supabase
-    .from('files')
-    .select('block_id')
-    .in('block_id', blockIds)
-    .is('deleted_at', null)
+    await sendProgressCompleteEmail({
+      to: email,
+      spaceName,
+      spaceId,
+      organizationId: space.organization_id,
+      spaceLink,
+    })
+  }
 
-  // Create lookup maps
-  const responsesByBlockId = new Map(responses?.map(r => [r.block_id, r]) || [])
-  const filesSet = new Set(files?.map(f => f.block_id) || [])
-
-  // Count tasks, forms, and files
-  let totalTasks = 0
-  let completedTasks = 0
-  let totalForms = 0
-  let answeredForms = 0
-  let totalFiles = 0
-  let uploadedFiles = 0
-
-  blocks.forEach(block => {
-    const response = responsesByBlockId.get(block.id)
-    const content = block.content as any
-
-    // Count tasks
-    if (block.type === 'task') {
-      const blockTasks = content?.tasks || []
-      const taskStatuses = response?.value?.tasks || {}
-
-      blockTasks.forEach((task: any) => {
-        totalTasks++
-        const status = taskStatuses[task.id] || 'pending'
-        if (status === 'completed') {
-          completedTasks++
-        }
-      })
-    }
-
-    // Count forms
-    if (block.type === 'form') {
-      const blockQuestions = content?.questions || []
-      const questionAnswers = response?.value?.questions || {}
-
-      blockQuestions.forEach((question: any) => {
-        totalForms++
-        const answer = questionAnswers[question.id]
-
-        // Check if there's a meaningful answer
-        let hasAnswer = false
-        if (answer) {
-          if (answer.text && answer.text.trim() !== '') {
-            hasAnswer = true
-          } else if (answer.selected) {
-            if (Array.isArray(answer.selected)) {
-              hasAnswer = answer.selected.length > 0
-            } else {
-              hasAnswer = answer.selected !== ''
-            }
-          } else if (answer.date) {
-            hasAnswer = true
-          }
-        }
-
-        if (hasAnswer) {
-          answeredForms++
-        }
-      })
-    }
-
-    // Count file uploads
-    if (block.type === 'file_upload') {
-      totalFiles++
-      if (filesSet.has(block.id)) {
-        uploadedFiles++
-      }
-    }
-  })
-
-  // Calculate progress percentage
-  const totalItems = totalTasks + totalForms + totalFiles
-  const completedItems = completedTasks + answeredForms + uploadedFiles
-  const progressPercentage = totalItems > 0
-    ? Math.round((completedItems / totalItems) * 100)
-    : 0
-
-  return progressPercentage
+  revalidatePath(`/spaces/${spaceId}`)
+  revalidatePath('/spaces')
 }

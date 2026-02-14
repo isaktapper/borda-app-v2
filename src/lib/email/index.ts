@@ -12,6 +12,7 @@ import {
   type AccessRequestApprovedEmailParams,
   type AccessRequestDeniedEmailParams,
   type ChatMessageEmailParams,
+  type ProgressCompleteEmailParams,
 } from './types'
 import { EMAIL_SUBJECTS } from './subjects'
 import {
@@ -23,6 +24,7 @@ import {
   accessRequestApprovedTemplate,
   accessRequestDeniedTemplate,
   chatMessageTemplate,
+  progressCompleteTemplate,
 } from './templates'
 
 // Re-export types for convenience
@@ -343,6 +345,31 @@ export async function sendAccessRequestDeniedEmail(params: AccessRequestDeniedEm
       subject,
       type: EMAIL_TYPES.ACCESS_REQUEST_DENIED,
       organization_id: params.organizationId,
+      metadata: {},
+    },
+  })
+}
+
+/**
+ * Send progress complete notification to admins when space reaches 100%
+ */
+export async function sendProgressCompleteEmail(params: ProgressCompleteEmailParams) {
+  const subject = EMAIL_SUBJECTS.progressComplete(params.spaceName)
+
+  return sendEmailInternal({
+    to: params.to,
+    subject,
+    html: progressCompleteTemplate({
+      spaceName: params.spaceName,
+      spaceLink: params.spaceLink,
+    }),
+    logEntry: {
+      to_email: params.to,
+      from_email: DEFAULT_FROM,
+      subject,
+      type: EMAIL_TYPES.PROGRESS_COMPLETE,
+      organization_id: params.organizationId,
+      space_id: params.spaceId,
       metadata: {},
     },
   })

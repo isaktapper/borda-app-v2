@@ -31,4 +31,7 @@ export const EMAIL_SUBJECTS = {
 
   // Chat message
   chatMessage: (spaceName: string) => `New message in ${spaceName}`,
+
+  // Progress complete
+  progressComplete: (spaceName: string) => `Progress complete: ${spaceName}`,
 }
